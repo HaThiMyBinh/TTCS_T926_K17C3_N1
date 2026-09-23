@@ -1,18 +1,19 @@
-// backend/test.js
+// test.js
 const fs = require("fs");
 const path = require("path");
 
+// Sử dụng 127.0.0.1 để tránh lỗi mạng Windows
 const API_URL = "http://127.0.0.1:5000/api/users";
 
 async function runAutoTests() {
   console.log("\n");
-  console.log(" BẮT ĐẦU CHẠY KIỂM THỬ TỰ ĐỘNG (AUTOMATED TESTING)");
+  console.log(" BẮT ĐẦU CHẠY TEST TẠO TÀI KHOẢN (TASK 5)");
   console.log("\n");
 
   let passCount = 0;
   const totalCount = 5;
 
-  //  TEST CASE 1: Tạo tài khoản HR hợp lệ (Positive)
+  // --- TEST CASE 1: Tạo tài khoản HR hợp lệ ---
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -35,7 +36,7 @@ async function runAutoTests() {
     console.log(" [FAIL] TC_01: Lỗi kết nối API");
   }
 
-  //  TEST CASE 2: Tạo tài khoản Mentor hợp lệ (Positive)
+  // --- TEST CASE 2: Tạo tài khoản Mentor hợp lệ ---
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -58,13 +59,13 @@ async function runAutoTests() {
     console.log(" [FAIL] TC_02: Lỗi kết nối API");
   }
 
-  //  TEST CASE 3: Gửi thiếu thông tin (Negative)
+  // --- TEST CASE 3: Gửi thiếu thông tin ---
   try {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: "", // Bỏ trống tên
+        name: "",
         email: "missing@ictu.edu.vn",
         password: "",
         role: "Intern",
@@ -82,10 +83,9 @@ async function runAutoTests() {
     console.log(" [FAIL] TC_03: Lỗi kết nối API");
   }
 
-  //  TEST CASE 4: Kiểm tra chặn trùng Email (Negative)
+  // --- TEST CASE 4: Kiểm tra chặn trùng Email ---
   try {
     const duplicateEmail = `trung_email_${Date.now()}@ictu.edu.vn`;
-    // Tạo lần đầu
     await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -97,7 +97,6 @@ async function runAutoTests() {
       }),
     });
 
-    // Cố tình tạo lần 2 với cùng Email đó
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -111,7 +110,7 @@ async function runAutoTests() {
     const data = await res.json();
 
     if (res.status === 400 && data.error.includes("tồn tại")) {
-      console.log(" [PASS] TC_04: Bắt chính xác lỗi trùng Email (Báo lỗi 400)");
+      console.log("[PASS] TC_04: Bắt chính xác lỗi trùng Email (Báo lỗi 400)");
       passCount++;
     } else {
       console.log(" [FAIL] TC_04: Không phát hiện được email bị trùng");
@@ -120,20 +119,24 @@ async function runAutoTests() {
     console.log(" [FAIL] TC_04: Lỗi kết nối API");
   }
 
-  //  TEST CASE 5: Kiểm tra tính bảo mật mật khẩu trong Database
+  // --- TEST CASE 5: Kiểm tra tính bảo mật mật khẩu trong Database ---
   try {
-    const DB_FILE = path.join(__dirname, "users.json");
-    const users = JSON.parse(fs.readFileSync(DB_FILE, "utf-8"));
+    // Tự động tìm file users.json dù ở thư mục nào
+    let dbPath = path.join(__dirname, "users.json");
+    if (!fs.existsSync(dbPath)) {
+      dbPath = path.join(__dirname, "backend", "users.json");
+    }
+
+    const users = JSON.parse(fs.readFileSync(dbPath, "utf-8"));
     const lastUser = users[users.length - 1];
 
-    // Mật khẩu lưu trong file phải là chuỗi băm 64 ký tự (SHA-256), không được lưu 'password123'
     if (
       lastUser &&
       lastUser.password_hash !== "password123" &&
       lastUser.password_hash.length === 64
     ) {
       console.log(
-        " [PASS] TC_05: Mật khẩu được mã hóa an toàn SHA-256 trong Database",
+        " [PASS] TC_05: Mật khẩu được mã hóa an toàn SHA-256 (64 ký tự)",
       );
       passCount++;
     } else {
@@ -144,9 +147,7 @@ async function runAutoTests() {
   }
 
   console.log("\n");
-  console.log(
-    ` KẾT QUẢ: ${passCount}/${totalCount} TEST CASES ĐẠT CHUẨN (PASS) 100%!`,
-  );
+  console.log(` KẾT QUẢ: ${passCount}/${totalCount} TEST CASES PASS 100%!`);
   console.log("\n");
 }
 

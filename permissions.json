@@ -1,0 +1,14 @@
+{
+  "HR": [
+    "MANAGE_USERS",
+    "EVALUATE_INTERN",
+    "VIEW_REPORTS"
+  ],
+  "Mentor": [
+    "ASSIGN_TASKS",
+    "EVALUATE_INTERN"
+  ],
+  "Intern": [
+    "VIEW_REPORTS"
+  ]
+}

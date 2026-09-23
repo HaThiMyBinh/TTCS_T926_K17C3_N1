@@ -1,53 +1,56 @@
-// backend/server.js
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
-const crypto = require("crypto"); // Có sẵn trong Node.js, không cần cài thêm
+const crypto = require("crypto");
 
 const app = express();
-app.use(cors()); // Cho phép Frontend gọi sang
+app.use(cors());
 app.use(express.json());
 
-const DB_FILE = path.join(__dirname, "users.json");
+const USERS_FILE = path.join(__dirname, "users.json");
+const PERMISSIONS_FILE = path.join(__dirname, "permissions.json");
 
-// Khởi tạo file database nếu chưa có
-if (!fs.existsSync(DB_FILE)) {
-  fs.writeFileSync(DB_FILE, JSON.stringify([]));
+if (!fs.existsSync(USERS_FILE)) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify([]));
 }
 
-// TASK 3: API POST /api/users (Tạo tài khoản, mã hóa mật khẩu, kiểm tra trùng email)
+if (!fs.existsSync(PERMISSIONS_FILE)) {
+  fs.writeFileSync(
+    PERMISSIONS_FILE,
+    JSON.stringify(
+      {
+        HR: ["MANAGE_USERS", "EVALUATE_INTERN", "VIEW_REPORTS"],
+        Mentor: ["ASSIGN_TASKS", "EVALUATE_INTERN"],
+        Intern: ["SUBMIT_WORK"],
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+// 1. API TẠO TÀI KHOẢN (POST /api/users)
 app.post("/api/users", (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-
-    // Validate dữ liệu đầu vào
     if (!name || !email || !password || !role) {
       return res
         .status(400)
         .json({ error: "Vui lòng điền đầy đủ tất cả các trường!" });
     }
 
-    // TASK 2: Đọc dữ liệu từ Database (file users.json)
-    const users = JSON.parse(fs.readFileSync(DB_FILE, "utf-8"));
-
-    // Kiểm tra trùng email
-    const isExist = users.some(
-      (u) => u.email.toLowerCase() === email.toLowerCase(),
-    );
-    if (isExist) {
+    const users = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
+    if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
       return res
         .status(400)
         .json({ error: "Email này đã tồn tại trong hệ thống!" });
     }
 
-    // Mã hóa mật khẩu bằng SHA-256
     const hashedPassword = crypto
       .createHash("sha256")
       .update(password)
       .digest("hex");
-
-    // Lưu người dùng mới vào Database
     const newUser = {
       id: Date.now(),
       name,
@@ -58,9 +61,8 @@ app.post("/api/users", (req, res) => {
     };
 
     users.push(newUser);
-    fs.writeFileSync(DB_FILE, JSON.stringify(users, null, 2), "utf-8");
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
 
-    // Trả về kết quả thành công cho Frontend
     res.status(201).json({
       message: "Tạo tài khoản thành công!",
       user: {
@@ -75,7 +77,62 @@ app.post("/api/users", (req, res) => {
   }
 });
 
-// Chạy server tại cổng 5000
+// 2. MIDDLEWARE KIỂM TRA PHÂN QUYỀN
+function checkPermission(requiredPermission) {
+  return (req, res, next) => {
+    const userRole = req.headers["x-user-role"];
+    if (!userRole) {
+      return res.status(401).json({ error: "Chưa xác thực vai trò!" });
+    }
+
+    const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf-8"));
+    const rolePermissions = permissions[userRole] || [];
+
+    if (!rolePermissions.includes(requiredPermission)) {
+      return res.status(403).json({
+        error: `Từ chối truy cập: [${userRole}] không có quyền [${requiredPermission}]!`,
+      });
+    }
+
+    next();
+  };
+}
+
+// API lấy danh sách quyền: GET /api/permissions
+app.get("/api/permissions", (req, res) => {
+  try {
+    const permissions = JSON.parse(fs.readFileSync(PERMISSIONS_FILE, "utf-8"));
+    res.json(permissions);
+  } catch (err) {
+    res.status(500).json({ error: "Lỗi đọc quyền" });
+  }
+});
+
+// API cập nhật quyền: POST /api/permissions/update
+app.post("/api/permissions/update", (req, res) => {
+  try {
+    const { role, permissions } = req.body;
+    const allPermissions = JSON.parse(
+      fs.readFileSync(PERMISSIONS_FILE, "utf-8"),
+    );
+
+    allPermissions[role] = permissions;
+    fs.writeFileSync(PERMISSIONS_FILE, JSON.stringify(allPermissions, null, 2));
+
+    res.json({
+      message: "Cập nhật quyền thành công!",
+      permissions: allPermissions,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Lỗi lưu quyền" });
+  }
+});
+
+// API thử nghiệm có phân quyền: GET /api/reports (Chỉ ai có quyền VIEW_REPORTS mới vào được)
+app.get("/api/reports", checkPermission("VIEW_REPORTS"), (req, res) => {
+  res.json({ message: "Dữ liệu báo cáo mật!", data: [1, 2, 3] });
+});
+
 app.listen(5000, () => {
-  console.log("🚀 Backend Server đang chạy tại http://localhost:5000");
+  console.log(" Server Backend đang chạy tại http://localhost:5000");
 });
