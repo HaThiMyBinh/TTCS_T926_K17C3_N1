@@ -1,29 +1,35 @@
-<!-- frontend/index.html -->
+<!-- index.html -->
 <!doctype html>
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <title>Tạo Tài Khoản - Frontend</title>
+    <title>Hệ Thống Quản Lý & Phân Quyền - Admin</title>
     <style>
       body {
         font-family: Arial, sans-serif;
         background-color: #f4f6f8;
         display: flex;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
         min-height: 100vh;
         margin: 0;
+        padding: 40px 20px;
+        box-sizing: border-box;
       }
       .card {
         background: white;
         padding: 30px;
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        width: 380px;
+        width: 100%;
+        max-width: 580px;
+        margin-bottom: 30px;
+        box-sizing: border-box;
       }
       h2 {
         text-align: center;
         margin-top: 0;
+        color: #333;
       }
       .form-group {
         margin-bottom: 14px;
@@ -71,14 +77,28 @@
         background-color: #f8d7da;
         color: #721c24;
       }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+      }
+      th {
+        background: #f8f9fa;
+      }
     </style>
   </head>
   <body>
+    <!-- TẠO TÀI KHOẢN -->
     <div class="card">
       <h2>Tạo Tài Khoản (Admin)</h2>
       <div id="alertBox" class="alert"></div>
 
-      <!-- TASK 1: Form chọn vai trò HR, Mentor, Intern -->
       <form id="accountForm">
         <div class="form-group">
           <label>Họ và tên:</label>
@@ -118,8 +138,115 @@
       </form>
     </div>
 
+    <!-- QUẢN LÝ PHÂN QUYỀN -->
+    <div class="card">
+      <h2>Quản Lý Phân Quyền Vai Trò</h2>
+      <p
+        style="
+          text-align: center;
+          color: #666;
+          font-size: 13px;
+          margin-bottom: 20px;
+        "
+      >
+        Tích chọn các chức năng mà mỗi vai trò được phép sử dụng
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Chức năng (Quyền)</th>
+            <th style="text-align: center">HR</th>
+            <th style="text-align: center">Mentor</th>
+            <th style="text-align: center">Intern</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b> Quản lý tài khoản (MANAGE_USERS)</b></td>
+            <td align="center">
+              <input type="checkbox" id="HR_MANAGE_USERS" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Mentor_MANAGE_USERS" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Intern_MANAGE_USERS" />
+            </td>
+          </tr>
+          <tr>
+            <td><b> Giao nhiệm vụ & Task (ASSIGN_TASKS)</b></td>
+            <td align="center">
+              <input type="checkbox" id="HR_ASSIGN_TASKS" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Mentor_ASSIGN_TASKS" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Intern_ASSIGN_TASKS" />
+            </td>
+          </tr>
+          <tr>
+            <td><b> Nộp báo cáo công việc (SUBMIT_WORK)</b></td>
+            <td align="center">
+              <input type="checkbox" id="HR_SUBMIT_WORK" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Mentor_SUBMIT_WORK" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Intern_SUBMIT_WORK" />
+            </td>
+          </tr>
+          <tr>
+            <td><b> Đánh giá thực tập sinh (EVALUATE_INTERN)</b></td>
+            <td align="center">
+              <input type="checkbox" id="HR_EVALUATE_INTERN" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Mentor_EVALUATE_INTERN" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Intern_EVALUATE_INTERN" />
+            </td>
+          </tr>
+          <tr>
+            <td><b> Xem báo cáo & Thống kê (VIEW_REPORTS)</b></td>
+            <td align="center">
+              <input type="checkbox" id="HR_VIEW_REPORTS" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Mentor_VIEW_REPORTS" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Intern_VIEW_REPORTS" />
+            </td>
+          </tr>
+          <tr>
+            <td><b> Cài đặt hệ thống (SYSTEM_SETTINGS)</b></td>
+            <td align="center">
+              <input type="checkbox" id="HR_SYSTEM_SETTINGS" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Mentor_SYSTEM_SETTINGS" />
+            </td>
+            <td align="center">
+              <input type="checkbox" id="Intern_SYSTEM_SETTINGS" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <button
+        onclick="savePermissions()"
+        style="margin-top: 15px; background: #28a745"
+      >
+        Lưu cấu hình phân quyền
+      </button>
+    </div>
+
     <script>
-      // TASK 4: Tích hợp API tạo tài khoản & xử lý thông báo
+      // XỬ LÝ FORM TẠO TÀI KHOẢN
       document
         .getElementById("accountForm")
         .addEventListener("submit", async function (e) {
@@ -132,10 +259,9 @@
           const btn = document.getElementById("submitBtn");
           const alertBox = document.getElementById("alertBox");
 
-          // Validate phía Frontend
           if (password.length < 6) {
             alertBox.className = "alert alert-error";
-            alertBox.innerText = "❌ Mật khẩu phải từ 6 ký tự trở lên!";
+            alertBox.innerText = " Mật khẩu phải từ 6 ký tự trở lên!";
             alertBox.style.display = "block";
             return;
           }
@@ -145,7 +271,6 @@
           alertBox.style.display = "none";
 
           try {
-            // GỌI SANG API BACKEND TẠI CỔNG 5000
             const response = await fetch("http://127.0.0.1:5000/api/users", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -156,22 +281,75 @@
 
             if (response.ok) {
               alertBox.className = "alert alert-success";
-              alertBox.innerText = "🎉 " + data.message;
+              alertBox.innerText = " " + data.message;
               document.getElementById("accountForm").reset();
             } else {
               alertBox.className = "alert alert-error";
-              alertBox.innerText = "❌ " + (data.error || "Có lỗi xảy ra!");
+              alertBox.innerText = " " + (data.error || "Có lỗi xảy ra!");
             }
           } catch (err) {
             alertBox.className = "alert alert-error";
             alertBox.innerText =
-              "❌ Không thể kết nối tới Backend! (Bạn đã bật server.js chưa?)";
+              " Không thể kết nối tới Backend! (Bạn đã bật server.js chưa?)";
           } finally {
             btn.disabled = false;
             btn.innerText = "Tạo tài khoản";
             alertBox.style.display = "block";
           }
         });
+
+      //  XỬ LÝ PHÂN QUYỀN
+      const ALL_ROLES = ["HR", "Mentor", "Intern"];
+      const ALL_PERMS = [
+        "MANAGE_USERS",
+        "ASSIGN_TASKS",
+        "SUBMIT_WORK",
+        "EVALUATE_INTERN",
+        "VIEW_REPORTS",
+        "SYSTEM_SETTINGS",
+      ];
+
+      let currentPermissions = {};
+
+      async function loadPermissions() {
+        try {
+          const res = await fetch("http://127.0.0.1:5000/api/permissions");
+          currentPermissions = await res.json();
+
+          for (const role of ALL_ROLES) {
+            for (const perm of ALL_PERMS) {
+              const cb = document.getElementById(`${role}_${perm}`);
+              if (cb) {
+                cb.checked = (currentPermissions[role] || []).includes(perm);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Lỗi tải quyền:", e);
+        }
+      }
+
+      async function savePermissions() {
+        for (const role of ALL_ROLES) {
+          const permissions = [];
+          for (const perm of ALL_PERMS) {
+            const cb = document.getElementById(`${role}_${perm}`);
+            if (cb && cb.checked) {
+              permissions.push(perm);
+            }
+          }
+
+          await fetch("http://127.0.0.1:5000/api/permissions/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ role, permissions }),
+          });
+        }
+        alert("🎉 Đã lưu cấu hình phân quyền thành công!");
+        loadPermissions();
+      }
+
+      loadPermissions();
     </script>
   </body>
 </html>
