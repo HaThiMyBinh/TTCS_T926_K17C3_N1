@@ -30,5 +30,68 @@
     "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
     "role": "Intern",
     "createdAt": "2026-09-23T16:22:45.077Z"
+  },
+  {
+    "id": 1790186144316,
+    "name": "Trần Tuyển Dụng",
+    "email": "auto_hr_1790186144291@ictu.edu.vn",
+    "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+    "role": "HR",
+    "createdAt": "2026-09-23T17:55:44.316Z"
+  },
+  {
+    "id": 1790186144326,
+    "name": "Lê Hướng Dẫn",
+    "email": "auto_mentor_1790186144337@ictu.edu.vn",
+    "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+    "role": "Mentor",
+    "createdAt": "2026-09-23T17:55:44.326Z"
+  },
+  {
+    "id": 1790186144338,
+    "name": "User 1",
+    "email": "trung_email_1790186144344@ictu.edu.vn",
+    "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+    "role": "Intern",
+    "createdAt": "2026-09-23T17:55:44.338Z"
+  },
+  {
+    "id": 1790223190806,
+    "name": "Hoàng Thực Tập Sinh",
+    "email": "candidate_1790223190548@ictu.edu.vn",
+    "phone": "0987654321",
+    "university": "ĐH CNTT & Truyền Thông",
+    "major": "Kỹ thuật phần mềm",
+    "cvLink": "https://github.com/my-cv",
+    "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+    "role": "Intern",
+    "status": "Chờ duyệt",
+    "createdAt": "2026-09-24T04:13:10.806Z"
+  },
+  {
+    "id": 1790223190834,
+    "name": "Ung vien 1",
+    "email": "dup_1790223190836@gmail.com",
+    "phone": "0123456789",
+    "university": "ICTU",
+    "major": "Chưa cập nhật",
+    "cvLink": "",
+    "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+    "role": "Intern",
+    "status": "Chờ duyệt",
+    "createdAt": "2026-09-24T04:13:10.834Z"
+  },
+  {
+    "id": 1790223288554,
+    "name": "Ha Thi My Binh",
+    "email": "hathimybinh2006@gmail.com",
+    "phone": "0986644678",
+    "university": "Đại Học mỏ",
+    "major": "cntt",
+    "cvLink": "",
+    "password_hash": "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f",
+    "role": "Intern",
+    "status": "Chờ duyệt",
+    "createdAt": "2026-09-24T04:14:48.554Z"
   }
 ]

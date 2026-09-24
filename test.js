@@ -13,7 +13,7 @@ async function runAutoTests() {
   let passCount = 0;
   const totalCount = 5;
 
-  // --- TEST CASE 1: Tạo tài khoản HR hợp lệ ---
+  // Tạo tài khoản HR hợp lệ
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -36,7 +36,7 @@ async function runAutoTests() {
     console.log(" [FAIL] TC_01: Lỗi kết nối API");
   }
 
-  // --- TEST CASE 2: Tạo tài khoản Mentor hợp lệ ---
+  // Tạo tài khoản Mentor hợp lệ
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -59,7 +59,7 @@ async function runAutoTests() {
     console.log(" [FAIL] TC_02: Lỗi kết nối API");
   }
 
-  // --- TEST CASE 3: Gửi thiếu thông tin ---
+  // Gửi thiếu thông tin
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -83,7 +83,7 @@ async function runAutoTests() {
     console.log(" [FAIL] TC_03: Lỗi kết nối API");
   }
 
-  // --- TEST CASE 4: Kiểm tra chặn trùng Email ---
+  // Kiểm tra chặn trùng Email
   try {
     const duplicateEmail = `trung_email_${Date.now()}@ictu.edu.vn`;
     await fetch(API_URL, {
@@ -119,7 +119,7 @@ async function runAutoTests() {
     console.log(" [FAIL] TC_04: Lỗi kết nối API");
   }
 
-  // --- TEST CASE 5: Kiểm tra tính bảo mật mật khẩu trong Database ---
+  // Kiểm tra tính bảo mật mật khẩu trong Database
   try {
     // Tự động tìm file users.json dù ở thư mục nào
     let dbPath = path.join(__dirname, "users.json");
