@@ -1,6 +1,8 @@
 // test.js
 const fs = require("fs");
 const path = require("path");
+const mysql = require("mysql2/promise");
+const { loginAs } = require("./test_helpers");
 
 // Sử dụng 127.0.0.1 để tránh lỗi mạng Windows
 const API_URL = "http://127.0.0.1:5000/api/users";
@@ -12,15 +14,25 @@ async function runAutoTests() {
 
   let passCount = 0;
   const totalCount = 5;
+  let hrEmail = null; // dùng lại ở TC_05 để kiểm tra password_hash trong MySQL
+
+  // API tạo tài khoản yêu cầu quyền MANAGE_USERS (Admin/HR) - phải đăng nhập
+  // thật để lấy token
+  const adminToken = await loginAs("Admin");
+  const authHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${adminToken}`,
+  };
 
   // Tạo tài khoản HR hợp lệ
   try {
+    hrEmail = `auto_hr_${Date.now()}@ictu.edu.vn`;
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({
-        name: "Trần Tuyển Dụng",
-        email: `auto_hr_${Date.now()}@ictu.edu.vn`,
+        name: "Hà Thị Mỹ Bình",
+        email: hrEmail,
         password: "password123",
         role: "HR",
       }),
@@ -40,9 +52,9 @@ async function runAutoTests() {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({
-        name: "Lê Hướng Dẫn",
+        name: "Hà Thị Mỹ Bình",
         email: `auto_mentor_${Date.now()}@ictu.edu.vn`,
         password: "password123",
         role: "Mentor",
@@ -63,7 +75,7 @@ async function runAutoTests() {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({
         name: "",
         email: "missing@ictu.edu.vn",
@@ -88,9 +100,9 @@ async function runAutoTests() {
     const duplicateEmail = `trung_email_${Date.now()}@ictu.edu.vn`;
     await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({
-        name: "User 1",
+        name: "Hà Thị Mỹ Bình",
         email: duplicateEmail,
         password: "password123",
         role: "Intern",
@@ -99,9 +111,9 @@ async function runAutoTests() {
 
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({
-        name: "User 2",
+        name: "Hà Thị Mỹ Bình",
         email: duplicateEmail,
         password: "password123",
         role: "Intern",
@@ -119,31 +131,40 @@ async function runAutoTests() {
     console.log(" [FAIL] TC_04: Lỗi kết nối API");
   }
 
-  // Kiểm tra tính bảo mật mật khẩu trong Database
+  // Kiểm tra tính bảo mật mật khẩu trong Database (đọc trực tiếp từ MySQL)
   try {
-    // Tự động tìm file users.json dù ở thư mục nào
-    let dbPath = path.join(__dirname, "users.json");
-    if (!fs.existsSync(dbPath)) {
-      dbPath = path.join(__dirname, "backend", "users.json");
-    }
+    const configPath = path.join(__dirname, "db_config.json");
+    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    const conn = await mysql.createConnection(config);
 
-    const users = JSON.parse(fs.readFileSync(dbPath, "utf-8"));
-    const lastUser = users[users.length - 1];
+    const [rows] = await conn.query(
+      "SELECT password_hash FROM users WHERE email = ? LIMIT 1",
+      [hrEmail],
+    );
+    await conn.end();
 
-    if (
+    const lastUser = rows[0];
+
+    // Hash bcrypt hợp lệ có dạng "$2a$10$..." hoặc "$2b$10$..." (~60 ký tự)
+    const isBcryptHash =
       lastUser &&
-      lastUser.password_hash !== "password123" &&
-      lastUser.password_hash.length === 64
-    ) {
+      typeof lastUser.password_hash === "string" &&
+      /^\$2[aby]\$\d{2}\$.{53}$/.test(lastUser.password_hash);
+
+    if (lastUser && lastUser.password_hash !== "password123" && isBcryptHash) {
       console.log(
-        " [PASS] TC_05: Mật khẩu được mã hóa an toàn SHA-256 (64 ký tự)",
+        " [PASS] TC_05: Mật khẩu được mã hóa an toàn bằng bcrypt (có salt)",
       );
       passCount++;
     } else {
-      console.log(" [FAIL] TC_05: Mật khẩu chưa được mã hóa an toàn");
+      console.log(
+        " [FAIL] TC_05: Mật khẩu chưa được mã hóa an toàn bằng bcrypt",
+      );
     }
   } catch (e) {
-    console.log(" [FAIL] TC_05: Không đọc được Database");
+    console.log(
+      " [FAIL] TC_05: Không đọc được Database MySQL (" + e.message + ")",
+    );
   }
 
   console.log("\n");
