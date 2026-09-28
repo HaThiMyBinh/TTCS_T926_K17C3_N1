@@ -1,14 +1,9 @@
 {
-  "HR": [
+  "Admin": [
     "MANAGE_USERS",
-    "EVALUATE_INTERN",
-    "VIEW_REPORTS"
+    "SYSTEM_SETTINGS"
   ],
-  "Mentor": [
-    "ASSIGN_TASKS",
-    "EVALUATE_INTERN"
-  ],
-  "Intern": [
-    "VIEW_REPORTS"
-  ]
+  "HR": [],
+  "Mentor": [],
+  "Intern": []
 }

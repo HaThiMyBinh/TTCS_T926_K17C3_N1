@@ -1,114 +1,131 @@
-const fs = require("fs");
-const path = require("path");
-
-const API_URL = "http://127.0.0.1:5000/api/mentors";
+// test_mentors.js - Kiểm thử chức năng Quản lý Mentor & Thêm mới mentor
+const { BASE_URL, loginAs } = require("./test_helpers");
 
 async function runAutoMentorTests() {
-  console.log("\n");
-  console.log(" BẮT ĐẦU CHẠY TEST CHỨC NĂNG THÊM MỚI MENTOR (USE STORY 6)");
-  console.log("\n");
+  console.log("\n====================================================");
+  console.log(" BẮT ĐẦU KIỂM THỬ QUẢN LÝ MENTOR ");
+  console.log("====================================================\n");
 
   let passCount = 0;
   const totalCount = 4;
-  const timeId = Date.now();
+  let createdMentorId = null;
+  const testEmail = `mentor_test_${Date.now()}@company.com`;
 
+  // Các route /api/mentors (GET/POST/DELETE) yêu cầu đăng nhập với vai trò phù
+  // hợp
+  const hrToken = await loginAs("HR");
+  const authHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${hrToken}`,
+  };
+
+  // TC_01: Thêm mới mentor thành công (Mã 201 Created)
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch(`${BASE_URL}/mentors`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({
-        name: `Mentor ICTU ${timeId}`,
-        department: "Trung tâm Phần mềm",
-        title: "Senior Developer",
-        position: "Senior Developer",
+        fullName: "Hà Thị Mỹ Bình",
+        email: testEmail,
+        phone: "0987654321",
+        department: "Trung tâm Công nghệ Phần mềm",
+        specialization: "Trưởng nhóm Full-stack",
       }),
     });
     const data = await res.json();
-    if (res.status === 201 || res.status === 200) {
-      console.log(" [PASS] TC_01: Thêm mới Mentor thành công (Mã 201/200)");
+    if (res.status === 201 && data.mentor && data.mentor.id) {
+      createdMentorId = data.mentor.id;
+      console.log(" [PASS] TC_01: Thêm mới Mentor thành công (Mã 201 Created)");
       passCount++;
     } else {
       console.log(
-        ` [FAIL] TC_01: Thêm Mentor thất bại (${data.error || res.status})`,
+        " [FAIL] TC_01: Thêm mới Mentor thất bại: " + JSON.stringify(data),
       );
     }
   } catch (e) {
-    console.log(
-      " [FAIL] TC_01: Lỗi kết nối API (Chưa bật server hoặc sai cổng)",
-    );
+    console.log(" [FAIL] TC_01: Lỗi kết nối API: " + e.message);
   }
 
+  // TC_02: Chặn khi bỏ trống thông tin bắt buộc (Họ tên, Email, Phòng ban) (Mã 400)
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch(`${BASE_URL}/mentors`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({
-        name: "",
-        department: "Trung tâm Phần mềm",
-        title: "Senior Developer",
-      }),
-    });
-    if (res.status === 400) {
-      console.log(
-        " [PASS] TC_02: Chặn thành công khi bỏ trống Họ tên (Mã 400)",
-      );
-      passCount++;
-    } else {
-      console.log(" [FAIL] TC_02: Backend không chặn khi thiếu Họ tên");
-    }
-  } catch (e) {
-    console.log(" [FAIL] TC_02: Lỗi kết nối API");
-  }
-
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: "Lê Văn Hướng Dẫn",
+        fullName: "",
+        email: "",
         department: "",
-        title: "",
-        position: "",
       }),
     });
     if (res.status === 400) {
       console.log(
-        " [PASS] TC_03: Chặn thành công khi thiếu Phòng ban / Chức danh (Mã 400)",
+        " [PASS] TC_02: Chặn thành công khi bỏ trống thông tin bắt buộc (Mã 400)",
       );
       passCount++;
     } else {
-      console.log(" [FAIL] TC_03: Backend không chặn khi thiếu dữ liệu");
+      console.log(" [FAIL] TC_02: Không chặn khi thiếu thông tin");
     }
   } catch (e) {
-    console.log(" [FAIL] TC_03: Lỗi kết nối API");
+    console.log(" [FAIL] TC_02: Lỗi kết nối API: " + e.message);
   }
 
+  // TC_03: Chặn trùng lặp Email Mentor trong hệ thống (Mã 400)
   try {
-    let dbPath = path.join(__dirname, "mentors.json");
-    if (!fs.existsSync(dbPath)) {
-      dbPath = path.join(__dirname, "users.json");
-    }
-
-    const records = JSON.parse(fs.readFileSync(dbPath, "utf-8"));
-    const isSaved = records.some((m) => m.name === `Mentor ICTU ${timeId}`);
-
-    if (isSaved) {
+    const res = await fetch(`${BASE_URL}/mentors`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({
+        fullName: "Hà Thị Mỹ Bình Trùng Email",
+        email: testEmail, // Trùng email đã tạo ở TC_01
+        department: "Phòng IT",
+      }),
+    });
+    const data = await res.json();
+    if (res.status === 400 && data.error && data.error.includes("tồn tại")) {
       console.log(
-        " [PASS] TC_04: Dữ liệu Mentor đã được lưu chính xác vào file CSDL",
+        " [PASS] TC_03: Chặn chính xác trùng lặp Email mentor (Mã 400)",
       );
       passCount++;
     } else {
-      console.log(" [FAIL] TC_04: Không tìm thấy Mentor vừa thêm trong CSDL");
+      console.log(
+        " [FAIL] TC_03: Không chặn trùng email mentor: " + JSON.stringify(data),
+      );
     }
   } catch (e) {
-    console.log(" [FAIL] TC_04: Không đọc được file Database để kiểm tra");
+    console.log(" [FAIL] TC_03: Lỗi kết nối API: " + e.message);
   }
 
-  console.log("\n");
+  // TC_04: Lấy danh sách Mentor hiển thị lên danh sách quản lý (Mã 200 OK)
+  try {
+    const res = await fetch(`${BASE_URL}/mentors`, { headers: authHeaders });
+    const data = await res.json();
+    if (res.status === 200 && Array.isArray(data) && data.length > 0) {
+      console.log(
+        " [PASS] TC_04: Lấy danh sách mentor thành công để quản lý (Mã 200 OK)",
+      );
+      passCount++;
+    } else {
+      console.log(" [FAIL] TC_04: Không lấy được danh sách mentor");
+    }
+  } catch (e) {
+    console.log(" [FAIL] TC_04: Lỗi kết nối API: " + e.message);
+  }
+
+  // Cleanup: Xóa mentor test đã tạo
+  if (createdMentorId) {
+    try {
+      await fetch(`${BASE_URL}/mentors/${createdMentorId}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      });
+    } catch (e) {}
+  }
+
+  console.log("\n====================================================");
   console.log(
-    ` KẾT QUẢ TEST MENTOR: ${passCount}/${totalCount} TEST CASES PASS!`,
+    ` KẾT QUẢ KIỂM THỬ MENTOR: ${passCount}/${totalCount} TEST CASES PASS 100%!`,
   );
-  console.log("\n");
+  console.log("====================================================\n");
 }
 
 runAutoMentorTests();

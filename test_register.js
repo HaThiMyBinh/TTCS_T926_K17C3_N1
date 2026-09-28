@@ -3,7 +3,7 @@ const API_URL = "http://127.0.0.1:5000/api/auth/register";
 
 async function runAutoRegisterTests() {
   console.log("\n");
-  console.log(" BẮT ĐẦU TEST LUỒNG ĐĂNG KÝ HỒ SƠ ỨNG TUYỂN (TASK 4)");
+  console.log(" BẮT ĐẦU TEST LUỒNG ĐĂNG KÝ HỒ SƠ ỨNG TUYỂN ");
   console.log("\n");
 
   let passCount = 0;
@@ -15,7 +15,7 @@ async function runAutoRegisterTests() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: "Hoàng Thực Tập Sinh",
+        name: "Hà Thị Mỹ Bình",
         email: `candidate_${Date.now()}@ictu.edu.vn`,
         password: "password123",
         phone: "0987654321",
@@ -91,7 +91,7 @@ async function runAutoRegisterTests() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: "Ung vien 1",
+        name: "Hà Thị Mỹ Bình",
         email: dupEmail,
         password: "password123",
         phone: "0123456789",
@@ -104,7 +104,7 @@ async function runAutoRegisterTests() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: "Ung vien 2",
+        name: "Hà Thị Mỹ Bình",
         email: dupEmail,
         password: "password123",
         phone: "0988888888",

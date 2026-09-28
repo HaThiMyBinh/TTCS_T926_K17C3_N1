@@ -1,355 +1,2411 @@
-<!-- index.html -->
 <!doctype html>
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <title>Hệ Thống Quản Lý & Phân Quyền - Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hệ Thống Quản Lý Thực Tập Sinh & Phân Quyền</title>
+    <!-- Google Fonts & FontAwesome Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
     <style>
+      :root {
+        --primary: #032ab8;
+        --primary-hover: #08377e;
+        --primary-light: #eef2ff;
+        --slate-50: #f8fafc;
+        --slate-100: #f1f5f9;
+        --slate-200: #e2e8f0;
+        --slate-300: #cbd5e1;
+        --slate-600: #475569;
+        --slate-700: #334155;
+        --slate-800: #1e293b;
+        --slate-900: #0f172a;
+        --slate-950: #020617;
+        --success: #4ba6f0;
+        --warning: #eade3a;
+        --danger: #fd0505;
+        --info: #1450db;
+        --radius: 10px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Roboto", sans-serif;
+      }
+
       body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f6f8;
+        background-color: #f8fafc;
+        color: #1e293b;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* SIDEBAR */
+      aside {
+        width: 272px;
+        background-color: #ffffff;
+        color: var(--slate-600);
         display: flex;
         flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
-        margin: 0;
-        padding: 40px 20px;
-        box-sizing: border-box;
+        border-right: 1px solid var(--slate-200);
+        flex-shrink: 0;
+        transition: all 0.3s ease;
+        z-index: 50;
       }
+
+      .brand {
+        height: 70px;
+        padding: 0 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--slate-200);
+      }
+
+      .brand-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 9px;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 17px;
+      }
+
+      .brand-text h1 {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--slate-900);
+        letter-spacing: -0.3px;
+      }
+
+      .brand-text p {
+        font-size: 11px;
+        color: var(--slate-600);
+      }
+
+      /* MENU TÀI KHOẢN NGƯỜI DÙNG (Avatar + Dropdown) */
+      .user-menu {
+        position: relative;
+      }
+
+      .user-menu-trigger {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 4px 8px 4px 4px;
+        border-radius: 999px;
+        transition: background 0.15s;
+      }
+
+      .user-menu-trigger:hover {
+        background: var(--slate-100);
+      }
+
+      .user-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+
+      .user-name-short {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--slate-800);
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .user-menu-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        width: 260px;
+        background: #fff;
+        border: 1px solid var(--slate-200);
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+        overflow: hidden;
+        z-index: 50;
+      }
+
+      .user-menu-dropdown.open {
+        display: block;
+      }
+
+      .user-menu-info {
+        padding: 14px 16px;
+      }
+
+      .user-menu-fullname {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--slate-900);
+      }
+
+      .user-menu-email {
+        font-size: 12.5px;
+        color: var(--slate-600);
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .user-menu-divider {
+        height: 1px;
+        background: var(--slate-200);
+        margin: 0;
+      }
+
+      .user-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 16px;
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--slate-700);
+        text-decoration: none;
+        transition: background 0.15s;
+      }
+
+      .user-menu-item:hover {
+        background: var(--slate-100);
+      }
+
+      .nav-section-title {
+        padding: 10px 20px 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #64748b;
+        letter-spacing: 0.5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .nav-list {
+        list-style: none;
+        padding: 0 12px;
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .nav-item {
+        margin-bottom: 4px;
+      }
+
+      .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        color: var(--slate-600);
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 13.5px;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+        position: relative;
+      }
+
+      .nav-link i {
+        width: 20px;
+        font-size: 15px;
+        text-align: center;
+      }
+
+      .nav-link:hover {
+        background: var(--slate-100);
+        color: var(--slate-900);
+      }
+
+      .nav-link.active {
+        background: var(--primary-light);
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .nav-link .badge-tag {
+        margin-left: auto;
+        font-size: 10px;
+        padding: 2px 7px;
+        border-radius: 12px;
+        background: rgba(79, 70, 229, 0.12);
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      /* MAIN CONTENT */
+      main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: #f8fafc;
+      }
+
+      /* TOP HEADER */
+      header {
+        height: 70px;
+        background: white;
+        border-bottom: 1px solid var(--slate-200);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        flex-shrink: 0;
+      }
+
+      .page-info h2 {
+        font-size: 19px;
+        font-weight: 700;
+        color: var(--slate-900);
+      }
+
+      .page-info p {
+        font-size: 12px;
+        color: var(--slate-600);
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .btn-public-register {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 16px;
+        background: #0ea5e9;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        transition: background 0.2s;
+      }
+
+      .btn-public-register:hover {
+        background: #0284c7;
+      }
+
+      /* CONTENT BODY */
+      .content-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 26px 32px 50px;
+      }
+
+      /* STATS CARDS */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
+        margin-bottom: 26px;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: var(--radius);
+        border: 1px solid var(--slate-200);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .stat-card .info p {
+        font-size: 12px;
+        color: var(--slate-600);
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .stat-card .info h3 {
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--slate-900);
+        margin-top: 4px;
+      }
+
+      .stat-card .icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+      }
+
+      .bg-blue-light {
+        background: #e0f2fe;
+        color: #0284c7;
+      }
+      .bg-indigo-light {
+        background: #e0e7ff;
+        color: #4f46e5;
+      }
+      .bg-emerald-light {
+        background: #d1fae5;
+        color: #059669;
+      }
+      .bg-amber-light {
+        background: #fef3c7;
+        color: #d97706;
+      }
+
+      /* CARDS */
       .card {
         background: white;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 580px;
-        margin-bottom: 30px;
-        box-sizing: border-box;
+        border-radius: var(--radius);
+        border: 1px solid var(--slate-200);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        margin-bottom: 24px;
+        overflow: hidden;
       }
-      h2 {
-        text-align: center;
-        margin-top: 0;
-        color: #333;
+
+      .card-header {
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--slate-200);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
       }
-      .form-group {
-        margin-bottom: 14px;
-      }
-      label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-        font-size: 14px;
-      }
-      input,
-      select {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-      }
-      button {
-        width: 100%;
-        padding: 12px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
+
+      .card-header h3 {
         font-size: 16px;
-        font-weight: bold;
+        font-weight: 700;
+        color: var(--slate-900);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .card-body {
+        padding: 24px;
+      }
+
+      /* FORM STYLES */
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        align-items: flex-end;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .form-group label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--slate-700);
+      }
+
+      .form-control {
+        padding: 10px 14px;
+        border: 1px solid var(--slate-300);
+        border-radius: 8px;
+        font-size: 13.5px;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 18px;
+        font-size: 13.5px;
+        font-weight: 600;
+        border-radius: 8px;
+        border: none;
         cursor: pointer;
+        transition: all 0.2s;
       }
-      button:disabled {
-        background-color: #999;
+
+      .btn-primary {
+        background: var(--primary);
+        color: white;
       }
-      .alert {
-        padding: 10px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        font-size: 14px;
-        display: none;
+      .btn-primary:hover {
+        background: var(--primary-hover);
       }
-      .alert-success {
-        background-color: #d4edda;
-        color: #155724;
+
+      .btn-success {
+        background: #10b981;
+        color: white;
       }
-      .alert-error {
-        background-color: #f8d7da;
-        color: #721c24;
+      .btn-success:hover {
+        background: #059669;
       }
+
+      .btn-danger {
+        background: #0a43b4;
+        color: white;
+      }
+      .btn-danger:hover {
+        background: #4ab0d8;
+      }
+
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      /* TABLE */
+      .table-container {
+        overflow-x: auto;
+      }
+
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 10px;
+        text-align: left;
       }
-      th,
-      td {
-        padding: 10px;
-        border: 1px solid #ddd;
-        font-size: 14px;
-      }
+
       th {
-        background: #f8f9fa;
+        background: var(--slate-50);
+        padding: 12px 16px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--slate-600);
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--slate-200);
+        letter-spacing: 0.4px;
+      }
+
+      td {
+        padding: 14px 16px;
+        font-size: 13.5px;
+        color: var(--slate-700);
+        border-bottom: 1px solid var(--slate-200);
+        vertical-align: middle;
+      }
+
+      tbody tr:hover {
+        background: #f8fafc;
+      }
+
+      /* BADGES */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+
+      .badge-admin {
+        background: #fef3c7;
+        color: #b45309;
+      }
+      .badge-hr {
+        background: #ede9fe;
+        color: #6d28d9;
+      }
+      .badge-mentor {
+        background: #e0f2fe;
+        color: #0369a1;
+      }
+      .badge-intern {
+        background: #dcfce7;
+        color: #15803d;
+      }
+
+      .badge-active {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .badge-pending {
+        background: #fef9c3;
+        color: #854d0e;
+      }
+
+      /* ALERT TOAST */
+      .alert-box {
+        padding: 12px 18px;
+        border-radius: 8px;
+        font-size: 13.5px;
+        margin-bottom: 18px;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
+      }
+
+      .alert-success {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+      .alert-error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+
+      /* 403 FORBIDDEN SCREEN */
+      .forbidden-screen {
+        display: none;
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: var(--radius);
+        border: 1px solid var(--slate-200);
+      }
+
+      .forbidden-icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 16px;
+        border-radius: 50%;
+        background: var(--primary-light);
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+      }
+
+      .forbidden-screen h3 {
+        font-size: 18px;
+        color: var(--slate-900);
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .forbidden-screen p {
+        color: var(--slate-600);
+        font-size: 14px;
+        max-width: 480px;
+        margin: 0 auto 24px;
+      }
+
+      /* MA TRẬN PHÂN QUYỀN */
+      .matrix-table th {
+        text-align: center;
+      }
+      .matrix-table td:not(:first-child) {
+        text-align: center;
+      }
+
+      .sidebar-footer {
+        flex-shrink: 0;
+        border-top: 1px solid var(--slate-200);
+        padding-top: 16px;
+      }
+
+      .toggle-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: var(--primary);
       }
     </style>
   </head>
   <body>
-    <!-- TẠO TÀI KHOẢN -->
-    <div class="card">
-      <h2>Tạo Tài Khoản (Admin)</h2>
-      <div id="alertBox" class="alert"></div>
+    <!-- SIDEBAR -->
+    <aside>
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div class="brand-text">
+          <h1>QUẢN LÝ THỰC TẬP</h1>
+          <p>User Management & RBAC</p>
+        </div>
+      </div>
 
-      <form id="accountForm">
-        <div class="form-group">
-          <label>Họ và tên:</label>
-          <input type="text" id="name" placeholder="Nguyễn Văn A" required />
+      <!-- DYNAMIC MENU LIST (ẨN/HIỆN THEO QUYỀN) -->
+      <div class="nav-section-title">
+        <span>Menu Chức Năng</span>
+        <span id="menuCountBadge" class="badge-tag">0 mục</span>
+      </div>
+      <ul class="nav-list" id="sidebarMenu">
+        <!-- Sẽ được sinh tự động bằng JavaScript dựa trên quyền của vai trò -->
+      </ul>
+
+      <!-- CHÂN SIDEBAR: ĐĂNG XUẤT -->
+      <div class="sidebar-footer">
+        <button
+          onclick="handleLogout()"
+          class="btn btn-sm btn-danger"
+          style="
+            width: 100%;
+            justify-content: center;
+            padding: 9px 12px;
+            font-size: 12.5px;
+            margin: 0 16px 16px;
+            width: calc(100% - 32px);
+          "
+          title="Đăng xuất khỏi hệ thống"
+        >
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN AREA -->
+    <main>
+      <!-- TOP HEADER -->
+      <header>
+        <div class="page-info">
+          <h2 id="pageTitle">Quản Lý Tài Khoản</h2>
+          <p id="pageSubtitle">
+            Khởi tạo và quản lý phân quyền người dùng trong hệ thống đào tạo
+          </p>
+        </div>
+        <div class="header-actions">
+          <a
+            href="register.html"
+            target="_blank"
+            class="btn-public-register"
+            id="btnFormUngTuyen"
+            style="display: none"
+          >
+            <i class="fa-solid fa-paper-plane"></i> Form Ứng Tuyển Online
+          </a>
+
+          <!-- MENU TÀI KHOẢN NGƯỜI DÙNG -->
+          <div class="user-menu" id="userMenu">
+            <button class="user-menu-trigger" onclick="toggleUserMenu(event)">
+              <span class="user-avatar" id="userAvatarInitial">?</span>
+              <span class="user-name-short" id="userNameShort">Người dùng</span>
+              <i class="fa-solid fa-chevron-down" style="font-size: 11px"></i>
+            </button>
+            <div class="user-menu-dropdown" id="userMenuDropdown">
+              <div class="user-menu-info">
+                <div class="user-menu-fullname" id="userFullName">—</div>
+                <div class="user-menu-email" id="userEmailText">—</div>
+              </div>
+              <div class="user-menu-divider"></div>
+              <a class="user-menu-item" href="#" onclick="return false;">
+                <i class="fa-regular fa-user"></i> Hồ sơ
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT SCROLL -->
+      <div class="content-scroll">
+        <!-- MÀN HÌNH THÔNG BÁO CHƯA CÓ QUYỀN TRUY CẬP CHỨC NĂNG NÀY -->
+        <div id="forbiddenScreen" class="forbidden-screen">
+          <div class="forbidden-icon"><i class="fa-solid fa-lock"></i></div>
+          <h3>Chưa có quyền truy cập</h3>
+          <p id="forbiddenMessage">
+            Vai trò hiện tại chưa được cấp quyền sử dụng chức năng này. Vui lòng
+            liên hệ Admin để được cấp thêm quyền.
+          </p>
+          <button class="btn btn-primary" onclick="switchToFirstAllowedTab()">
+            <i class="fa-solid fa-arrow-left"></i> Quay lại trang được phép
+          </button>
         </div>
 
-        <div class="form-group">
-          <label>Email:</label>
-          <input
-            type="email"
-            id="email"
-            placeholder="email@gmail.com"
-            required
-          />
+        <!-- ========================================================================= -->
+        <!-- QUẢN LÝ TÀI KHOẢN -->
+        <!-- ========================================================================= -->
+        <div id="tab-users" class="tab-pane">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="info">
+                <p>Tổng tài khoản</p>
+                <h3 id="statTotalUsers">0</h3>
+              </div>
+              <div class="icon-wrap bg-blue-light">
+                <i class="fa-solid fa-users"></i>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="info">
+                <p>Nhân sự (HR)</p>
+                <h3 id="statHrUsers">0</h3>
+              </div>
+              <div class="icon-wrap bg-indigo-light">
+                <i class="fa-solid fa-briefcase"></i>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="info">
+                <p>Người hướng dẫn</p>
+                <h3 id="statMentorUsers">0</h3>
+              </div>
+              <div class="icon-wrap bg-emerald-light">
+                <i class="fa-solid fa-user-tie"></i>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="info">
+                <p>Thực tập sinh</p>
+                <h3 id="statInternUsers">0</h3>
+              </div>
+              <div class="icon-wrap bg-amber-light">
+                <i class="fa-solid fa-graduation-cap"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- FORM TẠO TÀI KHOẢN  -->
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-user-plus text-primary"></i> Khởi Tạo Tài
+                Khoản Mới
+              </h3>
+              <span style="font-size: 12px; color: #64748b"
+                >Mã hóa mật khẩu an toàn SHA-256</span
+              >
+            </div>
+            <div class="card-body">
+              <div id="createUserAlert" class="alert-box"></div>
+              <form id="createUserForm" onsubmit="handleCreateUser(event)">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Họ và tên *</label>
+                    <input
+                      type="text"
+                      id="newUserName"
+                      class="form-control"
+                      placeholder="Nhập họ và tên đầy đủ"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Email đăng nhập *</label>
+                    <input
+                      type="email"
+                      id="newUserEmail"
+                      class="form-control"
+                      placeholder="user@company.com"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Mật khẩu khởi tạo *</label>
+                    <input
+                      type="password"
+                      id="newUserPassword"
+                      class="form-control"
+                      placeholder="Tối thiểu 6 ký tự"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Vai trò hệ thống *</label>
+                    <select id="newUserRole" class="form-control" required>
+                      <option value="HR">HR (Quản lý nhân sự)</option>
+                      <option value="Mentor">Mentor (Người hướng dẫn)</option>
+                      <option value="Intern">Intern (Thực tập sinh)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <button
+                      type="submit"
+                      id="btnCreateUser"
+                      class="btn btn-primary"
+                      style="width: 100%"
+                    >
+                      <i class="fa-solid fa-plus"></i> Tạo tài khoản
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- DANH SÁCH TÀI KHOẢN -->
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-list-check text-primary"></i> Danh Sách
+                Tài Khoản Trong Hệ Thống
+              </h3>
+              <div style="display: flex; gap: 10px">
+                <input
+                  type="text"
+                  id="userSearchInput"
+                  class="form-control"
+                  placeholder=" Tìm theo email, họ tên..."
+                  oninput="renderUserTable()"
+                  style="width: 240px; padding: 6px 12px; font-size: 13px"
+                />
+                <select
+                  id="userRoleFilter"
+                  class="form-control"
+                  onchange="renderUserTable()"
+                  style="width: 150px; padding: 6px 10px; font-size: 13px"
+                >
+                  <option value="ALL">Tất cả vai trò</option>
+                  <option value="Admin">Admin</option>
+                  <option value="HR">HR</option>
+                  <option value="Mentor">Mentor</option>
+                  <option value="Intern">Intern</option>
+                </select>
+                <button class="btn btn-sm btn-primary" onclick="loadUsers()">
+                  <i class="fa-solid fa-rotate"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Họ và Tên</th>
+                      <th>Email</th>
+                      <th>Vai Trò</th>
+                      <th>Trạng Thái</th>
+                      <th>Ngày Tạo</th>
+                      <th style="text-align: center">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="userTableBody">
+                    <tr>
+                      <td
+                        colspan="7"
+                        style="
+                          text-align: center;
+                          color: #94a3b8;
+                          padding: 24px;
+                        "
+                      >
+                        Đang tải danh sách tài khoản...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Mật khẩu:</label>
-          <input
-            type="password"
-            id="password"
-            placeholder="Tối thiểu 6 ký tự"
-            required
-          />
+        <!-- ========================================================================= -->
+        <!-- QUẢN LÝ PHÂN QUYỀN  -->
+        <!-- ========================================================================= -->
+        <div id="tab-permissions" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-shield-halved text-primary"></i> Ma Trận
+                Phân Quyền Chi Tiết (Role-Based Access Control)
+              </h3>
+              <button
+                class="btn btn-success btn-sm"
+                onclick="savePermissions()"
+              >
+                <i class="fa-solid fa-floppy-disk"></i> Lưu Cấu Hình Quyền
+              </button>
+            </div>
+            <div class="card-body">
+              <div id="permAlert" class="alert-box"></div>
+              <p style="font-size: 13px; color: #64748b; margin-bottom: 16px">
+                Admin có thể tùy chỉnh gán hoặc tước các quyền chức năng cho
+                từng vai trò. Khi bấm Lưu, Menu và quyền truy cập API sẽ tự động
+                cập nhật ngay lập tức!
+              </p>
+
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th style="text-align: left">Chức Năng (Quyền Hệ Thống)</th>
+                    <th>Mã Quyền API</th>
+                    <th>HR</th>
+                    <th>Mentor</th>
+                    <th>Intern</th>
+                  </tr>
+                </thead>
+                <tbody id="permMatrixBody">
+                  <!-- Sẽ render động các hàng quyền -->
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Vai trò:</label>
-          <select id="role">
-            <option value="HR">HR</option>
-            <option value="Mentor">Mentor</option>
-            <option value="Intern">Thực tập sinh (Intern)</option>
-          </select>
+        <!-- ========================================================================= -->
+        <!-- HỒ SƠ ỨNG TUYỂN SINH VIÊN  -->
+        <!-- ========================================================================= -->
+        <div id="tab-candidates" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-file-lines text-primary"></i> Danh Sách Hồ
+                Sơ Sinh Viên Nộp Trực Tuyến
+              </h3>
+              <button class="btn btn-sm btn-primary" onclick="loadCandidates()">
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
+            </div>
+            <div class="card-body" style="padding: 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Họ và Tên</th>
+                      <th>Email Liên Hệ</th>
+                      <th>Số Điện Thoại</th>
+                      <th>Trường Đại Học</th>
+                      <th>Chuyên Ngành</th>
+                      <th>Link CV</th>
+                      <th>Trạng Thái</th>
+                      <th style="text-align: center">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="candidateTableBody">
+                    <tr>
+                      <td
+                        colspan="8"
+                        style="
+                          text-align: center;
+                          color: #94a3b8;
+                          padding: 24px;
+                        "
+                      >
+                        Đang tải danh sách hồ sơ...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <button type="submit" id="submitBtn">Tạo tài khoản</button>
-      </form>
-    </div>
+        <!-- ========================================================================= -->
+        <!-- QUẢN LÝ MENTOR & PHÒNG BAN (HR) -->
+        <!-- ========================================================================= -->
+        <div id="tab-mentors" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-user-tie text-primary"></i>
+                <span id="mentorFormTitle">Thêm Mới Mentor</span>
+              </h3>
+            </div>
+            <div class="card-body">
+              <div id="mentorAlert" class="alert-box"></div>
+              <form id="mentorForm" onsubmit="handleSaveMentor(event)">
+                <input type="hidden" id="mentorEditId" value="" />
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Họ và tên *</label>
+                    <input
+                      type="text"
+                      id="mentorName"
+                      class="form-control"
+                      placeholder="Nhập họ và tên đầy đủ"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Email *</label>
+                    <input
+                      type="email"
+                      id="mentorEmail"
+                      class="form-control"
+                      placeholder="mentor@company.com"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Số điện thoại</label>
+                    <input
+                      type="text"
+                      id="mentorPhone"
+                      class="form-control"
+                      placeholder="09xxxxxxxx"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Phòng ban *</label>
+                    <input
+                      type="text"
+                      id="mentorDepartment"
+                      class="form-control"
+                      placeholder="Ví dụ: Kỹ thuật Phần mềm"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Chuyên môn hướng dẫn</label>
+                    <input
+                      type="text"
+                      id="mentorSpecialization"
+                      class="form-control"
+                      placeholder="Ví dụ: Full-stack Web"
+                    />
+                  </div>
+                  <div
+                    class="form-group"
+                    style="display: flex; align-items: flex-end; gap: 8px"
+                  >
+                    <button
+                      type="submit"
+                      id="btnSaveMentor"
+                      class="btn btn-primary"
+                      style="width: 100%"
+                    >
+                      <i class="fa-solid fa-plus"></i> Thêm Mentor
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm"
+                      style="display: none; background: #e2e8f0"
+                      id="btnCancelMentorEdit"
+                      onclick="cancelMentorEdit()"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
 
-    <!-- QUẢN LÝ PHÂN QUYỀN -->
-    <div class="card">
-      <h2>Quản Lý Phân Quyền Vai Trò</h2>
-      <p
-        style="
-          text-align: center;
-          color: #666;
-          font-size: 13px;
-          margin-bottom: 20px;
-        "
-      >
-        Tích chọn các chức năng mà mỗi vai trò được phép sử dụng
-      </p>
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-list-check text-primary"></i> Danh Sách
+                Mentor Theo Phòng Ban
+              </h3>
+              <button class="btn btn-sm btn-primary" onclick="loadMentors()">
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
+            </div>
+            <div class="card-body" style="padding: 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Họ và Tên</th>
+                      <th>Email</th>
+                      <th>Điện Thoại</th>
+                      <th>Phòng Ban</th>
+                      <th>Chuyên Môn</th>
+                      <th style="text-align: center">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mentorTableBody">
+                    <tr>
+                      <td
+                        colspan="6"
+                        style="
+                          text-align: center;
+                          color: #94a3b8;
+                          padding: 24px;
+                        "
+                      >
+                        Đang tải danh sách mentor...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Chức năng (Quyền)</th>
-            <th style="text-align: center">HR</th>
-            <th style="text-align: center">Mentor</th>
-            <th style="text-align: center">Intern</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><b> Quản lý tài khoản (MANAGE_USERS)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_MANAGE_USERS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_MANAGE_USERS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_MANAGE_USERS" />
-            </td>
-          </tr>
-          <tr>
-            <td><b> Giao nhiệm vụ & Task (ASSIGN_TASKS)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_ASSIGN_TASKS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_ASSIGN_TASKS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_ASSIGN_TASKS" />
-            </td>
-          </tr>
-          <tr>
-            <td><b> Nộp báo cáo công việc (SUBMIT_WORK)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_SUBMIT_WORK" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_SUBMIT_WORK" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_SUBMIT_WORK" />
-            </td>
-          </tr>
-          <tr>
-            <td><b> Đánh giá thực tập sinh (EVALUATE_INTERN)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_EVALUATE_INTERN" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_EVALUATE_INTERN" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_EVALUATE_INTERN" />
-            </td>
-          </tr>
-          <tr>
-            <td><b> Xem báo cáo & Thống kê (VIEW_REPORTS)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_VIEW_REPORTS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_VIEW_REPORTS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_VIEW_REPORTS" />
-            </td>
-          </tr>
-          <tr>
-            <td><b> Cài đặt hệ thống (SYSTEM_SETTINGS)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_SYSTEM_SETTINGS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_SYSTEM_SETTINGS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_SYSTEM_SETTINGS" />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+        <!-- ========================================================================= -->
+        <!-- QUẢN LÝ HỒ SƠ THỰC TẬP SINH - THÔNG TIN CÁ NHÂN (HR) -->
+        <!-- ========================================================================= -->
+        <div id="tab-students" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-id-card text-primary"></i>
+                <span id="studentFormTitle">Thêm Mới Hồ Sơ Thực Tập Sinh</span>
+              </h3>
+            </div>
+            <div class="card-body">
+              <div id="studentAlert" class="alert-box"></div>
+              <form id="studentForm" onsubmit="handleSaveStudent(event)">
+                <input type="hidden" id="studentEditId" value="" />
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Mã số sinh viên</label>
+                    <input
+                      type="text"
+                      id="studentCode"
+                      class="form-control"
+                      placeholder="Ví dụ: SV2026010"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Họ và tên *</label>
+                    <input
+                      type="text"
+                      id="studentName"
+                      class="form-control"
+                      placeholder="Họ và tên thực tập sinh"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Email *</label>
+                    <input
+                      type="email"
+                      id="studentEmail"
+                      class="form-control"
+                      placeholder="student@gmail.com"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Số điện thoại</label>
+                    <input
+                      type="text"
+                      id="studentPhone"
+                      class="form-control"
+                      placeholder="09xxxxxxxx"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Trường đại học *</label>
+                    <input
+                      type="text"
+                      id="studentUniversity"
+                      class="form-control"
+                      placeholder="Trường đang theo học"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Chuyên ngành</label>
+                    <input
+                      type="text"
+                      id="studentMajor"
+                      class="form-control"
+                      placeholder="Chuyên ngành đào tạo"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Mentor phụ trách</label>
+                    <select id="studentMentor" class="form-control">
+                      <option value="">-- Chưa phân công --</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Trạng thái</label>
+                    <select id="studentStatus" class="form-control">
+                      <option value="Đang thực tập">Đang thực tập</option>
+                      <option value="Hoàn thành">Hoàn thành</option>
+                      <option value="Tạm dừng">Tạm dừng</option>
+                    </select>
+                  </div>
+                  <div
+                    class="form-group"
+                    style="display: flex; align-items: flex-end; gap: 8px"
+                  >
+                    <button
+                      type="submit"
+                      id="btnSaveStudent"
+                      class="btn btn-primary"
+                      style="width: 100%"
+                    >
+                      <i class="fa-solid fa-plus"></i> Lưu Hồ Sơ
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm"
+                      style="display: none; background: #e2e8f0"
+                      id="btnCancelStudentEdit"
+                      onclick="cancelStudentEdit()"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
 
-      <button
-        onclick="savePermissions()"
-        style="margin-top: 15px; background: #28a745"
-      >
-        Lưu cấu hình phân quyền
-      </button>
-    </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-list-check text-primary"></i> Danh Sách Hồ
+                Sơ Thực Tập Sinh
+              </h3>
+              <button class="btn btn-sm btn-primary" onclick="loadStudents()">
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
+            </div>
+            <div class="card-body" style="padding: 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>MSSV</th>
+                      <th>Họ và Tên</th>
+                      <th>Email</th>
+                      <th>Trường</th>
+                      <th>Mentor</th>
+                      <th>Trạng Thái</th>
+                      <th style="text-align: center">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="studentTableBody">
+                    <tr>
+                      <td
+                        colspan="7"
+                        style="
+                          text-align: center;
+                          color: #94a3b8;
+                          padding: 24px;
+                        "
+                      >
+                        Đang tải danh sách hồ sơ...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
 
+        <!-- GIAO VIỆC & TASKS (MENTOR) -->
+        <div id="tab-tasks" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-list-check text-primary"></i> Quản Lý &
+                Giao Nhiệm Vụ (Mentor)
+              </h3>
+            </div>
+            <div class="card-body">
+              <p style="color: #64748b; font-size: 14px; margin-bottom: 16px">
+                Chức năng dành cho Mentor phân công công việc, đặt deadline và
+                theo dõi tiến độ đào tạo của thực tập sinh.
+              </p>
+              <div
+                style="
+                  background: #f8fafc;
+                  border: 1px dashed #cbd5e1;
+                  border-radius: 8px;
+                  padding: 24px;
+                  text-align: center;
+                "
+              >
+                <i
+                  class="fa-solid fa-clipboard-check"
+                  style="font-size: 40px; color: #4f46e5; margin-bottom: 12px"
+                ></i>
+                <h4 style="color: #1e293b">Danh Sách Task Đang Giao</h4>
+                <p style="color: #64748b; font-size: 13px; margin-top: 6px">
+                  1. Tìm hiểu kiến trúc MVC & RESTful API (Hạn: 01/10/2026)
+                </p>
+                <p style="color: #64748b; font-size: 13px">
+                  2. Thiết kế bảng CSDL cho module User (Hạn: 05/10/2026)
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NỘP BÁO CÁO CÔNG VIỆC (INTERN) -->
+        <div id="tab-submissions" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-file-arrow-up text-primary"></i> Nộp Báo
+                Cáo Tiến Độ Thực Tập (Intern)
+              </h3>
+            </div>
+            <div class="card-body">
+              <p style="color: #64748b; font-size: 14px; margin-bottom: 16px">
+                Dành cho sinh viên thực tập báo cáo công việc hàng tuần và gửi
+                tài liệu dự án cho Mentor.
+              </p>
+              <div
+                class="form-group"
+                style="max-width: 500px; margin-bottom: 14px"
+              >
+                <label>Tiêu đề báo cáo tuần:</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Ví dụ: Báo cáo kết quả Sprint 1"
+                />
+              </div>
+              <div
+                class="form-group"
+                style="max-width: 500px; margin-bottom: 14px"
+              >
+                <label>Link Github / Báo cáo tài liệu:</label>
+                <input
+                  type="url"
+                  class="form-control"
+                  placeholder="https://github.com/..."
+                />
+              </div>
+              <button
+                class="btn btn-primary"
+                onclick="alert('Đã nộp báo cáo thực tập thành công!')"
+              >
+                <i class="fa-solid fa-upload"></i> Gửi Báo Cáo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BÁO CÁO & THỐNG KÊ (HR & ADMIN) -->
+        <div id="tab-reports" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-chart-line text-primary"></i> Báo Cáo &
+                Thống Kê Tổng Quan (HR)
+              </h3>
+            </div>
+            <div class="card-body">
+              <p style="color: #64748b; font-size: 14px; margin-bottom: 16px">
+                Báo cáo tiến độ đào tạo, tỷ lệ hoàn thành kỳ thực tập và số
+                lượng sinh viên đạt chuẩn nhận việc chính thức.
+              </p>
+              <div
+                style="
+                  background: #f8fafc;
+                  border: 1px dashed #cbd5e1;
+                  border-radius: 8px;
+                  padding: 24px;
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-around;
+                    text-align: center;
+                  "
+                >
+                  <div>
+                    <h2
+                      style="color: #4f46e5; font-size: 32px; font-weight: 800"
+                    >
+                      --
+                    </h2>
+                    <p style="color: #64748b; font-size: 13px">
+                      Tỷ lệ đạt chuẩn đánh giá
+                    </p>
+                  </div>
+                  <div>
+                    <h2
+                      style="color: #10b981; font-size: 32px; font-weight: 800"
+                    >
+                      --
+                    </h2>
+                    <p style="color: #64748b; font-size: 13px">
+                      Hoàn thành nộp đồ án
+                    </p>
+                  </div>
+                  <div>
+                    <h2
+                      style="color: #004ee0; font-size: 32px; font-weight: 800"
+                    >
+                      --
+                    </h2>
+                    <p style="color: #64748b; font-size: 13px">
+                      Đề xuất chuyển tuyển dụng
+                    </p>
+                  </div>
+                </div>
+                <p
+                  style="
+                    text-align: center;
+                    color: #94a3b8;
+                    font-size: 12.5px;
+                    margin-top: 14px;
+                  "
+                >
+                  Chưa có dữ liệu thống kê
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- JAVASCRIPT LOGIC CHO HỆ THỐNG -->
     <script>
-      // XỬ LÝ FORM TẠO TÀI KHOẢN
-      document
-        .getElementById("accountForm")
-        .addEventListener("submit", async function (e) {
-          e.preventDefault();
+      const API_BASE = "http://127.0.0.1:5000/api";
 
-          const name = document.getElementById("name").value.trim();
-          const email = document.getElementById("email").value.trim();
-          const password = document.getElementById("password").value;
-          const role = document.getElementById("role").value;
-          const btn = document.getElementById("submitBtn");
-          const alertBox = document.getElementById("alertBox");
+      // Danh sách định nghĩa các quyền trong hệ thống
+      const PERMISSIONS_DEF = [
+        {
+          code: "MANAGE_USERS",
+          name: "Quản lý tài khoản",
+          tabId: "tab-users",
+          icon: "fa-users",
+        },
+        {
+          code: "SYSTEM_SETTINGS",
+          name: "Phân quyền vai trò",
+          tabId: "tab-permissions",
+          icon: "fa-shield-halved",
+        },
+        {
+          code: "ASSIGN_TASKS",
+          name: "Giao nhiệm vụ & Task",
+          tabId: "tab-tasks",
+          icon: "fa-list-check",
+        },
+        {
+          code: "SUBMIT_WORK",
+          name: "Nộp báo cáo công việc",
+          tabId: "tab-submissions",
+          icon: "fa-file-arrow-up",
+        },
+        {
+          code: "VIEW_REPORTS",
+          name: "Báo cáo & Thống kê",
+          tabId: "tab-reports",
+          icon: "fa-chart-line",
+        },
+      ];
 
-          if (password.length < 6) {
-            alertBox.className = "alert alert-error";
-            alertBox.innerText = " Mật khẩu phải từ 6 ký tự trở lên!";
-            alertBox.style.display = "block";
-            return;
+      let currentRole = "Admin";
+      let currentTab = "tab-users";
+      let permissionsMap = {};
+      let usersList = [];
+
+      // =========================================================================
+      // XÁC THỰC (JWT)
+      // =========================================================================
+      function getAuthToken() {
+        return localStorage.getItem("authToken") || "";
+      }
+
+      // Trả về headers có kèm Authorization Bearer token, dùng cho mọi request
+      // gọi tới API cần đăng nhập.
+      function authHeaders(extra = {}) {
+        return { Authorization: `Bearer ${getAuthToken()}`, ...extra };
+      }
+
+      // Xóa phiên đăng nhập & quay lại trang login (dùng khi logout hoặc khi
+      // token hết hạn / không hợp lệ).
+      function forceLogout(message) {
+        localStorage.removeItem("currentUser");
+        localStorage.removeItem("authToken");
+        if (message) {
+          alert(message);
+        }
+        window.location.href = "login.html";
+      }
+
+      // =========================================================================
+      // KHỞI TẠO VÀ TẢI DỮ LIỆU BAN ĐẦU
+      // =========================================================================
+      window.addEventListener("DOMContentLoaded", async () => {
+        // Đọc phiên đăng nhập từ localStorage nếu có
+        const storedUser = localStorage.getItem("currentUser");
+        const token = getAuthToken();
+
+        if (!storedUser || !token) {
+          forceLogout();
+          return;
+        }
+
+        try {
+          const user = JSON.parse(storedUser);
+          if (user.role) {
+            currentRole = user.role;
           }
+          renderUserMenu(user);
+        } catch (e) {
+          forceLogout();
+          return;
+        }
 
-          btn.disabled = true;
-          btn.innerText = "Đang xử lý...";
-          alertBox.style.display = "none";
+        await loadPermissions();
+        await loadUsers();
+        currentTab = getDefaultTabForRole(currentRole);
+        updateRoleContext();
+      });
 
-          try {
-            const response = await fetch("http://127.0.0.1:5000/api/users", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name, email, password, role }),
-            });
+      // Hiển thị thông tin tài khoản đang đăng nhập lên menu avatar góc trên
+      function renderUserMenu(user) {
+        const name = user && user.name ? user.name : "Người dùng";
+        const email = user && user.email ? user.email : "";
+        const initial = name.trim().charAt(0).toUpperCase() || "?";
 
-            const data = await response.json();
+        document.getElementById("userAvatarInitial").innerText = initial;
+        document.getElementById("userNameShort").innerText = name;
+        document.getElementById("userFullName").innerText = name;
+        document.getElementById("userEmailText").innerText = email;
+      }
 
-            if (response.ok) {
-              alertBox.className = "alert alert-success";
-              alertBox.innerText = " " + data.message;
-              document.getElementById("accountForm").reset();
-            } else {
-              alertBox.className = "alert alert-error";
-              alertBox.innerText = " " + (data.error || "Có lỗi xảy ra!");
-            }
-          } catch (err) {
-            alertBox.className = "alert alert-error";
-            alertBox.innerText =
-              " Không thể kết nối tới Backend! (Bạn đã bật server.js chưa?)";
-          } finally {
-            btn.disabled = false;
-            btn.innerText = "Tạo tài khoản";
-            alertBox.style.display = "block";
+      // Mở / đóng dropdown menu tài khoản
+      function toggleUserMenu(event) {
+        event.stopPropagation();
+        document.getElementById("userMenuDropdown").classList.toggle("open");
+      }
+
+      // Đóng menu tài khoản khi click ra ngoài
+      document.addEventListener("click", (e) => {
+        const menu = document.getElementById("userMenu");
+        const dropdown = document.getElementById("userMenuDropdown");
+        if (menu && dropdown && !menu.contains(e.target)) {
+          dropdown.classList.remove("open");
+        }
+      });
+
+      // Hàm Đăng xuất
+      function handleLogout() {
+        if (confirm("Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?")) {
+          localStorage.removeItem("currentUser");
+          localStorage.removeItem("authToken");
+          window.location.href = "login.html";
+        }
+      }
+
+      function updateRoleContext() {
+        // XỬ LÝ ẨN / HIỆN MENU THEO QUYỀN
+        renderDynamicMenu();
+
+        // KIỂM TRA CHẶN TRUY CẬP TRANG HIỆN TẠI NẾU KHÔNG CÓ QUYỀN
+        checkAccessAndRender(currentTab);
+      }
+
+      // =========================================================================
+      // DYNAMIC MENU: ẨN / HIỆN MENU THEO QUYỀN VAI TRÒ
+      // =========================================================================
+      function getRolePermissions(role) {
+        return permissionsMap[role] || [];
+      }
+
+      function hasPermissionForTab(tabId, role) {
+        if (tabId === "tab-candidates") {
+          return role === "HR" || role === "Admin";
+        }
+        if (tabId === "tab-mentors" || tabId === "tab-students") {
+          return role === "HR" || role === "Admin";
+        }
+        const permDef = PERMISSIONS_DEF.find((p) => p.tabId === tabId);
+        if (!permDef) return true; // Tab không bị ràng buộc
+        const rolePerms = getRolePermissions(role);
+        return rolePerms.includes(permDef.code);
+      }
+
+      function renderDynamicMenu() {
+        const menuEl = document.getElementById("sidebarMenu");
+        menuEl.innerHTML = "";
+        const rolePerms = getRolePermissions(currentRole);
+
+        const btnFormUngTuyen = document.getElementById("btnFormUngTuyen");
+        if (btnFormUngTuyen) {
+          btnFormUngTuyen.style.display =
+            currentRole === "Intern" ? "flex" : "none";
+        }
+
+        let allowedCount = 0;
+
+        PERMISSIONS_DEF.forEach((item) => {
+          const isAllowed = rolePerms.includes(item.code);
+          if (isAllowed) {
+            allowedCount++;
+            const li = document.createElement("li");
+            li.className = "nav-item";
+            const isActive = currentTab === item.tabId;
+            li.innerHTML = `
+            <a class="nav-link ${isActive ? "active" : ""}" onclick="switchTab('${item.tabId}')">
+              <i class="fa-solid ${item.icon}"></i>
+              <span>${item.name}</span>
+            </a>
+          `;
+            menuEl.appendChild(li);
           }
         });
 
-      //  XỬ LÝ PHÂN QUYỀN
-      const ALL_ROLES = ["HR", "Mentor", "Intern"];
-      const ALL_PERMS = [
-        "MANAGE_USERS",
-        "ASSIGN_TASKS",
-        "SUBMIT_WORK",
-        "EVALUATE_INTERN",
-        "VIEW_REPORTS",
-        "SYSTEM_SETTINGS",
-      ];
+        // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh
+        if (currentRole === "HR") {
+          allowedCount += 3;
+          const isCandidateActive = currentTab === "tab-candidates";
+          const isMentorActive = currentTab === "tab-mentors";
+          const isStudentActive = currentTab === "tab-students";
 
-      let currentPermissions = {};
+          const liCand = document.createElement("li");
+          liCand.className = "nav-item";
+          liCand.innerHTML = `
+          <a class="nav-link ${isCandidateActive ? "active" : ""}" onclick="switchTab('tab-candidates')">
+            <i class="fa-solid fa-file-lines"></i>
+            <span>Hồ sơ ứng tuyển online</span>
+          </a>
+        `;
+          menuEl.appendChild(liCand);
 
+          const liMentor = document.createElement("li");
+          liMentor.className = "nav-item";
+          liMentor.innerHTML = `
+          <a class="nav-link ${isMentorActive ? "active" : ""}" onclick="switchTab('tab-mentors')">
+            <i class="fa-solid fa-user-tie"></i>
+            <span>Mentor & Phòng ban</span>
+          </a>
+        `;
+          menuEl.appendChild(liMentor);
+
+          const liStudent = document.createElement("li");
+          liStudent.className = "nav-item";
+          liStudent.innerHTML = `
+          <a class="nav-link ${isStudentActive ? "active" : ""}" onclick="switchTab('tab-students')">
+            <i class="fa-solid fa-id-card"></i>
+            <span>Hồ sơ thực tập sinh</span>
+          </a>
+        `;
+          menuEl.appendChild(liStudent);
+        }
+
+        document.getElementById("menuCountBadge").innerText =
+          `${allowedCount} mục`;
+      }
+
+      // CHUYỂN TAB VÀ CHẶN TRUY CẬP TRÊN UI
+      function switchTab(tabId) {
+        currentTab = tabId;
+        checkAccessAndRender(tabId);
+        renderDynamicMenu();
+      }
+
+      function checkAccessAndRender(tabId) {
+        const allowed = hasPermissionForTab(tabId, currentRole);
+        const forbiddenEl = document.getElementById("forbiddenScreen");
+
+        // Ẩn tất cả các tab
+        document
+          .querySelectorAll(".tab-pane")
+          .forEach((el) => (el.style.display = "none"));
+
+        if (!allowed) {
+          // CHƯA CÓ QUYỀN -> HIỆN MÀN HÌNH THÔNG BÁO
+          forbiddenEl.style.display = "block";
+          const permDef = PERMISSIONS_DEF.find((p) => p.tabId === tabId);
+          document.getElementById("forbiddenMessage").innerHTML = `
+          Vai trò <b>[${currentRole}]</b> chưa được cấp quyền <b>[${permDef ? permDef.code : "UNKNOWN"}]</b> để vào trang này.<br/>
+          Vui lòng liên hệ Admin để được cấp thêm quyền.
+        `;
+          document.getElementById("pageTitle").innerText =
+            "Chưa có quyền truy cập";
+          document.getElementById("pageSubtitle").innerText =
+            "Vai trò hiện tại chưa được cấp quyền sử dụng chức năng này";
+        } else {
+          forbiddenEl.style.display = "none";
+          const targetTab = document.getElementById(tabId);
+          if (targetTab) targetTab.style.display = "block";
+
+          const permDef = PERMISSIONS_DEF.find((p) => p.tabId === tabId);
+          if (permDef) {
+            document.getElementById("pageTitle").innerText = permDef.name;
+            document.getElementById("pageSubtitle").innerText =
+              `Phân hệ chức năng yêu cầu quyền: ${permDef.code}`;
+          } else if (tabId === "tab-candidates") {
+            document.getElementById("pageTitle").innerText =
+              "Hồ Sơ Ứng Tuyển Online";
+            document.getElementById("pageSubtitle").innerText =
+              "Danh sách sinh viên nộp đơn tham gia chương trình thực tập (US 3)";
+            loadCandidates();
+          } else if (tabId === "tab-mentors") {
+            document.getElementById("pageTitle").innerText =
+              "Quản Lý Mentor & Phòng Ban";
+            document.getElementById("pageSubtitle").innerText =
+              "HR thêm mới / chỉnh sửa mentor để phân công hướng dẫn thực tập sinh";
+            loadMentors();
+          } else if (tabId === "tab-students") {
+            document.getElementById("pageTitle").innerText =
+              "Quản Lý Hồ Sơ Thực Tập Sinh";
+            document.getElementById("pageSubtitle").innerText =
+              "HR thêm mới / chỉnh sửa thông tin cá nhân của thực tập sinh";
+            loadMentorsForSelect();
+            loadStudents();
+          }
+        }
+      }
+
+      function switchToFirstAllowedTab() {
+        switchTab(getDefaultTabForRole(currentRole));
+      }
+
+      function getDefaultTabForRole(role) {
+        const rolePerms = getRolePermissions(role);
+        const firstDefAllowed = PERMISSIONS_DEF.find((p) =>
+          rolePerms.includes(p.code),
+        );
+        if (firstDefAllowed) return firstDefAllowed.tabId;
+
+        // HR/Admin luôn có quyền vào các mục quản lý Mentor/Hồ sơ thực tập sinh/Ứng viên
+        if (role === "HR" || role === "Admin") return "tab-mentors";
+
+        // Vai trò chưa được Admin cấp bất kỳ quyền nào -> vẫn trả về 1 tab hợp lệ
+        // để checkAccessAndRender hiển thị đúng màn "Chưa có quyền truy cập"
+        return "tab-users";
+      }
+
+      // =========================================================================
+      //  TẠO TÀI KHOẢN & QUẢN LÝ DANH SÁCH USERS
+      // =========================================================================
+      async function loadUsers() {
+        try {
+          const res = await fetch(`${API_BASE}/users`, {
+            headers: authHeaders(),
+          });
+          if (res.status === 401)
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
+          usersList = await res.json();
+          renderUserTable();
+          updateStats();
+        } catch (err) {
+          console.error("Lỗi tải users:", err);
+        }
+      }
+
+      function updateStats() {
+        const total = usersList.length;
+        const hr = usersList.filter((u) => u.role === "HR").length;
+        const mentor = usersList.filter((u) => u.role === "Mentor").length;
+        const intern = usersList.filter((u) => u.role === "Intern").length;
+
+        document.getElementById("statTotalUsers").innerText = total;
+        document.getElementById("statHrUsers").innerText = hr;
+        document.getElementById("statMentorUsers").innerText = mentor;
+        document.getElementById("statInternUsers").innerText = intern;
+      }
+
+      function renderUserTable() {
+        const tbody = document.getElementById("userTableBody");
+        const search = (document.getElementById("userSearchInput").value || "")
+          .toLowerCase()
+          .trim();
+        const roleFilter = document.getElementById("userRoleFilter").value;
+
+        const filtered = usersList.filter((u) => {
+          const matchSearch =
+            (u.name && u.name.toLowerCase().includes(search)) ||
+            (u.email && u.email.toLowerCase().includes(search));
+          const matchRole = roleFilter === "ALL" || u.role === roleFilter;
+          return matchSearch && matchRole;
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px;">Không tìm thấy người dùng nào phù hợp</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered
+          .map((u) => {
+            let roleBadge = "badge-intern";
+            if (u.role === "Admin") roleBadge = "badge-admin";
+            else if (u.role === "HR") roleBadge = "badge-hr";
+            else if (u.role === "Mentor") roleBadge = "badge-mentor";
+
+            const createdDate = u.createdAt
+              ? new Date(u.createdAt).toLocaleDateString("vi-VN")
+              : "N/A";
+
+            return `
+          <tr>
+            <td style="font-family: monospace; font-size: 12px; color: #64748b;">${u.id}</td>
+            <td><b>${u.name}</b></td>
+            <td>${u.email}</td>
+            <td><span class="badge ${roleBadge}">${u.role}</span></td>
+            <td><span class="badge badge-active">${u.status || "ACTIVE"}</span></td>
+            <td style="font-size: 12.5px; color: #64748b;">${createdDate}</td>
+            <td align="center">
+              <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id}, '${u.email}')">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+          })
+          .join("");
+      }
+
+      // TẠO TÀI KHOẢN (POST /api/users)
+      async function handleCreateUser(e) {
+        e.preventDefault();
+        const name = document.getElementById("newUserName").value.trim();
+        const email = document.getElementById("newUserEmail").value.trim();
+        const password = document.getElementById("newUserPassword").value;
+        const role = document.getElementById("newUserRole").value;
+        const alertBox = document.getElementById("createUserAlert");
+        const btn = document.getElementById("btnCreateUser");
+
+        // Validate dữ liệu
+        if (password.length < 6) {
+          showAlert(alertBox, "Mật khẩu phải từ 6 ký tự trở lên!", "error");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...`;
+
+        try {
+          const res = await fetch(`${API_BASE}/users`, {
+            method: "POST",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ name, email, password, role }),
+          });
+          const data = await res.json();
+
+          if (res.ok) {
+            showAlert(alertBox, data.message, "success");
+            document.getElementById("createUserForm").reset();
+            await loadUsers();
+          } else {
+            showAlert(
+              alertBox,
+              data.error || "Tạo tài khoản thất bại!",
+              "error",
+            );
+          }
+        } catch (err) {
+          showAlert(alertBox, " Không thể kết nối tới Backend!", "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<i class="fa-solid fa-plus"></i> Tạo tài khoản`;
+        }
+      }
+
+      async function deleteUser(id, email) {
+        if (!confirm(`Bạn có chắc muốn xóa tài khoản "${email}" không?`))
+          return;
+        try {
+          const res = await fetch(`${API_BASE}/users/${id}`, {
+            method: "DELETE",
+            headers: authHeaders(),
+          });
+          if (res.ok) {
+            await loadUsers();
+          } else {
+            alert("Lỗi khi xóa tài khoản!");
+          }
+        } catch (err) {
+          alert("Không thể kết nối Backend!");
+        }
+      }
+
+      // =========================================================================
+      //  QUẢN LÝ PHÂN QUYỀN CHI TIẾT (RBAC MATRIX)
+      // =========================================================================
       async function loadPermissions() {
         try {
-          const res = await fetch("http://127.0.0.1:5000/api/permissions");
-          currentPermissions = await res.json();
-
-          for (const role of ALL_ROLES) {
-            for (const perm of ALL_PERMS) {
-              const cb = document.getElementById(`${role}_${perm}`);
-              if (cb) {
-                cb.checked = (currentPermissions[role] || []).includes(perm);
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Lỗi tải quyền:", e);
+          const res = await fetch(`${API_BASE}/permissions`, {
+            headers: authHeaders(),
+          });
+          if (res.status === 401)
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
+          permissionsMap = await res.json();
+          renderPermissionsMatrix();
+        } catch (err) {
+          console.error("Lỗi đọc ma trận quyền:", err);
         }
+      }
+
+      function renderPermissionsMatrix() {
+        const tbody = document.getElementById("permMatrixBody");
+        const roles = ["HR", "Mentor", "Intern"];
+
+        tbody.innerHTML = PERMISSIONS_DEF.map((p) => {
+          return `
+          <tr>
+            <td><b><i class="fa-solid ${p.icon}" style="margin-right: 8px; color: var(--primary);"></i>${p.name}</b></td>
+            <td style="font-family: monospace; font-size: 12px; color: #64748b;">${p.code}</td>
+            ${roles
+              .map((r) => {
+                const isChecked = (permissionsMap[r] || []).includes(p.code);
+                return `
+                <td>
+                  <input type="checkbox" class="toggle-checkbox" id="perm_${r}_${p.code}" ${isChecked ? "checked" : ""} />
+                </td>
+              `;
+              })
+              .join("")}
+          </tr>
+        `;
+        }).join("");
       }
 
       async function savePermissions() {
-        for (const role of ALL_ROLES) {
-          const permissions = [];
-          for (const perm of ALL_PERMS) {
-            const cb = document.getElementById(`${role}_${perm}`);
-            if (cb && cb.checked) {
-              permissions.push(perm);
-            }
+        const roles = ["HR", "Mentor", "Intern"];
+        const alertBox = document.getElementById("permAlert");
+
+        try {
+          for (const role of roles) {
+            const selectedPerms = [];
+            PERMISSIONS_DEF.forEach((p) => {
+              const cb = document.getElementById(`perm_${role}_${p.code}`);
+              if (cb && cb.checked) {
+                selectedPerms.push(p.code);
+              }
+            });
+
+            await fetch(`${API_BASE}/permissions/update`, {
+              method: "POST",
+              headers: authHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify({ role, permissions: selectedPerms }),
+            });
+
+            permissionsMap[role] = selectedPerms;
           }
 
-          await fetch("http://127.0.0.1:5000/api/permissions/update", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ role, permissions }),
-          });
+          showAlert(
+            alertBox,
+            "🎉 Đã lưu cấu hình phân quyền thành công! Menu các vai trò đã được cập nhật.",
+            "success",
+          );
+          updateRoleContext(); // Cập nhật lại Menu ngay lập tức
+        } catch (err) {
+          showAlert(alertBox, " Lỗi khi lưu cấu hình phân quyền!", "error");
         }
-        alert("🎉 Đã lưu cấu hình phân quyền thành công!");
-        loadPermissions();
       }
 
-      loadPermissions();
+      // =========================================================================
+      //  HỒ SƠ ỨNG TUYỂN SINH VIÊN (XEM & DUYỆT HỒ SƠ)
+      // =========================================================================
+      async function loadCandidates() {
+        const tbody = document.getElementById("candidateTableBody");
+        if (currentRole === "Intern") {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 24px;"><b><i class="fa-solid fa-lock"></i> Thực tập sinh không có quyền xem danh sách hồ sơ ứng tuyển!</b></td></tr>`;
+          return;
+        }
+        try {
+          const res = await fetch(`${API_BASE}/candidates`, {
+            headers: authHeaders(),
+          });
+          if (res.status === 403) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 24px;"><b><i class="fa-solid fa-lock"></i> Bạn không có quyền truy cập hồ sơ ứng tuyển!</b></td></tr>`;
+            return;
+          }
+          const list = await res.json();
+
+          if (list.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có hồ sơ ứng tuyển nào</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = list
+            .map((c) => {
+              let stColor = "badge-pending";
+              if (c.status === "Đã duyệt") stColor = "badge-active";
+              else if (c.status === "Từ chối") stColor = "badge-admin";
+
+              const cvBtn = c.cvLink
+                ? `<a href="${c.cvLink}" target="_blank" class="btn btn-sm btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Xem CV</a>`
+                : `<span style="color:#94a3b8; font-size:12px;">Không có</span>`;
+
+              return `
+            <tr>
+              <td><b>${c.name}</b></td>
+              <td>${c.email}</td>
+              <td>${c.phone || "N/A"}</td>
+              <td>${c.university || "N/A"}</td>
+              <td>${c.major || "N/A"}</td>
+              <td>${cvBtn}</td>
+              <td><span class="badge ${stColor}">${c.status || "Chờ duyệt"}</span></td>
+              <td align="center">
+                <button class="btn btn-sm btn-success" onclick="updateCandidateStatus(${c.id}, 'Đã duyệt')" title="Duyệt hồ sơ">
+                  <i class="fa-solid fa-check"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="updateCandidateStatus(${c.id}, 'Từ chối')" title="Từ chối">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+            })
+            .join("");
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách ứng viên!</td></tr>`;
+        }
+      }
+
+      async function updateCandidateStatus(id, newStatus) {
+        try {
+          const res = await fetch(`${API_BASE}/candidates/${id}/status`, {
+            method: "PUT",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ status: newStatus }),
+          });
+          if (res.ok) {
+            loadCandidates();
+          }
+        } catch (err) {
+          alert("Lỗi cập nhật trạng thái!");
+        }
+      }
+
+      // =========================================================================
+      // QUẢN LÝ MENTOR & PHÒNG BAN (HR THÊM MỚI MENTOR)
+      // =========================================================================
+      let mentorsList = [];
+
+      async function loadMentors() {
+        const tbody = document.getElementById("mentorTableBody");
+        try {
+          const res = await fetch(`${API_BASE}/mentors`, {
+            headers: authHeaders(),
+          });
+          mentorsList = await res.json();
+
+          if (!Array.isArray(mentorsList) || mentorsList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có mentor nào trong hệ thống</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = mentorsList
+            .map(
+              (m) => `
+          <tr>
+            <td><b>${m.fullName}</b></td>
+            <td>${m.email}</td>
+            <td>${m.phone || "N/A"}</td>
+            <td><span class="badge badge-mentor">${m.department || "N/A"}</span></td>
+            <td>${m.specialization || "N/A"}</td>
+            <td align="center">
+              <button class="btn btn-sm btn-primary" onclick="editMentor(${m.id})" title="Chỉnh sửa">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="deleteMentor(${m.id}, '${m.fullName}')" title="Xóa">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `,
+            )
+            .join("");
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách mentor!</td></tr>`;
+        }
+      }
+
+      // Nạp danh sách mentor cho ô chọn "Mentor phụ trách" ở form hồ sơ thực tập sinh
+      async function loadMentorsForSelect() {
+        try {
+          const res = await fetch(`${API_BASE}/mentors`, {
+            headers: authHeaders(),
+          });
+          const list = await res.json();
+          mentorsList = Array.isArray(list) ? list : [];
+          const select = document.getElementById("studentMentor");
+          const current = select.value;
+          select.innerHTML =
+            `<option value="">-- Chưa phân công --</option>` +
+            mentorsList
+              .map(
+                (m) =>
+                  `<option value="${m.fullName}">${m.department || "Chưa cập nhật chuyên môn"}</option>`,
+              )
+              .join("");
+          if (current) select.value = current;
+        } catch (err) {
+          console.error("Lỗi tải danh sách mentor cho form:", err);
+        }
+      }
+
+      async function handleSaveMentor(e) {
+        e.preventDefault();
+        const alertBox = document.getElementById("mentorAlert");
+        const btn = document.getElementById("btnSaveMentor");
+        const editId = document.getElementById("mentorEditId").value;
+
+        const payload = {
+          fullName: document.getElementById("mentorName").value.trim(),
+          email: document.getElementById("mentorEmail").value.trim(),
+          phone: document.getElementById("mentorPhone").value.trim(),
+          department: document.getElementById("mentorDepartment").value.trim(),
+          specialization: document
+            .getElementById("mentorSpecialization")
+            .value.trim(),
+        };
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...`;
+
+        try {
+          const url = editId
+            ? `${API_BASE}/mentors/${editId}`
+            : `${API_BASE}/mentors`;
+          const method = editId ? "PUT" : "POST";
+          const res = await fetch(url, {
+            method,
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+
+          if (res.ok) {
+            showAlert(alertBox, data.message, "success");
+            cancelMentorEdit();
+            await loadMentors();
+          } else {
+            showAlert(alertBox, data.error || "Thao tác thất bại!", "error");
+          }
+        } catch (err) {
+          showAlert(alertBox, " Không thể kết nối tới Backend!", "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = editId
+            ? `<i class="fa-solid fa-floppy-disk"></i> Cập Nhật Mentor`
+            : `<i class="fa-solid fa-plus"></i> Thêm Mentor`;
+        }
+      }
+
+      function editMentor(id) {
+        const m = mentorsList.find((x) => Number(x.id) === Number(id));
+        if (!m) return;
+        document.getElementById("mentorEditId").value = m.id;
+        document.getElementById("mentorName").value = m.fullName || "";
+        document.getElementById("mentorEmail").value = m.email || "";
+        document.getElementById("mentorPhone").value = m.phone || "";
+        document.getElementById("mentorDepartment").value = m.department || "";
+        document.getElementById("mentorSpecialization").value =
+          m.specialization || "";
+        document.getElementById("mentorFormTitle").innerText =
+          "Chỉnh Sửa Mentor";
+        document.getElementById("btnSaveMentor").innerHTML =
+          `<i class="fa-solid fa-floppy-disk"></i> Cập Nhật Mentor`;
+        document.getElementById("btnCancelMentorEdit").style.display =
+          "inline-block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function cancelMentorEdit() {
+        document.getElementById("mentorForm").reset();
+        document.getElementById("mentorEditId").value = "";
+        document.getElementById("mentorFormTitle").innerText =
+          "Thêm Mới Mentor";
+        document.getElementById("btnSaveMentor").innerHTML =
+          `<i class="fa-solid fa-plus"></i> Thêm Mentor`;
+        document.getElementById("btnCancelMentorEdit").style.display = "none";
+      }
+
+      async function deleteMentor(id, name) {
+        if (!confirm(`Bạn có chắc muốn xóa mentor "${name}" không?`)) return;
+        try {
+          const res = await fetch(`${API_BASE}/mentors/${id}`, {
+            method: "DELETE",
+            headers: authHeaders(),
+          });
+          if (res.ok) {
+            await loadMentors();
+          } else {
+            alert("Lỗi khi xóa mentor!");
+          }
+        } catch (err) {
+          alert("Không thể kết nối Backend!");
+        }
+      }
+
+      // =========================================================================
+      // QUẢN LÝ HỒ SƠ THỰC TẬP SINH
+      // =========================================================================
+      let studentsList = [];
+
+      async function loadStudents() {
+        const tbody = document.getElementById("studentTableBody");
+        try {
+          const res = await fetch(`${API_BASE}/students`, {
+            headers: authHeaders(),
+          });
+          studentsList = await res.json();
+
+          if (!Array.isArray(studentsList) || studentsList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có hồ sơ thực tập sinh nào</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = studentsList
+            .map((s) => {
+              let stColor = "badge-active";
+              if (s.status === "Tạm dừng") stColor = "badge-pending";
+              else if (s.status === "Hoàn thành") stColor = "badge-hr";
+
+              return `
+            <tr>
+              <td style="font-family: monospace; font-size: 12px; color: #64748b;">${s.studentCode || "N/A"}</td>
+              <td><b>${s.fullName}</b></td>
+              <td>${s.email}</td>
+              <td>${s.university || "N/A"}</td>
+              <td>${s.mentorName || "Chưa phân công"}</td>
+              <td><span class="badge ${stColor}">${s.status || "Đang thực tập"}</span></td>
+              <td align="center">
+                <button class="btn btn-sm btn-primary" onclick="editStudent(${s.id})" title="Chỉnh sửa">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteStudent(${s.id}, '${s.fullName}')" title="Xóa">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+            })
+            .join("");
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách hồ sơ thực tập sinh!</td></tr>`;
+        }
+      }
+
+      async function handleSaveStudent(e) {
+        e.preventDefault();
+        const alertBox = document.getElementById("studentAlert");
+        const btn = document.getElementById("btnSaveStudent");
+        const editId = document.getElementById("studentEditId").value;
+
+        const payload = {
+          studentCode: document.getElementById("studentCode").value.trim(),
+          fullName: document.getElementById("studentName").value.trim(),
+          email: document.getElementById("studentEmail").value.trim(),
+          phone: document.getElementById("studentPhone").value.trim(),
+          university: document.getElementById("studentUniversity").value.trim(),
+          major: document.getElementById("studentMajor").value.trim(),
+          mentorName: document.getElementById("studentMentor").value,
+          status: document.getElementById("studentStatus").value,
+        };
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...`;
+
+        try {
+          const url = editId
+            ? `${API_BASE}/students/${editId}`
+            : `${API_BASE}/students`;
+          const method = editId ? "PUT" : "POST";
+          const res = await fetch(url, {
+            method,
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+
+          if (res.ok) {
+            showAlert(alertBox, data.message, "success");
+            cancelStudentEdit();
+            await loadStudents();
+          } else {
+            showAlert(alertBox, data.error || "Thao tác thất bại!", "error");
+          }
+        } catch (err) {
+          showAlert(alertBox, " Không thể kết nối tới Backend!", "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = editId
+            ? `<i class="fa-solid fa-floppy-disk"></i> Cập Nhật Hồ Sơ`
+            : `<i class="fa-solid fa-plus"></i> Lưu Hồ Sơ`;
+        }
+      }
+
+      function editStudent(id) {
+        const s = studentsList.find((x) => Number(x.id) === Number(id));
+        if (!s) return;
+        document.getElementById("studentEditId").value = s.id;
+        document.getElementById("studentCode").value = s.studentCode || "";
+        document.getElementById("studentName").value = s.fullName || "";
+        document.getElementById("studentEmail").value = s.email || "";
+        document.getElementById("studentPhone").value = s.phone || "";
+        document.getElementById("studentUniversity").value = s.university || "";
+        document.getElementById("studentMajor").value = s.major || "";
+        document.getElementById("studentMentor").value = s.mentorName || "";
+        document.getElementById("studentStatus").value =
+          s.status || "Đang thực tập";
+        document.getElementById("studentFormTitle").innerText =
+          "Chỉnh Sửa Hồ Sơ Thực Tập Sinh";
+        document.getElementById("btnSaveStudent").innerHTML =
+          `<i class="fa-solid fa-floppy-disk"></i> Cập Nhật Hồ Sơ`;
+        document.getElementById("btnCancelStudentEdit").style.display =
+          "inline-block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function cancelStudentEdit() {
+        document.getElementById("studentForm").reset();
+        document.getElementById("studentEditId").value = "";
+        document.getElementById("studentFormTitle").innerText =
+          "Thêm Mới Hồ Sơ Thực Tập Sinh";
+        document.getElementById("btnSaveStudent").innerHTML =
+          `<i class="fa-solid fa-plus"></i> Lưu Hồ Sơ`;
+        document.getElementById("btnCancelStudentEdit").style.display = "none";
+      }
+
+      async function deleteStudent(id, name) {
+        if (
+          !confirm(`Bạn có chắc muốn xóa hồ sơ thực tập sinh "${name}" không?`)
+        )
+          return;
+        try {
+          const res = await fetch(`${API_BASE}/students/${id}`, {
+            method: "DELETE",
+            headers: authHeaders(),
+          });
+          if (res.ok) {
+            await loadStudents();
+          } else {
+            alert("Lỗi khi xóa hồ sơ!");
+          }
+        } catch (err) {
+          alert("Không thể kết nối Backend!");
+        }
+      }
+
+      function showAlert(el, msg, type) {
+        el.className = `alert-box alert-${type}`;
+        el.innerText = msg;
+        el.style.display = "flex";
+        setTimeout(() => {
+          el.style.display = "none";
+        }, 5000);
+      }
     </script>
   </body>
 </html>

@@ -1,6 +1,22 @@
 {
+  "name": "user-management-backend",
+  "version": "1.0.0",
+  "description": "Backend Hệ thống Quản lý & Phân quyền Thực tập sinh (Express + MySQL)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test:login": "node test_login.js",
+    "test:create-account": "node test.js",
+    "test:rbac": "node test_rbac.js",
+    "test:register": "node test_register.js",
+    "test:interns": "node test_interns.js",
+    "test:mentors": "node test_mentors.js"
+  },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.24.4"
   }
 }
