@@ -512,8 +512,8 @@
               "success",
             );
 
-            localStorage.setItem("currentUser", JSON.stringify(data.user));
-            localStorage.setItem("authToken", data.token);
+            sessionStorage.setItem("currentUser", JSON.stringify(data.user));
+            sessionStorage.setItem("authToken", data.token);
 
             // Chuyển hướng sang trang Dashboard
             setTimeout(() => {
