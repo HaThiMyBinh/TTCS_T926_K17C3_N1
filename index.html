@@ -1,355 +1,58 @@
-<!-- index.html -->
-<!doctype html>
-<html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Hệ Thống Quản Lý & Phân Quyền - Admin</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f6f8;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
-        margin: 0;
-        padding: 40px 20px;
-        box-sizing: border-box;
-      }
-      .card {
-        background: white;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 580px;
-        margin-bottom: 30px;
-        box-sizing: border-box;
-      }
-      h2 {
-        text-align: center;
-        margin-top: 0;
-        color: #333;
-      }
-      .form-group {
-        margin-bottom: 14px;
-      }
-      label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-        font-size: 14px;
-      }
-      input,
-      select {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-      }
-      button {
-        width: 100%;
-        padding: 12px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-      }
-      button:disabled {
-        background-color: #999;
-      }
-      .alert {
-        padding: 10px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        font-size: 14px;
-        display: none;
-      }
-      .alert-success {
-        background-color: #d4edda;
-        color: #155724;
-      }
-      .alert-error {
-        background-color: #f8d7da;
-        color: #721c24;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-      }
-      th,
-      td {
-        padding: 10px;
-        border: 1px solid #ddd;
-        font-size: 14px;
-      }
-      th {
-        background: #f8f9fa;
-      }
-    </style>
-  </head>
-  <body>
-    <!-- TẠO TÀI KHOẢN -->
-    <div class="card">
-      <h2>Tạo Tài Khoản (Admin)</h2>
-      <div id="alertBox" class="alert"></div>
+<td class="border p-2">
+                            <button onclick="generateAI('${item.name}', '${item.era}', '${item.description}')" 
+                                    class="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700">
+                                ✨ AI Thuyết Minh
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) { console.error(err); }
+        }
 
-      <form id="accountForm">
-        <div class="form-group">
-          <label>Họ và tên:</label>
-          <input type="text" id="name" placeholder="Nguyễn Văn A" required />
-        </div>
+        document.getElementById('addArtifactForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const body = {
+                name: document.getElementById('name').value,
+                era: document.getElementById('era').value,
+                zone: document.getElementById('zone').value,
+                description: document.getElementById('description').value
+            };
 
-        <div class="form-group">
-          <label>Email:</label>
-          <input
-            type="email"
-            id="email"
-            placeholder="email@gmail.com"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Mật khẩu:</label>
-          <input
-            type="password"
-            id="password"
-            placeholder="Tối thiểu 6 ký tự"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Vai trò:</label>
-          <select id="role">
-            <option value="HR">HR</option>
-            <option value="Mentor">Mentor</option>
-            <option value="Intern">Thực tập sinh (Intern)</option>
-          </select>
-        </div>
-
-        <button type="submit" id="submitBtn">Tạo tài khoản</button>
-      </form>
-    </div>
-
-    <!-- QUẢN LÝ PHÂN QUYỀN -->
-    <div class="card">
-      <h2>Quản Lý Phân Quyền Vai Trò</h2>
-      <p
-        style="
-          text-align: center;
-          color: #666;
-          font-size: 13px;
-          margin-bottom: 20px;
-        "
-      >
-        Tích chọn các chức năng mà mỗi vai trò được phép sử dụng
-      </p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Chức năng (Quyền)</th>
-            <th style="text-align: center">HR</th>
-            <th style="text-align: center">Mentor</th>
-            <th style="text-align: center">Intern</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><b> Quản lý tài khoản (MANAGE_USERS)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_MANAGE_USERS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_MANAGE_USERS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_MANAGE_USERS" />
-            </td>
-          </tr>
-          <tr>
-            <td><b> Giao nhiệm vụ & Task (ASSIGN_TASKS)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_ASSIGN_TASKS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_ASSIGN_TASKS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_ASSIGN_TASKS" />
-            </td>
-          </tr>
-          <tr>
-            <td><b> Nộp báo cáo công việc (SUBMIT_WORK)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_SUBMIT_WORK" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_SUBMIT_WORK" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_SUBMIT_WORK" />
-            </td>
-          </tr>
-          <tr>
-            <td><b> Đánh giá thực tập sinh (EVALUATE_INTERN)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_EVALUATE_INTERN" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_EVALUATE_INTERN" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_EVALUATE_INTERN" />
-            </td>
-          </tr>
-          <tr>
-            <td><b> Xem báo cáo & Thống kê (VIEW_REPORTS)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_VIEW_REPORTS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_VIEW_REPORTS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_VIEW_REPORTS" />
-            </td>
-          </tr>
-          <tr>
-            <td><b> Cài đặt hệ thống (SYSTEM_SETTINGS)</b></td>
-            <td align="center">
-              <input type="checkbox" id="HR_SYSTEM_SETTINGS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Mentor_SYSTEM_SETTINGS" />
-            </td>
-            <td align="center">
-              <input type="checkbox" id="Intern_SYSTEM_SETTINGS" />
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <button
-        onclick="savePermissions()"
-        style="margin-top: 15px; background: #28a745"
-      >
-        Lưu cấu hình phân quyền
-      </button>
-    </div>
-
-    <script>
-      // XỬ LÝ FORM TẠO TÀI KHOẢN
-      document
-        .getElementById("accountForm")
-        .addEventListener("submit", async function (e) {
-          e.preventDefault();
-
-          const name = document.getElementById("name").value.trim();
-          const email = document.getElementById("email").value.trim();
-          const password = document.getElementById("password").value;
-          const role = document.getElementById("role").value;
-          const btn = document.getElementById("submitBtn");
-          const alertBox = document.getElementById("alertBox");
-
-          if (password.length < 6) {
-            alertBox.className = "alert alert-error";
-            alertBox.innerText = " Mật khẩu phải từ 6 ký tự trở lên!";
-            alertBox.style.display = "block";
-            return;
-          }
-
-          btn.disabled = true;
-          btn.innerText = "Đang xử lý...";
-          alertBox.style.display = "none";
-
-          try {
-            const response = await fetch("http://127.0.0.1:5000/api/users", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name, email, password, role }),
+            const res = await fetch(`${API_BASE}/artifacts`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-              alertBox.className = "alert alert-success";
-              alertBox.innerText = " " + data.message;
-              document.getElementById("accountForm").reset();
-            } else {
-              alertBox.className = "alert alert-error";
-              alertBox.innerText = " " + (data.error || "Có lỗi xảy ra!");
+            if(res.ok) {
+                alert('Thêm hiện vật thành công!');
+                document.getElementById('addArtifactForm').reset();
+                loadData();
             }
-          } catch (err) {
-            alertBox.className = "alert alert-error";
-            alertBox.innerText =
-              " Không thể kết nối tới Backend! (Bạn đã bật server.js chưa?)";
-          } finally {
-            btn.disabled = false;
-            btn.innerText = "Tạo tài khoản";
-            alertBox.style.display = "block";
-          }
         });
 
-      //  XỬ LÝ PHÂN QUYỀN
-      const ALL_ROLES = ["HR", "Mentor", "Intern"];
-      const ALL_PERMS = [
-        "MANAGE_USERS",
-        "ASSIGN_TASKS",
-        "SUBMIT_WORK",
-        "EVALUATE_INTERN",
-        "VIEW_REPORTS",
-        "SYSTEM_SETTINGS",
-      ];
+        async function generateAI(name, era, desc) {
+            document.getElementById('aiContent').innerText = "🤖 AI đang kết nối dữ liệu và sinh thuyết minh...";
+            document.getElementById('aiModal').classList.remove('hidden');
 
-      let currentPermissions = {};
-
-      async function loadPermissions() {
-        try {
-          const res = await fetch("http://127.0.0.1:5000/api/permissions");
-          currentPermissions = await res.json();
-
-          for (const role of ALL_ROLES) {
-            for (const perm of ALL_PERMS) {
-              const cb = document.getElementById(`${role}_${perm}`);
-              if (cb) {
-                cb.checked = (currentPermissions[role] || []).includes(perm);
-              }
+            try {
+                const res = await fetch(`${API_BASE}/ai/narration`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name: name, era: era, description: desc })
+                });
+                const data = await res.json();
+                document.getElementById('aiContent').innerText = data.narration;
+            } catch (err) {
+                document.getElementById('aiContent').innerText = "❌ Lỗi kết nối AI Server!";
             }
-          }
-        } catch (e) {
-          console.error("Lỗi tải quyền:", e);
         }
-      }
 
-      async function savePermissions() {
-        for (const role of ALL_ROLES) {
-          const permissions = [];
-          for (const perm of ALL_PERMS) {
-            const cb = document.getElementById(`${role}_${perm}`);
-            if (cb && cb.checked) {
-              permissions.push(perm);
-            }
-          }
-
-          await fetch("http://127.0.0.1:5000/api/permissions/update", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ role, permissions }),
-          });
+        function closeModal() {
+            document.getElementById('aiModal').classList.add('hidden');
         }
-        alert("🎉 Đã lưu cấu hình phân quyền thành công!");
-        loadPermissions();
-      }
 
-      loadPermissions();
+        loadData();
     </script>
-  </body>
+</body>
 </html>
