@@ -11,6 +11,8 @@ const {
   requireRole,
 } = require("./auth");
 
+const applicationsRouter = require("./routes/applications.routes");
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -21,6 +23,14 @@ app.use(express.static(FRONTEND_DIR));
 
 const PERMISSIONS_FILE = path.join(__dirname, "permissions.json");
 const PORT = process.env.PORT || 5000;
+const VALID_ROLES = ["Admin", "HR", "Mentor", "Intern"];
+const VALID_PERMISSIONS = [
+  "MANAGE_USERS",
+  "ASSIGN_TASKS",
+  "SUBMIT_WORK",
+  "VIEW_REPORTS",
+  "SYSTEM_SETTINGS",
+];
 
 // Bắt buộc xác thực JWT cho MỌI route /api/*
 const PUBLIC_API_PATHS = [
@@ -87,6 +97,12 @@ app.post("/api/users", checkPermission("MANAGE_USERS"), async (req, res) => {
         .json({ error: "Mật khẩu phải từ 6 ký tự trở lên!" });
     }
 
+    if (!VALID_ROLES.includes(trimOrDefault(role))) {
+      return res.status(400).json({
+        error: `Vai trò không hợp lệ! Chỉ chấp nhận: ${VALID_ROLES.join(", ")}.`,
+      });
+    }
+
     // Kiểm tra trùng email qua Database / JSON
     const existing = await db.findUserByEmail(email);
     if (existing) {
@@ -139,6 +155,7 @@ app.get("/api/users", checkPermission("MANAGE_USERS"), async (req, res) => {
     }));
     res.json(safeUsers);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Lỗi đọc danh sách tài khoản!" });
   }
 });
@@ -152,6 +169,7 @@ app.delete(
       await db.deleteUser(req.params.id);
       res.json({ message: "Đã xóa tài khoản thành công!" });
     } catch (err) {
+      console.error(err);
       res.status(500).json({ error: "Lỗi khi xóa tài khoản!" });
     }
   },
@@ -171,6 +189,7 @@ app.get("/api/stats", checkPermission("MANAGE_USERS"), async (req, res) => {
     };
     res.json(stats);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Lỗi thống kê dữ liệu!" });
   }
 });
@@ -211,6 +230,7 @@ app.get("/api/permissions", (req, res) => {
     if (!permissions.Intern) permissions.Intern = [];
     res.json(permissions);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Lỗi đọc ma trận quyền!" });
   }
 });
@@ -223,6 +243,14 @@ app.post("/api/permissions/update", requireRole("Admin"), (req, res) => {
         .status(400)
         .json({ error: "Dữ liệu cập nhật quyền không hợp lệ!" });
     }
+    if (
+      !VALID_ROLES.includes(role) ||
+      !permissions.every((p) => VALID_PERMISSIONS.includes(p))
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Vai trò hoặc mã quyền không hợp lệ!" });
+    }
 
     const allPermissions = readJson(PERMISSIONS_FILE, {});
     allPermissions[role] = permissions;
@@ -233,6 +261,7 @@ app.post("/api/permissions/update", requireRole("Admin"), (req, res) => {
       permissions: allPermissions,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Lỗi lưu cấu hình quyền!" });
   }
 });
@@ -294,12 +323,12 @@ app.get("/api/settings", checkPermission("SYSTEM_SETTINGS"), (req, res) => {
 // XÁC THỰC: ĐĂNG NHẬP & ĐĂNG KÝ ỨNG TUYỂN
 // ============================================================================
 
-// API ĐĂNG NHẬP HỆ THỐNG (POST /api/auth/login)
 // API KIỂM TRA "SỨC KHỎE" SERVER (dùng cho run.bat / công cụ giám sát)
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", time: new Date().toISOString() });
 });
 
+// API ĐĂNG NHẬP HỆ THỐNG (POST /api/auth/login)
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { account, email, password } = req.body;
@@ -409,47 +438,8 @@ app.post("/api/auth/register", async (req, res) => {
 // QUẢN LÝ HỒ SƠ ỨNG TUYỂN (CANDIDATES) & MENTOR
 // ============================================================================
 
-// API LẤY DANH SÁCH HỒ SƠ ỨNG TUYỂN (Dành cho HR/Admin)
-app.get("/api/candidates", async (req, res) => {
-  // Vai trò lấy từ JWT đã xác thực (req.user), không còn tin vào header client tự gửi
-  const role = req.user.role;
-  if (role === "Intern") {
-    return res
-      .status(403)
-      .json({ error: "Thực tập sinh không có quyền xem hồ sơ ứng tuyển!" });
-  }
-  try {
-    const candidates = await db.getAllCandidates();
-    res.json(candidates);
-  } catch (err) {
-    res.status(500).json({ error: "Lỗi đọc danh sách ứng viên!" });
-  }
-});
-
-// API DUYỆT / CẬP NHẬT TRẠNG THÁI HỒ SƠ
-app.put("/api/candidates/:id/status", async (req, res) => {
-  // Vai trò lấy từ JWT đã xác thực (req.user), không còn tin vào header client tự gửi
-  const role = req.user.role;
-  if (role === "Intern") {
-    return res
-      .status(403)
-      .json({ error: "Thực tập sinh không có quyền duyệt hồ sơ!" });
-  }
-  try {
-    const id = Number(req.params.id);
-    const { status } = req.body;
-    const user = await db.updateCandidateStatus(id, status);
-    if (!user) {
-      return res.status(404).json({ error: "Không tìm thấy hồ sơ ứng viên!" });
-    }
-    res.json({
-      message: `Cập nhật trạng thái thành [${status}] thành công!`,
-      candidate: user,
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Lỗi cập nhật trạng thái hồ sơ!" });
-  }
-});
+// US7: Danh sách hồ sơ (Admin/HR) + Duyệt / từ chối -> PATCH /api/applications/:id/status (chỉ HR)
+app.use("/api/applications", applicationsRouter);
 
 // API LẤY DANH SÁCH MENTOR (GET /api/mentors) - mọi vai trò trừ Intern
 app.get(
@@ -460,6 +450,7 @@ app.get(
       const mentors = await db.getAllMentors();
       res.json(mentors);
     } catch (err) {
+      console.error(err);
       res.status(500).json({ error: "Lỗi đọc danh sách mentor!" });
     }
   },
@@ -495,6 +486,7 @@ app.post("/api/mentors", requireRole("Admin", "HR"), async (req, res) => {
       .status(201)
       .json({ message: "Thêm mentor mới thành công!", mentor: newMentor });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     console.error(err);
     res.status(500).json({ error: "Lỗi server khi thêm mentor!" });
   }
@@ -510,11 +502,11 @@ app.put("/api/mentors/:id", requireRole("Admin", "HR"), async (req, res) => {
         .json({ error: "Vui lòng nhập đầy đủ Họ tên, Email và Phòng ban!" });
     }
     const updated = await db.updateMentor(req.params.id, {
-      fullName,
-      email,
-      phone,
-      department,
-      specialization,
+      fullName: trimOrDefault(fullName),
+      email: trimOrDefault(email).toLowerCase(),
+      phone: trimOrDefault(phone),
+      department: trimOrDefault(department),
+      specialization: trimOrDefault(specialization),
     });
     if (!updated) {
       return res
@@ -526,6 +518,7 @@ app.put("/api/mentors/:id", requireRole("Admin", "HR"), async (req, res) => {
       mentor: updated,
     });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     res.status(500).json({ error: "Lỗi server khi cập nhật mentor!" });
   }
 });
@@ -536,6 +529,7 @@ app.delete("/api/mentors/:id", requireRole("Admin", "HR"), async (req, res) => {
     await db.deleteMentor(req.params.id);
     res.json({ message: "Đã xóa mentor khỏi hệ thống!" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Lỗi khi xóa mentor!" });
   }
 });
@@ -550,6 +544,7 @@ async function handleGetInterns(req, res) {
     const students = await db.getAllStudents();
     res.json(students);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Lỗi đọc danh sách hồ sơ thực tập sinh!" });
   }
 }
@@ -614,6 +609,7 @@ async function handleCreateIntern(req, res) {
       intern: newStudent,
     });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     console.error(err);
     res.status(500).json({ error: "Lỗi server khi thêm hồ sơ thực tập sinh!" });
   }
@@ -664,7 +660,7 @@ async function handleUpdateIntern(req, res) {
     const updated = await db.updateStudent(req.params.id, {
       studentCode,
       fullName,
-      email,
+      email: trimOrDefault(email).toLowerCase(),
       phone,
       university,
       major,
@@ -684,6 +680,7 @@ async function handleUpdateIntern(req, res) {
       intern: updated,
     });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     res
       .status(500)
       .json({ error: "Lỗi server khi cập nhật hồ sơ thực tập sinh!" });
@@ -698,6 +695,7 @@ async function handleDeleteIntern(req, res) {
     await db.deleteStudent(req.params.id);
     res.json({ message: "Đã xóa hồ sơ thực tập sinh!" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Lỗi khi xóa hồ sơ thực tập sinh!" });
   }
 }
@@ -742,11 +740,22 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "login.html"));
 });
 
+// Bắt lỗi chung: JSON body sai định dạng -> 400 theo đúng format { success, message }
+app.use((err, req, res, next) => {
+  if (err && err.type === "entity.parse.failed") {
+    const message = "Dữ liệu gửi lên không phải JSON hợp lệ!";
+    return res.status(400).json({ success: false, message, error: message });
+  }
+  console.error(err);
+  const message = "Lỗi server!";
+  res.status(500).json({ success: false, message, error: message });
+});
+
 // ============================================================================
 // KHỞI ĐỘNG SERVER
 // ============================================================================
 
-(async () => {
+async function start() {
   try {
     await db.initDatabase();
   } catch (err) {
@@ -764,4 +773,10 @@ app.get("/", (req, res) => {
     console.log(` Backend API : http://127.0.0.1:${PORT}/api`);
     console.log(`====================================================`);
   });
-})();
+}
+
+if (require.main === module) {
+  start();
+}
+
+module.exports = app;

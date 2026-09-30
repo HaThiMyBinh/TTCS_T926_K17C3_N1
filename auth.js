@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const SALT_ROUNDS = 10;
 
@@ -18,7 +19,6 @@ async function hashPassword(plainPassword) {
   return bcrypt.hash(plainPassword, SALT_ROUNDS);
 }
 
-const crypto = require("crypto");
 function isLegacySha256Hash(hash) {
   return typeof hash === "string" && /^[a-f0-9]{64}$/i.test(hash);
 }
@@ -29,7 +29,9 @@ async function verifyPassword(plainPassword, storedHash) {
       .createHash("sha256")
       .update(plainPassword)
       .digest("hex");
-    return legacyHash === storedHash;
+    const a = Buffer.from(legacyHash.toLowerCase());
+    const b = Buffer.from(storedHash.toLowerCase());
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
   }
   return bcrypt.compare(plainPassword, storedHash);
 }
@@ -47,30 +49,32 @@ function authenticateToken(req, res, next) {
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token) {
-    return res.status(401).json({
-      error:
-        "Chưa đăng nhập hoặc thiếu token xác thực (Authorization: Bearer <token>)!",
-    });
+    const message =
+      "Chưa đăng nhập hoặc thiếu token xác thực (Authorization: Bearer <token>)!";
+    return res.status(401).json({ success: false, message, error: message });
   }
 
   try {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch (err) {
-    return res
-      .status(401)
-      .json({ error: "Token không hợp lệ hoặc đã hết hạn!" });
+    const message = "Token không hợp lệ hoặc đã hết hạn!";
+    return res.status(401).json({ success: false, message, error: message });
   }
 }
 
 function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ error: "Chưa xác thực người dùng!" });
+      const message = "Chưa xác thực người dùng!";
+      return res.status(401).json({ success: false, message, error: message });
     }
     if (!allowedRoles.includes(req.user.role)) {
+      const message = `Từ chối truy cập: Vai trò [${req.user.role}] không đủ quyền cho thao tác này!`;
       return res.status(403).json({
-        error: `Từ chối truy cập: Vai trò [${req.user.role}] không đủ quyền cho thao tác này!`,
+        success: false,
+        message,
+        error: message,
         requiredRoles: allowedRoles,
       });
     }
