@@ -601,6 +601,51 @@
         border: 1px solid #fecaca;
       }
 
+
+      /* US7: TOAST + MODAL + TRẠNG THÁI HỒ SƠ */
+      .badge-rejected {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .reject-reason {
+        display: block;
+        margin-top: 4px;
+        font-size: 11.5px;
+        color: #991b1b;
+        max-width: 240px;
+        white-space: normal;
+      }
+      #toastContainer {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .toast {
+        min-width: 260px;
+        max-width: 380px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 13.5px;
+        font-weight: 500;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .toast-success {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+      .toast-error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
       /* 403 FORBIDDEN SCREEN */
       .forbidden-screen {
         display: none;
@@ -996,25 +1041,18 @@
                 <table>
                   <thead>
                     <tr>
-                      <th>Họ và Tên</th>
-                      <th>Email Liên Hệ</th>
-                      <th>Số Điện Thoại</th>
-                      <th>Trường Đại Học</th>
-                      <th>Chuyên Ngành</th>
-                      <th>Link CV</th>
-                      <th>Trạng Thái</th>
-                      <th style="text-align: center">Thao Tác</th>
+                      <th>Tên</th>
+                      <th>Email</th>
+                      <th>Trường</th>
+                      <th>Ngành</th>
+                      <th>Trạng thái</th>
                     </tr>
                   </thead>
                   <tbody id="candidateTableBody">
                     <tr>
                       <td
-                        colspan="8"
-                        style="
-                          text-align: center;
-                          color: #94a3b8;
-                          padding: 24px;
-                        "
+                        colspan="5"
+                        style="text-align: center; color: #94a3b8; padding: 24px"
                       >
                         Đang tải danh sách hồ sơ...
                       </td>
@@ -1143,7 +1181,7 @@
                   <tbody id="mentorTableBody">
                     <tr>
                       <td
-                        colspan="6"
+                        colspan="5"
                         style="
                           text-align: center;
                           color: #94a3b8;
@@ -1481,6 +1519,8 @@
     </main>
 
     <!-- JAVASCRIPT LOGIC CHO HỆ THỐNG -->
+    <div id="toastContainer" aria-live="polite"></div>
+
     <script>
       const API_BASE = "http://127.0.0.1:5000/api";
 
@@ -2019,75 +2059,89 @@
       // =========================================================================
       //  HỒ SƠ ỨNG TUYỂN SINH VIÊN (XEM & DUYỆT HỒ SƠ)
       // =========================================================================
+      // ---- Tiện ích chung ----
+      function escapeHtml(value) {
+        return String(value ?? "").replace(
+          /[&<>"']/g,
+          (ch) =>
+            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch],
+        );
+      }
+
+      function showToast(message, type = "success") {
+        const box = document.getElementById("toastContainer");
+        const el = document.createElement("div");
+        el.className = `toast toast-${type}`;
+        el.setAttribute("role", type === "error" ? "alert" : "status");
+        const icon = type === "error" ? "fa-circle-exclamation" : "fa-circle-check";
+        el.innerHTML = `<i class="fa-solid ${icon}"></i><span></span>`;
+        el.querySelector("span").textContent = message;
+        box.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }
+
+      // ---- US7: state danh sách hồ sơ ----
+      let applicationsList = [];
+
+      const STATUS_UI = {
+        PENDING: { label: "Chờ duyệt", cls: "badge-pending" },
+        APPROVED: { label: "Đã duyệt", cls: "badge-active" },
+        REJECTED: { label: "Từ chối", cls: "badge-rejected" },
+      };
+
+      function renderCandidates() {
+        const tbody = document.getElementById("candidateTableBody");
+        if (applicationsList.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Chưa có hồ sơ ứng tuyển nào</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = applicationsList
+          .map((c) => {
+            const ui = STATUS_UI[c.status] || STATUS_UI.PENDING;
+            const cv = /^https?:\/\//i.test(c.cvLink || "")
+              ? ` <a href="${escapeHtml(c.cvLink)}" target="_blank" rel="noopener noreferrer" title="Xem CV"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`
+              : "";
+            const reason =
+              c.status === "REJECTED" && c.rejection_reason
+                ? `<span class="reject-reason">Lý do: ${escapeHtml(c.rejection_reason)}</span>`
+                : "";
+            return `
+            <tr>
+              <td><b>${escapeHtml(c.name)}</b>${cv}</td>
+              <td>${escapeHtml(c.email)}</td>
+              <td>${escapeHtml(c.university || "N/A")}</td>
+              <td>${escapeHtml(c.major || "N/A")}</td>
+              <td><span class="badge ${ui.cls}">${ui.label}</span>${reason}</td>
+            </tr>`;
+          })
+          .join("");
+      }
+
       async function loadCandidates() {
         const tbody = document.getElementById("candidateTableBody");
         if (currentRole === "Intern") {
-          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 24px;"><b><i class="fa-solid fa-lock"></i> Thực tập sinh không có quyền xem danh sách hồ sơ ứng tuyển!</b></td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:24px;"><b><i class="fa-solid fa-lock"></i> Thực tập sinh không có quyền xem danh sách hồ sơ ứng tuyển!</b></td></tr>`;
           return;
         }
         try {
-          const res = await fetch(`${API_BASE}/candidates`, {
+          const res = await fetch(`${API_BASE}/applications`, {
             headers: authHeaders(),
           });
+          if (res.status === 401) {
+            forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+            return;
+          }
           if (res.status === 403) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 24px;"><b><i class="fa-solid fa-lock"></i> Bạn không có quyền truy cập hồ sơ ứng tuyển!</b></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:24px;"><b><i class="fa-solid fa-lock"></i> Bạn không có quyền truy cập hồ sơ ứng tuyển!</b></td></tr>`;
             return;
           }
-          const list = await res.json();
-
-          if (list.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có hồ sơ ứng tuyển nào</td></tr>`;
-            return;
-          }
-
-          tbody.innerHTML = list
-            .map((c) => {
-              let stColor = "badge-pending";
-              if (c.status === "Đã duyệt") stColor = "badge-active";
-              else if (c.status === "Từ chối") stColor = "badge-admin";
-
-              const cvBtn = c.cvLink
-                ? `<a href="${c.cvLink}" target="_blank" class="btn btn-sm btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Xem CV</a>`
-                : `<span style="color:#94a3b8; font-size:12px;">Không có</span>`;
-
-              return `
-            <tr>
-              <td><b>${c.name}</b></td>
-              <td>${c.email}</td>
-              <td>${c.phone || "N/A"}</td>
-              <td>${c.university || "N/A"}</td>
-              <td>${c.major || "N/A"}</td>
-              <td>${cvBtn}</td>
-              <td><span class="badge ${stColor}">${c.status || "Chờ duyệt"}</span></td>
-              <td align="center">
-                <button class="btn btn-sm btn-success" onclick="updateCandidateStatus(${c.id}, 'Đã duyệt')" title="Duyệt hồ sơ">
-                  <i class="fa-solid fa-check"></i>
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="updateCandidateStatus(${c.id}, 'Từ chối')" title="Từ chối">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </td>
-            </tr>
-          `;
-            })
-            .join("");
+          const body = await res.json();
+          if (!res.ok || !body.success) throw new Error(body.message);
+          applicationsList = body.data;
+          renderCandidates();
         } catch (err) {
-          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách ứng viên!</td></tr>`;
-        }
-      }
-
-      async function updateCandidateStatus(id, newStatus) {
-        try {
-          const res = await fetch(`${API_BASE}/candidates/${id}/status`, {
-            method: "PUT",
-            headers: authHeaders({ "Content-Type": "application/json" }),
-            body: JSON.stringify({ status: newStatus }),
-          });
-          if (res.ok) {
-            loadCandidates();
-          }
-        } catch (err) {
-          alert("Lỗi cập nhật trạng thái!");
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:24px;">Lỗi tải danh sách hồ sơ!</td></tr>`;
+          showToast("Không tải được danh sách hồ sơ!", "error");
         }
       }
 
@@ -2105,7 +2159,7 @@
           mentorsList = await res.json();
 
           if (!Array.isArray(mentorsList) || mentorsList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có mentor nào trong hệ thống</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có mentor nào trong hệ thống</td></tr>`;
             return;
           }
 
@@ -2133,7 +2187,7 @@
             )
             .join("");
         } catch (err) {
-          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách mentor!</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách mentor!</td></tr>`;
         }
       }
 
