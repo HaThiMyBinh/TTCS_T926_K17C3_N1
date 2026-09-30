@@ -56,8 +56,13 @@ CREATE TABLE IF NOT EXISTS `candidate_profiles` (
     `password_hash` VARCHAR(255) NOT NULL,      
     `status` ENUM('Chờ duyệt', 'Đã duyệt', 'Từ chối') DEFAULT 'Chờ duyệt',
     `applied_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `rejection_reason` TEXT NULL,                  -- US7: lý do từ chối
+    `reviewed_by` BIGINT NULL,                     -- US7: users.id của HR xử lý
+    `reviewed_at` DATETIME NULL,                   -- US7: thời điểm xử lý
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- (DB đã tạo từ trước: backend tự ALTER thêm 3 cột trên khi khởi động, không cần chạy tay)
 
 -- 6. BẢNG MENTORS (Quản lý mentor & phòng ban)
 CREATE TABLE IF NOT EXISTS `mentors` (
