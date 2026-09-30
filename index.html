@@ -603,6 +603,27 @@
 
 
       /* US7: TOAST + MODAL + TRẠNG THÁI HỒ SƠ */
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .action-group {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .action-group .btn {
+        white-space: nowrap;
+      }
+      .btn-reject {
+        background: #dc2626;
+        color: white;
+      }
+      .btn-reject:hover:not(:disabled) {
+        background: #b91c1c;
+      }
       .badge-rejected {
         background: #fee2e2;
         color: #991b1b;
@@ -646,6 +667,50 @@
         color: #991b1b;
         border: 1px solid #fecaca;
       }
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.5);
+        z-index: 1500;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      .modal-overlay.open {
+        display: flex;
+      }
+      .modal-box {
+        background: #fff;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 480px;
+        padding: 24px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+      }
+      .modal-box h3 {
+        font-size: 17px;
+        margin-bottom: 4px;
+      }
+      .modal-box textarea {
+        width: 100%;
+        min-height: 100px;
+        resize: vertical;
+        font-family: inherit;
+      }
+      .modal-error {
+        color: #b91c1c;
+        font-size: 12.5px;
+        margin-top: 6px;
+        min-height: 16px;
+      }
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
       /* 403 FORBIDDEN SCREEN */
       .forbidden-screen {
         display: none;
@@ -1046,12 +1111,13 @@
                       <th>Trường</th>
                       <th>Ngành</th>
                       <th>Trạng thái</th>
+                      <th style="text-align: center">Hành động</th>
                     </tr>
                   </thead>
                   <tbody id="candidateTableBody">
                     <tr>
                       <td
-                        colspan="5"
+                        colspan="6"
                         style="text-align: center; color: #94a3b8; padding: 24px"
                       >
                         Đang tải danh sách hồ sơ...
@@ -1181,7 +1247,7 @@
                   <tbody id="mentorTableBody">
                     <tr>
                       <td
-                        colspan="5"
+                        colspan="6"
                         style="
                           text-align: center;
                           color: #94a3b8;
@@ -1521,8 +1587,24 @@
     <!-- JAVASCRIPT LOGIC CHO HỆ THỐNG -->
     <div id="toastContainer" aria-live="polite"></div>
 
+    <div id="rejectModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle">
+      <div class="modal-box">
+        <h3 id="rejectModalTitle">Từ chối hồ sơ</h3>
+        <p id="rejectModalTarget" style="font-size: 13px; color: #64748b; margin-bottom: 14px"></p>
+        <div class="form-group">
+          <label for="rejectReasonInput">Lý do từ chối <span style="color: #dc2626">*</span></label>
+          <textarea id="rejectReasonInput" class="form-control" maxlength="1000" placeholder="Ví dụ: Không đủ điều kiện tiếng Anh"></textarea>
+          <div id="rejectReasonError" class="modal-error"></div>
+        </div>
+        <div class="modal-actions">
+          <button id="rejectCancelBtn" class="btn btn-sm" type="button" onclick="closeRejectModal()">Hủy</button>
+          <button id="rejectConfirmBtn" class="btn btn-sm btn-reject" type="button" onclick="confirmReject()">Xác nhận</button>
+        </div>
+      </div>
+    </div>
+
     <script>
-      const API_BASE = "http://127.0.0.1:5000/api";
+      const API_BASE = "/api";
 
       // Danh sách định nghĩa các quyền trong hệ thống
       const PERMISSIONS_DEF = [
@@ -1899,13 +1981,13 @@
             return `
           <tr>
             <td style="font-family: monospace; font-size: 12px; color: #64748b;">${u.id}</td>
-            <td><b>${u.name}</b></td>
-            <td>${u.email}</td>
-            <td><span class="badge ${roleBadge}">${u.role}</span></td>
-            <td><span class="badge badge-active">${u.status || "ACTIVE"}</span></td>
+            <td><b>${escapeHtml(u.name)}</b></td>
+            <td>${escapeHtml(u.email)}</td>
+            <td><span class="badge ${roleBadge}">${escapeHtml(u.role)}</span></td>
+            <td><span class="badge badge-active">${escapeHtml(u.status || "ACTIVE")}</span></td>
             <td style="font-size: 12.5px; color: #64748b;">${createdDate}</td>
             <td align="center">
-              <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id}, '${u.email}')">
+              <button class="btn btn-sm btn-danger" onclick="deleteUser(${Number(u.id)}, ${escapeHtml(JSON.stringify(u.email))})">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </td>
@@ -2082,6 +2164,8 @@
 
       // ---- US7: state danh sách hồ sơ ----
       let applicationsList = [];
+      let reviewingId = null; // id hồ sơ đang mở modal từ chối
+      const busyApplicationIds = new Set(); // hồ sơ đang gửi request
 
       const STATUS_UI = {
         PENDING: { label: "Chờ duyệt", cls: "badge-pending" },
@@ -2092,12 +2176,14 @@
       function renderCandidates() {
         const tbody = document.getElementById("candidateTableBody");
         if (applicationsList.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Chưa có hồ sơ ứng tuyển nào</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Chưa có hồ sơ ứng tuyển nào</td></tr>`;
           return;
         }
+        const canReview = currentRole === "HR";
         tbody.innerHTML = applicationsList
           .map((c) => {
             const ui = STATUS_UI[c.status] || STATUS_UI.PENDING;
+            const busy = busyApplicationIds.has(c.id) ? "disabled" : "";
             const cv = /^https?:\/\//i.test(c.cvLink || "")
               ? ` <a href="${escapeHtml(c.cvLink)}" target="_blank" rel="noopener noreferrer" title="Xem CV"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`
               : "";
@@ -2105,6 +2191,13 @@
               c.status === "REJECTED" && c.rejection_reason
                 ? `<span class="reject-reason">Lý do: ${escapeHtml(c.rejection_reason)}</span>`
                 : "";
+            const actions =
+              canReview && c.status === "PENDING"
+                ? `<div class="action-group">
+                     <button class="btn btn-sm btn-success" ${busy} onclick="approveApplication(${c.id})">Duyệt</button>
+                     <button class="btn btn-sm btn-reject" ${busy} onclick="openRejectModal(${c.id})">Từ chối</button>
+                   </div>`
+                : `<span style="color:#94a3b8;">—</span>`;
             return `
             <tr>
               <td><b>${escapeHtml(c.name)}</b>${cv}</td>
@@ -2112,6 +2205,7 @@
               <td>${escapeHtml(c.university || "N/A")}</td>
               <td>${escapeHtml(c.major || "N/A")}</td>
               <td><span class="badge ${ui.cls}">${ui.label}</span>${reason}</td>
+              <td align="center">${actions}</td>
             </tr>`;
           })
           .join("");
@@ -2120,7 +2214,7 @@
       async function loadCandidates() {
         const tbody = document.getElementById("candidateTableBody");
         if (currentRole === "Intern") {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:24px;"><b><i class="fa-solid fa-lock"></i> Thực tập sinh không có quyền xem danh sách hồ sơ ứng tuyển!</b></td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px;"><b><i class="fa-solid fa-lock"></i> Thực tập sinh không có quyền xem danh sách hồ sơ ứng tuyển!</b></td></tr>`;
           return;
         }
         try {
@@ -2132,7 +2226,7 @@
             return;
           }
           if (res.status === 403) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:24px;"><b><i class="fa-solid fa-lock"></i> Bạn không có quyền truy cập hồ sơ ứng tuyển!</b></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px;"><b><i class="fa-solid fa-lock"></i> Bạn không có quyền truy cập hồ sơ ứng tuyển!</b></td></tr>`;
             return;
           }
           const body = await res.json();
@@ -2140,10 +2234,99 @@
           applicationsList = body.data;
           renderCandidates();
         } catch (err) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:24px;">Lỗi tải danh sách hồ sơ!</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px;">Lỗi tải danh sách hồ sơ!</td></tr>`;
           showToast("Không tải được danh sách hồ sơ!", "error");
         }
       }
+
+      // Gọi PATCH và thay đúng dòng trong state bằng dữ liệu server trả về (không reload trang).
+      // Trả về true nếu thành công.
+      async function submitApplicationStatus(id, payload) {
+        if (busyApplicationIds.has(id)) return false;
+        busyApplicationIds.add(id);
+        renderCandidates();
+        try {
+          const res = await fetch(`${API_BASE}/applications/${id}/status`, {
+            method: "PATCH",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify(payload),
+          });
+          if (res.status === 401) {
+            forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+            return false;
+          }
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok || !body.success) {
+            showToast(body.message || "Thao tác thất bại!", "error");
+            // 409: hồ sơ đã bị người khác xử lý -> đồng bộ lại danh sách
+            if (res.status === 409 || res.status === 404) loadCandidates();
+            return false;
+          }
+          applicationsList = applicationsList.map((c) =>
+            c.id === body.data.id ? body.data : c,
+          );
+          showToast(body.message, "success");
+          return true;
+        } catch (err) {
+          showToast("Không thể kết nối tới Backend!", "error");
+          return false;
+        } finally {
+          busyApplicationIds.delete(id);
+          renderCandidates();
+        }
+      }
+
+      function approveApplication(id) {
+        return submitApplicationStatus(id, { status: "APPROVED" });
+      }
+
+      // ---- Modal từ chối ----
+      function openRejectModal(id) {
+        const c = applicationsList.find((x) => x.id === id);
+        if (!c) return;
+        reviewingId = id;
+        document.getElementById("rejectModalTarget").textContent =
+          `Ứng viên: ${c.name} (${c.email})`;
+        document.getElementById("rejectReasonInput").value = "";
+        document.getElementById("rejectReasonError").textContent = "";
+        document.getElementById("rejectConfirmBtn").disabled = false;
+        document.getElementById("rejectCancelBtn").disabled = false;
+        document.getElementById("rejectModal").classList.add("open");
+        document.getElementById("rejectReasonInput").focus();
+      }
+
+      function closeRejectModal() {
+        if (document.getElementById("rejectConfirmBtn").disabled) return; // đang gửi
+        document.getElementById("rejectModal").classList.remove("open");
+        reviewingId = null;
+      }
+
+      async function confirmReject() {
+        const input = document.getElementById("rejectReasonInput");
+        const errEl = document.getElementById("rejectReasonError");
+        const reason = input.value.trim();
+        if (!reason) {
+          errEl.textContent = "Vui lòng nhập lý do từ chối!"; // không gọi API
+          input.focus();
+          return;
+        }
+        errEl.textContent = "";
+        const confirmBtn = document.getElementById("rejectConfirmBtn");
+        const cancelBtn = document.getElementById("rejectCancelBtn");
+        confirmBtn.disabled = true;
+        cancelBtn.disabled = true;
+        const ok = await submitApplicationStatus(reviewingId, {
+          status: "REJECTED",
+          rejection_reason: reason,
+        });
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+        if (ok) closeRejectModal();
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeRejectModal();
+      });
 
       // =========================================================================
       // QUẢN LÝ MENTOR & PHÒNG BAN (HR THÊM MỚI MENTOR)
@@ -2159,7 +2342,7 @@
           mentorsList = await res.json();
 
           if (!Array.isArray(mentorsList) || mentorsList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có mentor nào trong hệ thống</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có mentor nào trong hệ thống</td></tr>`;
             return;
           }
 
@@ -2167,17 +2350,17 @@
             .map(
               (m) => `
           <tr>
-            <td><b>${m.fullName}</b></td>
-            <td>${m.email}</td>
-            <td>${m.phone || "N/A"}</td>
-            <td><span class="badge badge-mentor">${m.department || "N/A"}</span></td>
-            <td>${m.specialization || "N/A"}</td>
+            <td><b>${escapeHtml(m.fullName)}</b></td>
+            <td>${escapeHtml(m.email)}</td>
+            <td>${escapeHtml(m.phone || "N/A")}</td>
+            <td><span class="badge badge-mentor">${escapeHtml(m.department || "N/A")}</span></td>
+            <td>${escapeHtml(m.specialization || "N/A")}</td>
             <td align="center">
               <div class="action-group">
                 <button class="btn btn-sm btn-primary" onclick="editMentor(${m.id})" title="Chỉnh sửa">
                   <i class="fa-solid fa-pen"></i>
                 </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteMentor(${m.id}, '${m.fullName}')" title="Xóa">
+                <button class="btn btn-sm btn-danger" onclick="deleteMentor(${Number(m.id)}, ${escapeHtml(JSON.stringify(m.fullName))})" title="Xóa">
                   <i class="fa-solid fa-trash"></i>
                 </button>
               </div>
@@ -2187,7 +2370,7 @@
             )
             .join("");
         } catch (err) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách mentor!</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách mentor!</td></tr>`;
         }
       }
 
@@ -2347,18 +2530,18 @@
 
               return `
             <tr>
-              <td style="font-family: monospace; font-size: 12px; color: #64748b;">${s.studentCode || "N/A"}</td>
-              <td><b>${s.fullName}</b></td>
-              <td>${s.email}</td>
-              <td>${s.university || "N/A"}</td>
-              <td>${s.mentorName || "Chưa phân công"}</td>
-              <td><span class="badge ${stColor}">${s.status || "Đang thực tập"}</span></td>
+              <td style="font-family: monospace; font-size: 12px; color: #64748b;">${escapeHtml(s.studentCode || "N/A")}</td>
+              <td><b>${escapeHtml(s.fullName)}</b></td>
+              <td>${escapeHtml(s.email)}</td>
+              <td>${escapeHtml(s.university || "N/A")}</td>
+              <td>${escapeHtml(s.mentorName || "Chưa phân công")}</td>
+              <td><span class="badge ${stColor}">${escapeHtml(s.status || "Đang thực tập")}</span></td>
               <td align="center">
                 <div class="action-group">
                   <button class="btn btn-sm btn-primary" onclick="editStudent(${s.id})" title="Chỉnh sửa">
                     <i class="fa-solid fa-pen"></i>
                   </button>
-                  <button class="btn btn-sm btn-danger" onclick="deleteStudent(${s.id}, '${s.fullName}')" title="Xóa">
+                  <button class="btn btn-sm btn-danger" onclick="deleteStudent(${Number(s.id)}, ${escapeHtml(JSON.stringify(s.fullName))})" title="Xóa">
                     <i class="fa-solid fa-trash"></i>
                   </button>
                 </div>
