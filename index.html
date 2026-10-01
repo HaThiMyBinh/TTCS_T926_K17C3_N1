@@ -202,6 +202,12 @@
         background: var(--slate-100);
       }
 
+      .user-menu-item.active {
+        background: var(--slate-100);
+        color: var(--primary);
+        font-weight: 600;
+      }
+
       .nav-section-title {
         padding: 10px 20px 6px;
         font-size: 11px;
@@ -603,6 +609,27 @@
 
 
       /* US7: TOAST + MODAL + TRẠNG THÁI HỒ SƠ */
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .action-group {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .action-group .btn {
+        white-space: nowrap;
+      }
+      .btn-reject {
+        background: #dc2626;
+        color: white;
+      }
+      .btn-reject:hover:not(:disabled) {
+        background: #b91c1c;
+      }
       .badge-rejected {
         background: #fee2e2;
         color: #991b1b;
@@ -614,6 +641,67 @@
         color: #991b1b;
         max-width: 240px;
         white-space: normal;
+      }
+      /* EMAIL & SMTP BADGES & LAYOUT */
+      .badge-sent {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .badge-failed {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .badge-retrying {
+        background: #fef3c7;
+        color: #b45309;
+      }
+      .badge-test {
+        background: #e0f2fe;
+        color: #0369a1;
+      }
+      .badge-approved {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .filter-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 20px;
+        background: #ffffff;
+        border-bottom: 1px solid var(--slate-200);
+      }
+      .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .filter-group label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--slate-600);
+        white-space: nowrap;
+      }
+      .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 20px;
+        border-top: 1px solid var(--slate-200);
+        background: white;
+        font-size: 13px;
+        color: var(--slate-600);
+      }
+      .log-err-msg {
+        display: block;
+        max-width: 280px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #dc2626;
+        font-size: 12px;
+        cursor: pointer;
       }
       #toastContainer {
         position: fixed;
@@ -646,6 +734,50 @@
         color: #991b1b;
         border: 1px solid #fecaca;
       }
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.5);
+        z-index: 1500;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      .modal-overlay.open {
+        display: flex;
+      }
+      .modal-box {
+        background: #fff;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 480px;
+        padding: 24px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+      }
+      .modal-box h3 {
+        font-size: 17px;
+        margin-bottom: 4px;
+      }
+      .modal-box textarea {
+        width: 100%;
+        min-height: 100px;
+        resize: vertical;
+        font-family: inherit;
+      }
+      .modal-error {
+        color: #b91c1c;
+        font-size: 12.5px;
+        margin-top: 6px;
+        min-height: 16px;
+      }
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
       /* 403 FORBIDDEN SCREEN */
       .forbidden-screen {
         display: none;
@@ -783,6 +915,16 @@
               <div class="user-menu-divider"></div>
               <a class="user-menu-item" href="#" onclick="return false;">
                 <i class="fa-regular fa-user"></i> Hồ sơ
+              </a>
+              <a
+                class="user-menu-item"
+                id="userMenuEmailConfig"
+                href="#"
+                style="display: none"
+                onclick="openEmailConfigFromMenu(event)"
+              >
+                <i class="fa-solid fa-envelope-circle-check"></i> Cấu hình Email
+                (SMTP)
               </a>
             </div>
           </div>
@@ -1046,12 +1188,13 @@
                       <th>Trường</th>
                       <th>Ngành</th>
                       <th>Trạng thái</th>
+                      <th style="text-align: center">Hành động</th>
                     </tr>
                   </thead>
                   <tbody id="candidateTableBody">
                     <tr>
                       <td
-                        colspan="5"
+                        colspan="6"
                         style="text-align: center; color: #94a3b8; padding: 24px"
                       >
                         Đang tải danh sách hồ sơ...
@@ -1181,7 +1324,7 @@
                   <tbody id="mentorTableBody">
                     <tr>
                       <td
-                        colspan="5"
+                        colspan="6"
                         style="
                           text-align: center;
                           color: #94a3b8;
@@ -1515,14 +1658,270 @@
             </div>
           </div>
         </div>
+
+        <!-- ========================================================================= -->
+        <!-- CẤU HÌNH EMAIL & SMTP (ADMIN) -->
+        <!-- ========================================================================= -->
+        <div id="tab-email-config" class="tab-pane" style="display: none">
+          <!-- Trạng thái kết nối & Tổng quan -->
+          <div class="card" style="margin-bottom: 20px">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-server text-primary"></i> Trạng Thái Dịch Vụ Email & SMTP
+              </h3>
+              <div id="smtpStatusPill">
+                <span class="badge badge-pending"><i class="fa-solid fa-spinner fa-spin"></i> Đang kiểm tra...</span>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 16px 24px">
+              <p style="font-size: 13.5px; color: #475569; line-height: 1.6">
+                Hệ thống kết nối trực tiếp đến SMTP Server để xử lý gửi email thông báo kết quả xét duyệt (Chúc mừng trúng tuyển hoặc Thông báo từ chối kèm lý do). Mật khẩu SMTP được bảo mật tuyệt đối trên server (không hiển thị ra giao diện người dùng).
+              </p>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px;">
+            <!-- Form Cấu Hình SMTP -->
+            <div class="card">
+              <div class="card-header">
+                <h3>
+                  <i class="fa-solid fa-sliders text-primary"></i> Thiết Lập Máy Chủ SMTP
+                </h3>
+              </div>
+              <div class="card-body">
+                <div id="emailConfigAlert" class="alert-box" style="display: none"></div>
+                <form id="emailConfigForm" onsubmit="handleSaveEmailConfig(event)">
+                  <div class="form-group" style="margin-bottom: 14px">
+                    <label>Máy chủ SMTP (Host) <span style="color: #dc2626">*</span></label>
+                    <input type="text" id="smtpHost" class="form-control" placeholder="Ví dụ: smtp.gmail.com" required />
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px">
+                    <div class="form-group">
+                      <label>Cổng kết nối (Port) <span style="color: #dc2626">*</span></label>
+                      <input type="number" id="smtpPort" class="form-control" placeholder="587" min="1" max="65535" required />
+                    </div>
+                    <div class="form-group">
+                      <label>Giao thức mã hóa <span style="color: #dc2626">*</span></label>
+                      <select id="smtpSecure" class="form-control">
+                        <option value="false">STARTTLS (Khuyên dùng - Cổng 587)</option>
+                        <option value="true">SSL / TLS (Cổng 465)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 14px">
+                    <label>Email gửi / Tài khoản SMTP (User) <span style="color: #dc2626">*</span></label>
+                    <input type="email" id="smtpUser" class="form-control" placeholder="your_email@gmail.com" required />
+                  </div>
+                  <div class="form-group" style="margin-bottom: 14px">
+                    <label>Mật khẩu ứng dụng (App Password) <span id="pwdNoticeLabel" style="font-size: 11.5px; color: #64748b; font-weight: normal;"></span></label>
+                    <input type="password" id="smtpPass" class="form-control" placeholder="Nhập mật khẩu ứng dụng 16 ký tự" autocomplete="new-password" />
+                    <span style="font-size: 11.5px; color: #64748b; margin-top: 3px">
+                      Để trống nếu muốn giữ nguyên mật khẩu cũ đã lưu.
+                    </span>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px">
+                    <div class="form-group">
+                      <label>Tên hiển thị người gửi</label>
+                      <input type="text" id="smtpFromName" class="form-control" placeholder="Hệ thống Quản lý Thực tập sinh" />
+                    </div>
+                    <div class="form-group">
+                      <label>Email hiển thị (From Email)</label>
+                      <input type="email" id="smtpFromEmail" class="form-control" placeholder="Để trống nếu trùng tài khoản gửi" />
+                    </div>
+                  </div>
+                  <button type="submit" id="btnSaveConfig" class="btn btn-primary" style="width: 100%">
+                    <i class="fa-solid fa-floppy-disk"></i> Lưu Cấu Hình SMTP
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Cột kiểm tra gửi thử & Hướng dẫn -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <!-- Thử nghiệm gửi email -->
+              <div class="card">
+                <div class="card-header">
+                  <h3>
+                    <i class="fa-solid fa-paper-plane text-primary"></i> Gửi Thử Nghiệm SMTP
+                  </h3>
+                </div>
+                <div class="card-body">
+                  <p style="font-size: 13px; color: #64748b; margin-bottom: 14px">
+                    Gửi 1 email kiểm tra tới hòm thư cá nhân để xác minh cấu hình SMTP hoạt động tốt trước khi tiến hành duyệt hồ sơ ứng viên.
+                  </p>
+                  <div id="testEmailAlert" class="alert-box" style="display: none"></div>
+                  <form id="testEmailForm" onsubmit="handleTestEmailConfig(event)">
+                    <div class="form-group" style="margin-bottom: 14px">
+                      <label>Email người nhận thử nghiệm <span style="color: #dc2626">*</span></label>
+                      <input type="email" id="testEmailTo" class="form-control" placeholder="nhan-thu@gmail.com" required />
+                    </div>
+                    <button type="submit" id="btnSendTest" class="btn btn-success" style="width: 100%">
+                      <i class="fa-solid fa-paper-plane"></i> Gửi Email Thử Nghiệm
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Hướng dẫn tạo App Password -->
+              <div class="card">
+                <div class="card-header">
+                  <h3>
+                    <i class="fa-solid fa-shield-halved text-primary"></i> Hướng Dẫn Cấu Hình Gmail SMTP
+                  </h3>
+                </div>
+                <div class="card-body" style="font-size: 13px; color: #475569; line-height: 1.6">
+                  <ol style="padding-left: 18px; margin: 0">
+                    <li style="margin-bottom: 6px">Đăng nhập tài khoản Gmail -> vào <b>Quản lý Tài khoản Google (Google Account)</b>.</li>
+                    <li style="margin-bottom: 6px">Vào mục <b>Bảo mật (Security)</b> -> Bật <b>Xác minh 2 bước (2-Step Verification)</b>.</li>
+                    <li style="margin-bottom: 6px">Tìm kiếm <b>Mật khẩu ứng dụng (App passwords)</b>.</li>
+                    <li style="margin-bottom: 6px">Tạo mật khẩu ứng dụng mới với tên gợi nhớ (ví dụ: <code>UserManagement</code>).</li>
+                    <li>Sao chép mã 16 ký tự vừa sinh dán vào ô <b>Mật khẩu ứng dụng</b> ở trên.</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- NHẬT KÝ GỬI EMAIL (ADMIN & HR) -->
+        <!-- ========================================================================= -->
+        <div id="tab-email-logs" class="tab-pane" style="display: none">
+          <!-- THỐNG KÊ NHANH -->
+          <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 20px">
+            <div class="stat-card">
+              <div class="info">
+                <p>Tổng Email Đã Xử Lý</p>
+                <h3 id="statTotalEmailLogs">0</h3>
+              </div>
+              <div class="icon-wrap bg-blue-light"><i class="fa-solid fa-envelope"></i></div>
+            </div>
+            <div class="stat-card">
+              <div class="info">
+                <p>Gửi Thành Công</p>
+                <h3 id="statSentEmailLogs" style="color: #16a34a">0</h3>
+              </div>
+              <div class="icon-wrap bg-emerald-light"><i class="fa-solid fa-circle-check"></i></div>
+            </div>
+            <div class="stat-card">
+              <div class="info">
+                <p>Đang Thử Lại (Retry)</p>
+                <h3 id="statRetryingEmailLogs" style="color: #d97706">0</h3>
+              </div>
+              <div class="icon-wrap bg-amber-light"><i class="fa-solid fa-rotate"></i></div>
+            </div>
+            <div class="stat-card">
+              <div class="info">
+                <p>Thất Bại (Failed)</p>
+                <h3 id="statFailedEmailLogs" style="color: #dc2626">0</h3>
+              </div>
+              <div class="icon-wrap" style="background: #fee2e2; color: #dc2626"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </div>
+          </div>
+
+          <!-- BẢNG NHẬT KÝ -->
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-clock-rotate-left text-primary"></i> Nhật Ký Gửi Email Thông Báo Xét Duyệt
+              </h3>
+              <button class="btn btn-sm btn-primary" onclick="loadEmailLogs(currentPageEmailLogs)">
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
+            </div>
+
+            <!-- THANH LỌC & TÌM KIẾM -->
+            <div class="filter-toolbar">
+              <div class="filter-group">
+                <label><i class="fa-solid fa-filter"></i> Trạng thái:</label>
+                <select id="logFilterStatus" class="form-control" style="width: auto; min-width: 140px; font-size: 13px" onchange="loadEmailLogs(1)">
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="SENT">Đã gửi (SENT)</option>
+                  <option value="RETRYING">Đang gửi lại (RETRYING)</option>
+                  <option value="FAILED">Thất bại (FAILED)</option>
+                  <option value="PENDING">Chờ gửi (PENDING)</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label>Loại email:</label>
+                <select id="logFilterType" class="form-control" style="width: auto; min-width: 140px; font-size: 13px" onchange="loadEmailLogs(1)">
+                  <option value="">Tất cả loại email</option>
+                  <option value="APPROVED">Chúc mừng trúng tuyển</option>
+                  <option value="REJECTED">Thông báo từ chối</option>
+                </select>
+              </div>
+
+              <div class="filter-group" style="flex: 1; min-width: 200px">
+                <input type="text" id="logFilterSearch" class="form-control" placeholder="Tìm theo email, họ tên người nhận..." style="font-size: 13px" onkeydown="if(event.key==='Enter'){event.preventDefault();loadEmailLogs(1);}" />
+              </div>
+
+              <button class="btn btn-sm btn-primary" onclick="loadEmailLogs(1)">
+                <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm
+              </button>
+            </div>
+
+            <!-- BẢNG DỮ LIỆU -->
+            <div class="card-body" style="padding: 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 50px">ID</th>
+                      <th>Người nhận</th>
+                      <th>Loại Email</th>
+                      <th>Tiêu đề thư</th>
+                      <th>Trạng thái</th>
+                      <th style="text-align: center">Lần thử</th>
+                      <th>Thời gian / Chi tiết lỗi</th>
+                      <th style="text-align: center; width: 110px">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="emailLogsTableBody">
+                    <tr>
+                      <td colspan="8" style="text-align: center; color: #94a3b8; padding: 24px">
+                        Đang tải nhật ký email...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- PHÂN TRANG -->
+              <div class="pagination-container" id="emailLogsPaginationBar">
+                <span id="emailLogsPagingText">Hiển thị 0 bản ghi</span>
+                <div style="display: flex; gap: 6px">
+                  <button id="btnPrevEmailLogs" class="btn btn-sm" onclick="changeEmailLogsPage(-1)"><i class="fa-solid fa-chevron-left"></i> Trước</button>
+                  <button id="btnNextEmailLogs" class="btn btn-sm" onclick="changeEmailLogsPage(1)">Sau <i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
 
     <!-- JAVASCRIPT LOGIC CHO HỆ THỐNG -->
     <div id="toastContainer" aria-live="polite"></div>
 
+    <div id="rejectModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle">
+      <div class="modal-box">
+        <h3 id="rejectModalTitle">Từ chối hồ sơ</h3>
+        <p id="rejectModalTarget" style="font-size: 13px; color: #64748b; margin-bottom: 14px"></p>
+        <div class="form-group">
+          <label for="rejectReasonInput">Lý do từ chối <span style="color: #dc2626">*</span></label>
+          <textarea id="rejectReasonInput" class="form-control" maxlength="1000" placeholder="Ví dụ: Không đủ điều kiện tiếng Anh"></textarea>
+          <div id="rejectReasonError" class="modal-error"></div>
+        </div>
+        <div class="modal-actions">
+          <button id="rejectCancelBtn" class="btn btn-sm" type="button" onclick="closeRejectModal()">Hủy</button>
+          <button id="rejectConfirmBtn" class="btn btn-sm btn-reject" type="button" onclick="confirmReject()">Xác nhận</button>
+        </div>
+      </div>
+    </div>
+
     <script>
-      const API_BASE = "http://127.0.0.1:5000/api";
+      const API_BASE = "/api";
 
       // Danh sách định nghĩa các quyền trong hệ thống
       const PERMISSIONS_DEF = [
@@ -1635,6 +2034,14 @@
         document.getElementById("userMenuDropdown").classList.toggle("open");
       }
 
+      // Mở trang Cấu hình Email (SMTP) từ dropdown tài khoản (chỉ Admin)
+      function openEmailConfigFromMenu(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.getElementById("userMenuDropdown").classList.remove("open");
+        switchTab("tab-email-config");
+      }
+
       // Đóng menu tài khoản khi click ra ngoài
       document.addEventListener("click", (e) => {
         const menu = document.getElementById("userMenu");
@@ -1675,6 +2082,12 @@
         if (tabId === "tab-mentors" || tabId === "tab-students") {
           return role === "HR" || role === "Admin";
         }
+        if (tabId === "tab-email-config") {
+          return role === "Admin";
+        }
+        if (tabId === "tab-email-logs") {
+          return role === "HR";
+        }
         const permDef = PERMISSIONS_DEF.find((p) => p.tabId === tabId);
         if (!permDef) return true; // Tab không bị ràng buộc
         const rolePerms = getRolePermissions(role);
@@ -1711,12 +2124,24 @@
           }
         });
 
-        // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh
+        // Mục "Cấu hình Email (SMTP)" của Admin nằm trong dropdown tài khoản (cạnh "Hồ sơ").
+        const emailCfgMenuItem = document.getElementById("userMenuEmailConfig");
+        if (emailCfgMenuItem) {
+          emailCfgMenuItem.style.display =
+            currentRole === "Admin" ? "flex" : "none";
+          emailCfgMenuItem.classList.toggle(
+            "active",
+            currentTab === "tab-email-config",
+          );
+        }
+
+        // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh, Nhật ký Email
         if (currentRole === "HR") {
-          allowedCount += 3;
+          allowedCount += 4;
           const isCandidateActive = currentTab === "tab-candidates";
           const isMentorActive = currentTab === "tab-mentors";
           const isStudentActive = currentTab === "tab-students";
+          const isEmailLogsActive = currentTab === "tab-email-logs";
 
           const liCand = document.createElement("li");
           liCand.className = "nav-item";
@@ -1747,6 +2172,16 @@
           </a>
         `;
           menuEl.appendChild(liStudent);
+
+          const liEmailLogs = document.createElement("li");
+          liEmailLogs.className = "nav-item";
+          liEmailLogs.innerHTML = `
+          <a class="nav-link ${isEmailLogsActive ? "active" : ""}" onclick="switchTab('tab-email-logs')">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>Nhật ký gửi Email</span>
+          </a>
+        `;
+          menuEl.appendChild(liEmailLogs);
         }
 
         document.getElementById("menuCountBadge").innerText =
@@ -1810,6 +2245,18 @@
               "HR thêm mới / chỉnh sửa thông tin cá nhân của thực tập sinh";
             loadMentorsForSelect();
             loadStudents();
+          } else if (tabId === "tab-email-config") {
+            document.getElementById("pageTitle").innerText =
+              "Cấu Hình Email & SMTP";
+            document.getElementById("pageSubtitle").innerText =
+              "Thiết lập máy chủ SMTP gửi thông báo kết quả duyệt hồ sơ ứng viên (US 8)";
+            loadEmailConfig();
+          } else if (tabId === "tab-email-logs") {
+            document.getElementById("pageTitle").innerText =
+              "Nhật Ký Gửi Email";
+            document.getElementById("pageSubtitle").innerText =
+              "Theo dõi trạng thái gửi email thông báo xét duyệt & thử lại khi thất bại (US 8)";
+            loadEmailLogs(1);
           }
         }
       }
@@ -1899,13 +2346,13 @@
             return `
           <tr>
             <td style="font-family: monospace; font-size: 12px; color: #64748b;">${u.id}</td>
-            <td><b>${u.name}</b></td>
-            <td>${u.email}</td>
-            <td><span class="badge ${roleBadge}">${u.role}</span></td>
-            <td><span class="badge badge-active">${u.status || "ACTIVE"}</span></td>
+            <td><b>${escapeHtml(u.name)}</b></td>
+            <td>${escapeHtml(u.email)}</td>
+            <td><span class="badge ${roleBadge}">${escapeHtml(u.role)}</span></td>
+            <td><span class="badge badge-active">${escapeHtml(u.status || "ACTIVE")}</span></td>
             <td style="font-size: 12.5px; color: #64748b;">${createdDate}</td>
             <td align="center">
-              <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id}, '${u.email}')">
+              <button class="btn btn-sm btn-danger" onclick="deleteUser(${Number(u.id)}, ${escapeHtml(JSON.stringify(u.email))})">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </td>
@@ -2082,6 +2529,8 @@
 
       // ---- US7: state danh sách hồ sơ ----
       let applicationsList = [];
+      let reviewingId = null; // id hồ sơ đang mở modal từ chối
+      const busyApplicationIds = new Set(); // hồ sơ đang gửi request
 
       const STATUS_UI = {
         PENDING: { label: "Chờ duyệt", cls: "badge-pending" },
@@ -2092,12 +2541,14 @@
       function renderCandidates() {
         const tbody = document.getElementById("candidateTableBody");
         if (applicationsList.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">Chưa có hồ sơ ứng tuyển nào</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Chưa có hồ sơ ứng tuyển nào</td></tr>`;
           return;
         }
+        const canReview = currentRole === "HR";
         tbody.innerHTML = applicationsList
           .map((c) => {
             const ui = STATUS_UI[c.status] || STATUS_UI.PENDING;
+            const busy = busyApplicationIds.has(c.id) ? "disabled" : "";
             const cv = /^https?:\/\//i.test(c.cvLink || "")
               ? ` <a href="${escapeHtml(c.cvLink)}" target="_blank" rel="noopener noreferrer" title="Xem CV"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`
               : "";
@@ -2105,6 +2556,13 @@
               c.status === "REJECTED" && c.rejection_reason
                 ? `<span class="reject-reason">Lý do: ${escapeHtml(c.rejection_reason)}</span>`
                 : "";
+            const actions =
+              canReview && c.status === "PENDING"
+                ? `<div class="action-group">
+                     <button class="btn btn-sm btn-success" ${busy} onclick="approveApplication(${c.id})">Duyệt</button>
+                     <button class="btn btn-sm btn-reject" ${busy} onclick="openRejectModal(${c.id})">Từ chối</button>
+                   </div>`
+                : `<span style="color:#94a3b8;">—</span>`;
             return `
             <tr>
               <td><b>${escapeHtml(c.name)}</b>${cv}</td>
@@ -2112,6 +2570,7 @@
               <td>${escapeHtml(c.university || "N/A")}</td>
               <td>${escapeHtml(c.major || "N/A")}</td>
               <td><span class="badge ${ui.cls}">${ui.label}</span>${reason}</td>
+              <td align="center">${actions}</td>
             </tr>`;
           })
           .join("");
@@ -2120,7 +2579,7 @@
       async function loadCandidates() {
         const tbody = document.getElementById("candidateTableBody");
         if (currentRole === "Intern") {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:24px;"><b><i class="fa-solid fa-lock"></i> Thực tập sinh không có quyền xem danh sách hồ sơ ứng tuyển!</b></td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px;"><b><i class="fa-solid fa-lock"></i> Thực tập sinh không có quyền xem danh sách hồ sơ ứng tuyển!</b></td></tr>`;
           return;
         }
         try {
@@ -2132,7 +2591,7 @@
             return;
           }
           if (res.status === 403) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:24px;"><b><i class="fa-solid fa-lock"></i> Bạn không có quyền truy cập hồ sơ ứng tuyển!</b></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px;"><b><i class="fa-solid fa-lock"></i> Bạn không có quyền truy cập hồ sơ ứng tuyển!</b></td></tr>`;
             return;
           }
           const body = await res.json();
@@ -2140,10 +2599,99 @@
           applicationsList = body.data;
           renderCandidates();
         } catch (err) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:24px;">Lỗi tải danh sách hồ sơ!</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px;">Lỗi tải danh sách hồ sơ!</td></tr>`;
           showToast("Không tải được danh sách hồ sơ!", "error");
         }
       }
+
+      // Gọi PATCH và thay đúng dòng trong state bằng dữ liệu server trả về (không reload trang).
+      // Trả về true nếu thành công.
+      async function submitApplicationStatus(id, payload) {
+        if (busyApplicationIds.has(id)) return false;
+        busyApplicationIds.add(id);
+        renderCandidates();
+        try {
+          const res = await fetch(`${API_BASE}/applications/${id}/status`, {
+            method: "PATCH",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify(payload),
+          });
+          if (res.status === 401) {
+            forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+            return false;
+          }
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok || !body.success) {
+            showToast(body.message || "Thao tác thất bại!", "error");
+            // 409: hồ sơ đã bị người khác xử lý -> đồng bộ lại danh sách
+            if (res.status === 409 || res.status === 404) loadCandidates();
+            return false;
+          }
+          applicationsList = applicationsList.map((c) =>
+            c.id === body.data.id ? body.data : c,
+          );
+          showToast(body.message, "success");
+          return true;
+        } catch (err) {
+          showToast("Không thể kết nối tới Backend!", "error");
+          return false;
+        } finally {
+          busyApplicationIds.delete(id);
+          renderCandidates();
+        }
+      }
+
+      function approveApplication(id) {
+        return submitApplicationStatus(id, { status: "APPROVED" });
+      }
+
+      // ---- Modal từ chối ----
+      function openRejectModal(id) {
+        const c = applicationsList.find((x) => x.id === id);
+        if (!c) return;
+        reviewingId = id;
+        document.getElementById("rejectModalTarget").textContent =
+          `Ứng viên: ${c.name} (${c.email})`;
+        document.getElementById("rejectReasonInput").value = "";
+        document.getElementById("rejectReasonError").textContent = "";
+        document.getElementById("rejectConfirmBtn").disabled = false;
+        document.getElementById("rejectCancelBtn").disabled = false;
+        document.getElementById("rejectModal").classList.add("open");
+        document.getElementById("rejectReasonInput").focus();
+      }
+
+      function closeRejectModal() {
+        if (document.getElementById("rejectConfirmBtn").disabled) return; // đang gửi
+        document.getElementById("rejectModal").classList.remove("open");
+        reviewingId = null;
+      }
+
+      async function confirmReject() {
+        const input = document.getElementById("rejectReasonInput");
+        const errEl = document.getElementById("rejectReasonError");
+        const reason = input.value.trim();
+        if (!reason) {
+          errEl.textContent = "Vui lòng nhập lý do từ chối!"; // không gọi API
+          input.focus();
+          return;
+        }
+        errEl.textContent = "";
+        const confirmBtn = document.getElementById("rejectConfirmBtn");
+        const cancelBtn = document.getElementById("rejectCancelBtn");
+        confirmBtn.disabled = true;
+        cancelBtn.disabled = true;
+        const ok = await submitApplicationStatus(reviewingId, {
+          status: "REJECTED",
+          rejection_reason: reason,
+        });
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+        if (ok) closeRejectModal();
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeRejectModal();
+      });
 
       // =========================================================================
       // QUẢN LÝ MENTOR & PHÒNG BAN (HR THÊM MỚI MENTOR)
@@ -2159,7 +2707,7 @@
           mentorsList = await res.json();
 
           if (!Array.isArray(mentorsList) || mentorsList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có mentor nào trong hệ thống</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có mentor nào trong hệ thống</td></tr>`;
             return;
           }
 
@@ -2167,17 +2715,17 @@
             .map(
               (m) => `
           <tr>
-            <td><b>${m.fullName}</b></td>
-            <td>${m.email}</td>
-            <td>${m.phone || "N/A"}</td>
-            <td><span class="badge badge-mentor">${m.department || "N/A"}</span></td>
-            <td>${m.specialization || "N/A"}</td>
+            <td><b>${escapeHtml(m.fullName)}</b></td>
+            <td>${escapeHtml(m.email)}</td>
+            <td>${escapeHtml(m.phone || "N/A")}</td>
+            <td><span class="badge badge-mentor">${escapeHtml(m.department || "N/A")}</span></td>
+            <td>${escapeHtml(m.specialization || "N/A")}</td>
             <td align="center">
               <div class="action-group">
                 <button class="btn btn-sm btn-primary" onclick="editMentor(${m.id})" title="Chỉnh sửa">
                   <i class="fa-solid fa-pen"></i>
                 </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteMentor(${m.id}, '${m.fullName}')" title="Xóa">
+                <button class="btn btn-sm btn-danger" onclick="deleteMentor(${Number(m.id)}, ${escapeHtml(JSON.stringify(m.fullName))})" title="Xóa">
                   <i class="fa-solid fa-trash"></i>
                 </button>
               </div>
@@ -2187,7 +2735,7 @@
             )
             .join("");
         } catch (err) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách mentor!</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách mentor!</td></tr>`;
         }
       }
 
@@ -2347,18 +2895,18 @@
 
               return `
             <tr>
-              <td style="font-family: monospace; font-size: 12px; color: #64748b;">${s.studentCode || "N/A"}</td>
-              <td><b>${s.fullName}</b></td>
-              <td>${s.email}</td>
-              <td>${s.university || "N/A"}</td>
-              <td>${s.mentorName || "Chưa phân công"}</td>
-              <td><span class="badge ${stColor}">${s.status || "Đang thực tập"}</span></td>
+              <td style="font-family: monospace; font-size: 12px; color: #64748b;">${escapeHtml(s.studentCode || "N/A")}</td>
+              <td><b>${escapeHtml(s.fullName)}</b></td>
+              <td>${escapeHtml(s.email)}</td>
+              <td>${escapeHtml(s.university || "N/A")}</td>
+              <td>${escapeHtml(s.mentorName || "Chưa phân công")}</td>
+              <td><span class="badge ${stColor}">${escapeHtml(s.status || "Đang thực tập")}</span></td>
               <td align="center">
                 <div class="action-group">
                   <button class="btn btn-sm btn-primary" onclick="editStudent(${s.id})" title="Chỉnh sửa">
                     <i class="fa-solid fa-pen"></i>
                   </button>
-                  <button class="btn btn-sm btn-danger" onclick="deleteStudent(${s.id}, '${s.fullName}')" title="Xóa">
+                  <button class="btn btn-sm btn-danger" onclick="deleteStudent(${Number(s.id)}, ${escapeHtml(JSON.stringify(s.fullName))})" title="Xóa">
                     <i class="fa-solid fa-trash"></i>
                   </button>
                 </div>
@@ -2480,6 +3028,270 @@
         setTimeout(() => {
           el.style.display = "none";
         }, 5000);
+      }
+
+      // =========================================================================
+      // CẤU HÌNH EMAIL (SMTP) & NHẬT KÝ EMAIL (US 8)
+      // =========================================================================
+      let currentPageEmailLogs = 1;
+      let totalPagesEmailLogs = 1;
+      let emailMaxAttempts = 4; // được cập nhật theo giá trị server trả về (meta.maxAttempts)
+
+      // 1. Tải cấu hình SMTP hiện tại
+      async function loadEmailConfig() {
+        if (currentRole !== "Admin") return;
+        const pillEl = document.getElementById("smtpStatusPill");
+        try {
+          const res = await fetch(`${API_BASE}/email/config`, {
+            headers: authHeaders(),
+          });
+          if (res.status === 401) {
+            forceLogout();
+            return;
+          }
+          const body = await res.json();
+          if (!res.ok || !body.success) throw new Error(body.message);
+
+          const cfg = body.data || {};
+          document.getElementById("smtpHost").value = cfg.host || "";
+          document.getElementById("smtpPort").value = cfg.port || 587;
+          document.getElementById("smtpSecure").value = cfg.secure ? "true" : "false";
+          document.getElementById("smtpUser").value = cfg.user || "";
+          document.getElementById("smtpFromName").value = cfg.fromName || "";
+          document.getElementById("smtpFromEmail").value = cfg.fromEmail || "";
+          document.getElementById("smtpPass").value = "";
+
+          const pwdNotice = document.getElementById("pwdNoticeLabel");
+          if (cfg.hasPassword) {
+            pwdNotice.innerHTML = `(<i class="fa-solid fa-lock" style="color: #16a34a"></i> Đã lưu mật khẩu)`;
+            document.getElementById("smtpPass").placeholder = "•••••••• (Nhập mới nếu muốn thay đổi)";
+          } else {
+            pwdNotice.innerHTML = `(<span style="color: #dc2626">Chưa có mật khẩu</span>)`;
+            document.getElementById("smtpPass").placeholder = "Nhập mật khẩu ứng dụng 16 ký tự";
+          }
+
+          if (cfg.configured) {
+            pillEl.innerHTML = `<span class="badge badge-sent"><i class="fa-solid fa-circle-check"></i> Đã cấu hình SMTP</span>`;
+          } else {
+            pillEl.innerHTML = `<span class="badge badge-failed"><i class="fa-solid fa-circle-xmark"></i> Chưa hoàn tất cấu hình</span>`;
+          }
+        } catch (err) {
+          pillEl.innerHTML = `<span class="badge badge-failed">Lỗi kết nối</span>`;
+          showToast(err.message || "Không thể tải cấu hình email!", "error");
+        }
+      }
+
+      // 2. Lưu cấu hình SMTP
+      async function handleSaveEmailConfig(e) {
+        e.preventDefault();
+        const alertEl = document.getElementById("emailConfigAlert");
+        const btn = document.getElementById("btnSaveConfig");
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...`;
+
+        const host = document.getElementById("smtpHost").value.trim();
+        const port = Number(document.getElementById("smtpPort").value);
+        const secure = document.getElementById("smtpSecure").value === "true";
+        const user = document.getElementById("smtpUser").value.trim();
+        const pass = document.getElementById("smtpPass").value.trim();
+        const fromName = document.getElementById("smtpFromName").value.trim();
+        const fromEmail = document.getElementById("smtpFromEmail").value.trim();
+
+        const payload = { host, port, secure, user, fromName, fromEmail };
+        if (pass) payload.pass = pass;
+
+        try {
+          const res = await fetch(`${API_BASE}/email/config`, {
+            method: "PUT",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify(payload),
+          });
+          const body = await res.json();
+          if (!res.ok || !body.success) throw new Error(body.message);
+
+          showAlert(alertEl, body.message, "success");
+          showToast(body.message, "success");
+          await loadEmailConfig();
+        } catch (err) {
+          showAlert(alertEl, err.message || "Lỗi lưu cấu hình!", "danger");
+          showToast(err.message || "Không thể lưu cấu hình SMTP!", "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Lưu Cấu Hình SMTP`;
+        }
+      }
+
+      // 3. Gửi email thử nghiệm SMTP
+      async function handleTestEmailConfig(e) {
+        e.preventDefault();
+        const alertEl = document.getElementById("testEmailAlert");
+        const btn = document.getElementById("btnSendTest");
+        const to = document.getElementById("testEmailTo").value.trim();
+        if (!to) return;
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi thử...`;
+
+        try {
+          const res = await fetch(`${API_BASE}/email/config/test`, {
+            method: "POST",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ to }),
+          });
+          const body = await res.json();
+          if (!res.ok || !body.success) throw new Error(body.message);
+
+          showAlert(alertEl, body.message, "success");
+          showToast(body.message, "success");
+        } catch (err) {
+          showAlert(alertEl, err.message || "Gửi thử thất bại!", "danger");
+          showToast(err.message || "Gửi thử nghiệm thất bại!", "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Gửi Email Thử Nghiệm`;
+        }
+      }
+
+      // 4. Tải danh sách nhật ký gửi email
+      async function loadEmailLogs(page = 1) {
+        currentPageEmailLogs = page;
+        const tbody = document.getElementById("emailLogsTableBody");
+        const status = document.getElementById("logFilterStatus") ? document.getElementById("logFilterStatus").value : "";
+        const type = document.getElementById("logFilterType") ? document.getElementById("logFilterType").value : "";
+        const search = document.getElementById("logFilterSearch") ? document.getElementById("logFilterSearch").value.trim() : "";
+
+        const queryParams = new URLSearchParams({ page, pageSize: 15 });
+        if (status) queryParams.set("status", status);
+        if (type) queryParams.set("type", type);
+        if (search) queryParams.set("search", search);
+
+        try {
+          const res = await fetch(`${API_BASE}/email/logs?${queryParams.toString()}`, {
+            headers: authHeaders(),
+          });
+          if (res.status === 401) {
+            forceLogout();
+            return;
+          }
+          if (res.status === 403) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #dc2626; padding: 24px">Bạn không có quyền xem nhật ký email!</td></tr>`;
+            return;
+          }
+          const body = await res.json();
+          if (!res.ok || !body.success) throw new Error(body.message);
+
+          const logs = body.data || [];
+          if (body.meta && body.meta.maxAttempts) {
+            emailMaxAttempts = body.meta.maxAttempts;
+          }
+          const total = body.pagination ? body.pagination.total : logs.length;
+          const pageSize = body.pagination ? body.pagination.pageSize : 15;
+          totalPagesEmailLogs = Math.max(1, Math.ceil(total / pageSize));
+
+          // Cập nhật thanh phân trang
+          document.getElementById("emailLogsPagingText").innerText =
+            `Hiển thị ${logs.length} / ${total} bản ghi (Trang ${page}/${totalPagesEmailLogs})`;
+          document.getElementById("btnPrevEmailLogs").disabled = page <= 1;
+          document.getElementById("btnNextEmailLogs").disabled = page >= totalPagesEmailLogs;
+
+          // Cập nhật thống kê nhanh
+          renderEmailLogsStats(logs, total);
+
+          // Render bảng
+          renderEmailLogsTable(logs);
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #dc2626; padding: 24px">Lỗi khi tải nhật ký email: ${escapeHtml(err.message)}</td></tr>`;
+          showToast("Không thể tải nhật ký email!", "error");
+        }
+      }
+
+      function renderEmailLogsStats(logs, total) {
+        document.getElementById("statTotalEmailLogs").innerText = total;
+        const sent = logs.filter((l) => l.status === "SENT").length;
+        const retrying = logs.filter((l) => l.status === "RETRYING").length;
+        const failed = logs.filter((l) => l.status === "FAILED").length;
+        document.getElementById("statSentEmailLogs").innerText = sent;
+        document.getElementById("statRetryingEmailLogs").innerText = retrying;
+        document.getElementById("statFailedEmailLogs").innerText = failed;
+      }
+
+      function renderEmailLogsTable(logs) {
+        const tbody = document.getElementById("emailLogsTableBody");
+        if (logs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #94a3b8; padding: 32px">Không tìm thấy bản ghi nhật ký email nào phù hợp.</td></tr>`;
+          return;
+        }
+
+        const typeLabels = {
+          APPROVED: { label: "Duyệt trúng tuyển", cls: "badge-approved", icon: "fa-circle-check" },
+          REJECTED: { label: "Từ chối hồ sơ", cls: "badge-rejected", icon: "fa-circle-xmark" },
+        };
+
+        const statusLabels = {
+          SENT: { label: "Đã gửi", cls: "badge-sent", icon: "fa-check" },
+          RETRYING: { label: "Đang thử lại", cls: "badge-retrying", icon: "fa-rotate" },
+          FAILED: { label: "Thất bại", cls: "badge-failed", icon: "fa-triangle-exclamation" },
+          PENDING: { label: "Chờ gửi", cls: "badge-pending", icon: "fa-hourglass-start" },
+        };
+
+        tbody.innerHTML = logs.map((log) => {
+          const typeUi = typeLabels[log.emailType] || { label: log.emailType, cls: "badge-test", icon: "fa-envelope" };
+          const statusUi = statusLabels[log.status] || { label: log.status, cls: "badge-pending", icon: "fa-circle" };
+          const canRetry = log.status === "FAILED" || log.status === "RETRYING";
+
+          let timeOrError = "-";
+          if (log.status === "SENT" && log.sentAt) {
+            timeOrError = `<span style="color: #16a34a; font-size: 12.5px;"><i class="fa-solid fa-clock"></i> ${new Date(log.sentAt).toLocaleString("vi-VN")}</span>`;
+          } else if (log.errorMessage) {
+            timeOrError = `<span class="log-err-msg" title="${escapeHtml(log.errorMessage)}" onclick="alert('Chi tiết lỗi:\\n' + ${escapeHtml(JSON.stringify(log.errorMessage))})"><i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(log.errorMessage)}</span>`;
+          } else if (log.createdAt) {
+            timeOrError = `<span style="color: #64748b; font-size: 12.5px;">${new Date(log.createdAt).toLocaleString("vi-VN")}</span>`;
+          }
+
+          const actionHtml = canRetry
+            ? `<button class="btn btn-sm btn-primary" onclick="handleRetryEmailLog(${log.id})" title="Gửi lại ngay lập tức"><i class="fa-solid fa-rotate-right"></i> Gửi lại</button>`
+            : `<span style="color: #94a3b8; font-size: 13px;">—</span>`;
+
+          return `
+            <tr>
+              <td><b>#${log.id}</b></td>
+              <td>
+                <div style="font-weight: 600; color: var(--slate-900);">${escapeHtml(log.recipientName || "—")}</div>
+                <div style="font-size: 12px; color: var(--slate-600);">${escapeHtml(log.recipientEmail)}</div>
+              </td>
+              <td><span class="badge ${typeUi.cls}"><i class="fa-solid ${typeUi.icon}"></i> ${typeUi.label}</span></td>
+              <td style="font-size: 13px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(log.subject)}">${escapeHtml(log.subject)}</td>
+              <td><span class="badge ${statusUi.cls}"><i class="fa-solid ${statusUi.icon}"></i> ${statusUi.label}</span></td>
+              <td align="center"><span style="font-weight: 700; color: #475569;">${log.attempts || 0}/${emailMaxAttempts}</span></td>
+              <td>${timeOrError}</td>
+              <td align="center">${actionHtml}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function changeEmailLogsPage(delta) {
+        const targetPage = currentPageEmailLogs + delta;
+        if (targetPage >= 1 && targetPage <= totalPagesEmailLogs) {
+          loadEmailLogs(targetPage);
+        }
+      }
+
+      async function handleRetryEmailLog(id) {
+        if (!confirm(`Bạn có chắc muốn gửi lại email #${id} ngay bây giờ không?`)) return;
+        try {
+          const res = await fetch(`${API_BASE}/email/logs/${id}/retry`, {
+            method: "POST",
+            headers: authHeaders(),
+          });
+          const body = await res.json();
+          if (!res.ok || !body.success) throw new Error(body.message);
+
+          showToast("Đã kích hoạt gửi lại email thành công!", "success");
+          setTimeout(() => loadEmailLogs(currentPageEmailLogs), 1000);
+        } catch (err) {
+          showToast(err.message || "Gửi lại email thất bại!", "error");
+        }
       }
     </script>
   </body>
