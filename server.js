@@ -12,6 +12,26 @@ const {
 } = require("./auth");
 
 const applicationsRouter = require("./routes/applications.routes");
+const emailRouter = require("./routes/email.routes");
+const {
+  applicationEvents,
+  REVIEWED_EVENT,
+} = require("./services/applications.service");
+const emailQueue = require("./services/email/emailQueue");
+
+// US8: HR duyệt/từ chối hồ sơ (applications.service) phát sự kiện SAU KHI đã cập nhật DB
+// thành công; consumer dưới đây lắng nghe và xếp hàng gửi email NỀN, không await - request
+// duyệt/từ chối của HR trả response ngay, không bị chặn bởi việc gửi mail (có thể mất vài giây
+// hoặc vài chục giây nếu phải retry). Lỗi gửi email được .catch() tại đây, không văng ngược lại
+// applications.service - "lỗi mail không làm hỏng việc duyệt" đúng theo yêu cầu US8.
+applicationEvents.on(REVIEWED_EVENT, (payload) => {
+  emailQueue.enqueueReviewEmail(payload).catch((err) => {
+    console.error(
+      "[EMAIL] Không thể xếp hàng gửi email thông báo:",
+      err.message,
+    );
+  });
+});
 
 const app = express();
 app.use(cors());
@@ -48,10 +68,7 @@ app.use((req, res, next) => {
 // Khởi tạo file permissions.json mặc định nếu chưa tồn tại
 if (!fs.existsSync(PERMISSIONS_FILE)) {
   const defaultPermissions = {
-    Admin: [
-      "MANAGE_USERS",
-      "SYSTEM_SETTINGS",
-    ],
+    Admin: ["MANAGE_USERS", "SYSTEM_SETTINGS"],
     HR: ["MANAGE_USERS", "VIEW_REPORTS"],
     Mentor: ["ASSIGN_TASKS"],
     Intern: ["SUBMIT_WORK"],
@@ -439,7 +456,9 @@ app.post("/api/auth/register", async (req, res) => {
 // ============================================================================
 
 // US7: Danh sách hồ sơ (Admin/HR) + Duyệt / từ chối -> PATCH /api/applications/:id/status (chỉ HR)
+// US8: Cấu hình SMTP (chỉ Admin) + Nhật ký gửi email (chỉ HR) -> /api/email
 app.use("/api/applications", applicationsRouter);
+app.use("/api/email", emailRouter);
 
 // API LẤY DANH SÁCH MENTOR (GET /api/mentors) - mọi vai trò trừ Intern
 app.get(
@@ -764,6 +783,19 @@ async function start() {
       "Vui lòng kiểm tra backend/db_config.json và đảm bảo MySQL Server đang chạy.",
     );
     process.exit(1);
+  }
+
+  // US8: nạp lại các email đang dang dở (PENDING/RETRYING) từ lần chạy trước - phòng trường
+  // hợp server bị tắt/crash giữa lúc đang gửi hoặc đang chờ retry, tránh "mồ côi" job mãi mãi.
+  try {
+    const resumed = await emailQueue.loadPendingJobsFromDb();
+    if (resumed > 0) {
+      console.log(
+        `[EMAIL] Đã nạp lại ${resumed} email đang dang dở để tiếp tục xử lý.`,
+      );
+    }
+  } catch (err) {
+    console.error("[EMAIL] Không nạp lại được các email dang dở:", err.message);
   }
 
   app.listen(PORT, () => {

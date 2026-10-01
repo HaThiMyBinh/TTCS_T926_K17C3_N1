@@ -246,6 +246,25 @@ async function initDatabase() {
   await ensureColumn("candidate_profiles", "reviewed_by", "BIGINT NULL");
   await ensureColumn("candidate_profiles", "reviewed_at", "DATETIME NULL");
 
+  // US8: bảng nhật ký gửi email thông báo kết quả xét duyệt
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS \`email_logs\` (
+      \`id\` BIGINT AUTO_INCREMENT PRIMARY KEY,
+      \`application_id\` BIGINT NULL,
+      \`recipient_email\` VARCHAR(150) NOT NULL,
+      \`recipient_name\` VARCHAR(100) NULL,
+      \`email_type\` ENUM('APPROVED', 'REJECTED') NOT NULL,
+      \`subject\` VARCHAR(255) NOT NULL,
+      \`status\` ENUM('PENDING', 'RETRYING', 'SENT', 'FAILED') NOT NULL DEFAULT 'PENDING',
+      \`attempts\` INT NOT NULL DEFAULT 0,
+      \`error_message\` TEXT NULL,
+      \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      \`sent_at\` DATETIME NULL,
+      FOREIGN KEY (\`application_id\`) REFERENCES \`candidate_profiles\`(\`id\`) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
   // Seed dữ liệu mặc định: roles, permissions, role_permissions
   await pool.query(`
     INSERT IGNORE INTO roles (id, role_name, description) VALUES
@@ -977,6 +996,120 @@ async function syncInternsWithAccounts() {
   );
 }
 
+// ============================================================================
+//  US8: NHẬT KÝ GỬI EMAIL THÔNG BÁO KẾT QUẢ XÉT DUYỆT (email_logs)
+// ============================================================================
+const EMAIL_LOG_COLUMNS = `
+  id, application_id AS applicationId, recipient_email AS recipientEmail,
+  recipient_name AS recipientName, email_type AS emailType, subject,
+  status, attempts, error_message AS errorMessage,
+  created_at AS createdAt, updated_at AS updatedAt, sent_at AS sentAt
+`;
+
+// Tạo 1 dòng nhật ký mới (trạng thái PENDING, attempts = 0) - trả về id vừa tạo
+async function insertEmailLog({
+  applicationId,
+  recipientEmail,
+  recipientName,
+  emailType,
+  subject,
+}) {
+  const [result] = await requireDb().query(
+    `INSERT INTO email_logs
+       (application_id, recipient_email, recipient_name, email_type, subject, status, attempts)
+     VALUES (?, ?, ?, ?, ?, 'PENDING', 0)`,
+    [applicationId || null, recipientEmail, recipientName || null, emailType, subject],
+  );
+  return result.insertId;
+}
+
+// Cập nhật 1 phần thông tin nhật ký (chỉ ghi các trường thật sự được truyền vào)
+async function updateEmailLog(id, { status, attempts, errorMessage, sentAt }) {
+  const fields = [];
+  const values = [];
+  if (status !== undefined) {
+    fields.push("status = ?");
+    values.push(status);
+  }
+  if (attempts !== undefined) {
+    fields.push("attempts = ?");
+    values.push(attempts);
+  }
+  if (errorMessage !== undefined) {
+    fields.push("error_message = ?");
+    values.push(errorMessage);
+  }
+  if (sentAt !== undefined) {
+    fields.push("sent_at = ?");
+    values.push(sentAt);
+  }
+  if (fields.length === 0) return;
+  values.push(id);
+  await requireDb().query(
+    `UPDATE email_logs SET ${fields.join(", ")} WHERE id = ?`,
+    values,
+  );
+}
+
+async function findEmailLogById(id) {
+  const [rows] = await requireDb().query(
+    `SELECT ${EMAIL_LOG_COLUMNS} FROM email_logs WHERE id = ?`,
+    [id],
+  );
+  return rows[0] || null;
+}
+
+// Các job còn dang dở khi server bị tắt/crash giữa chừng - nạp lại lúc khởi động
+async function listPendingOrRetryingEmailLogs() {
+  const [rows] = await requireDb().query(
+    `SELECT ${EMAIL_LOG_COLUMNS} FROM email_logs
+     WHERE status IN ('PENDING', 'RETRYING') ORDER BY id ASC`,
+  );
+  return rows;
+}
+
+// Danh sách nhật ký có lọc + phân trang, dùng cho trang "Nhật ký Email"
+async function listEmailLogs({
+  status,
+  emailType,
+  search,
+  page = 1,
+  pageSize = 20,
+} = {}) {
+  const where = [];
+  const values = [];
+  if (status) {
+    where.push("status = ?");
+    values.push(status);
+  }
+  if (emailType) {
+    where.push("email_type = ?");
+    values.push(emailType);
+  }
+  if (search) {
+    where.push("(recipient_email LIKE ? OR recipient_name LIKE ?)");
+    values.push(`%${search}%`, `%${search}%`);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const [[{ total }]] = await requireDb().query(
+    `SELECT COUNT(*) AS total FROM email_logs ${whereSql}`,
+    values,
+  );
+
+  const safePage = Math.max(1, Number(page) || 1);
+  const safePageSize = Math.min(100, Math.max(1, Number(pageSize) || 20));
+  const offset = (safePage - 1) * safePageSize;
+
+  const [rows] = await requireDb().query(
+    `SELECT ${EMAIL_LOG_COLUMNS} FROM email_logs ${whereSql}
+     ORDER BY id DESC LIMIT ? OFFSET ?`,
+    [...values, safePageSize, offset],
+  );
+
+  return { rows, total, page: safePage, pageSize: safePageSize };
+}
+
 module.exports = {
   initDatabase,
   findUserByEmail,
@@ -999,5 +1132,10 @@ module.exports = {
   deleteStudent,
   syncMentorsWithAccounts,
   syncInternsWithAccounts,
+  insertEmailLog,
+  updateEmailLog,
+  findEmailLogById,
+  listPendingOrRetryingEmailLogs,
+  listEmailLogs,
   getIsMysqlConnected: () => isMysqlConnected,
 };
