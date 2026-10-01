@@ -88,15 +88,13 @@ async function runApplicationTests() {
     const internToken = await loginAs("Intern");
 
     const candApprove = await registerCandidate("duyet");
+    createdEmails.push(candApprove.email);
     const candReject = await registerCandidate("tuchoi");
+    createdEmails.push(candReject.email);
     const candUntouched = await registerCandidate("giunguyen"); // chỉ dùng cho test lỗi
+    createdEmails.push(candUntouched.email);
     const candRace = await registerCandidate("dongthoi");
-    createdEmails.push(
-      candApprove.email,
-      candReject.email,
-      candUntouched.email,
-      candRace.email,
-    );
+    createdEmails.push(candRace.email);
 
     // TC_01: Chưa đăng nhập -> 401
     try {
