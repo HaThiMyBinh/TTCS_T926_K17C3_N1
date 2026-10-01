@@ -201,11 +201,18 @@ async function runAutoInternTests() {
   // Cleanup: Xóa hồ sơ test đã tạo
   if (createdInternId) {
     try {
-      await fetch(`${BASE_URL}/interns/${createdInternId}`, {
+      const res = await fetch(`${BASE_URL}/interns/${createdInternId}`, {
         method: "DELETE",
         headers: authHeaders,
       });
-    } catch (e) {}
+      if (res.status !== 200) {
+        console.log(
+          ` [CLEANUP] Không xóa được hồ sơ thực tập sinh test #${createdInternId} (Mã ${res.status}) - có thể còn sót dữ liệu rác.`,
+        );
+      }
+    } catch (e) {
+      console.log(" [CLEANUP] Lỗi kết nối khi dọn hồ sơ thực tập sinh test: " + e.message);
+    }
   }
 
   console.log("\n====================================================");

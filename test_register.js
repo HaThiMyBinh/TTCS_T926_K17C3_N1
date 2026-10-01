@@ -1,4 +1,6 @@
 // test_register.js
+const { cleanupTestData } = require("./test_helpers");
+
 const API_URL = "http://127.0.0.1:5000/api/auth/register";
 
 async function runAutoRegisterTests() {
@@ -8,15 +10,18 @@ async function runAutoRegisterTests() {
 
   let passCount = 0;
   const totalCount = 4;
+  const createdEmails = []; // email hồ sơ test tạo ra -> dọn cuối phiên
 
   //  Đăng ký ứng tuyển hợp lệ (Positive)
   try {
+    const candidateEmail = `candidate_${Date.now()}@ictu.edu.vn`;
+    createdEmails.push(candidateEmail);
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: "Hà Thị Mỹ Bình",
-        email: `candidate_${Date.now()}@ictu.edu.vn`,
+        email: candidateEmail,
         password: "password123",
         phone: "0987654321",
         university: "ĐH CNTT & Truyền Thông",
@@ -86,6 +91,7 @@ async function runAutoRegisterTests() {
   // Trùng email đã nộp hồ sơ
   try {
     const dupEmail = `dup_${Date.now()}@gmail.com`;
+    createdEmails.push(dupEmail);
     // Đăng ký lần đầu
     await fetch(API_URL, {
       method: "POST",
@@ -122,6 +128,14 @@ async function runAutoRegisterTests() {
     }
   } catch (e) {
     console.log(" [FAIL] TC_04: Lỗi kết nối API");
+  }
+
+  // Dọn dữ liệu test (không ảnh hưởng kết quả PASS/FAIL ở trên)
+  try {
+    const removed = await cleanupTestData(createdEmails);
+    console.log(` [CLEANUP] Đã xóa ${removed} bản ghi dữ liệu test.`);
+  } catch (e) {
+    console.log(" [CLEANUP] Không dọn được dữ liệu test: " + e.message);
   }
 
   console.log("\n");

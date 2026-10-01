@@ -114,11 +114,18 @@ async function runAutoMentorTests() {
   // Cleanup: Xóa mentor test đã tạo
   if (createdMentorId) {
     try {
-      await fetch(`${BASE_URL}/mentors/${createdMentorId}`, {
+      const res = await fetch(`${BASE_URL}/mentors/${createdMentorId}`, {
         method: "DELETE",
         headers: authHeaders,
       });
-    } catch (e) {}
+      if (res.status !== 200) {
+        console.log(
+          ` [CLEANUP] Không xóa được mentor test #${createdMentorId} (Mã ${res.status}) - có thể còn sót dữ liệu rác.`,
+        );
+      }
+    } catch (e) {
+      console.log(" [CLEANUP] Lỗi kết nối khi dọn mentor test: " + e.message);
+    }
   }
 
   console.log("\n====================================================");
