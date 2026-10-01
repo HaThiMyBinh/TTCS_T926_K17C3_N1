@@ -89,6 +89,24 @@ CREATE TABLE IF NOT EXISTS `intern_profiles` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 8. BẢNG EMAIL_LOGS (Nhật ký gửi email thông báo kết quả xét duyệt - US 8)
+CREATE TABLE IF NOT EXISTS `email_logs` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `application_id` BIGINT NULL,
+    `recipient_email` VARCHAR(150) NOT NULL,
+    `recipient_name` VARCHAR(100) NULL,
+    `email_type` ENUM('APPROVED', 'REJECTED') NOT NULL,
+    `subject` VARCHAR(255) NOT NULL,
+    `status` ENUM('PENDING', 'RETRYING', 'SENT', 'FAILED') NOT NULL DEFAULT 'PENDING',
+    `attempts` INT NOT NULL DEFAULT 0,
+    `error_message` TEXT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `sent_at` DATETIME NULL,
+    FOREIGN KEY (`application_id`) REFERENCES `candidate_profiles`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 -- ==============================================================================
 -- DỮ LIỆU MẪU BAN ĐẦU (SEED DATA)
 -- ==============================================================================

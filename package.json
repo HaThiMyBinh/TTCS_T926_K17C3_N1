@@ -5,18 +5,27 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test:login": "node test_login.js",
-    "test:create-account": "node test.js",
-    "test:rbac": "node test_rbac.js",
-    "test:register": "node test_register.js",
-    "test:interns": "node test_interns.js",
-    "test:mentors": "node test_mentors.js"
+    "test:login": "node tests/test_login.js",
+    "test:create-account": "node tests/test_create_account.js",
+    "test:rbac": "node tests/test_rbac.js",
+    "test:register": "node tests/test_register.js",
+    "test:interns": "node tests/test_interns.js",
+    "test:mentors": "node tests/test_mentors.js",
+    "test:applications": "node tests/test_applications.js",
+    "test:email-unit": "node tests/test_email_unit.js",
+    "test:email-api": "node tests/test_email_api.js",
+    "test:cleanup": "node tests/cleanup_test_data.js",
+    "test": "npm run test:email-unit && npm run test:login && npm run test:create-account && npm run test:rbac && npm run test:register && npm run test:interns && npm run test:mentors && npm run test:applications && npm run test:email-api"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.24.4"
+    "mysql2": "^3.24.4",
+    "nodemailer": "^6.9.16"
+  },
+  "devDependencies": {
+    "smtp-server": "^3.13.0"
   }
 }
