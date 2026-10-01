@@ -11,8 +11,7 @@ chưa từng chạy thử lần nào:
 2. **Cài & bật MySQL Server** (nếu máy chưa có): cài MySQL 8.x, hoặc dùng
    XAMPP/WAMP (có sẵn MySQL đi kèm). Đảm bảo dịch vụ MySQL **đang chạy**
    trước khi bật backend ở bước 4.
-3. **Cấu hình kết nối cơ sở dữ liệu:** vào thư mục `backend`, copy file
-   `db_config.example.json` thành `db_config.json`, mở file vừa tạo lên và
+3. **Cấu hình kết nối cơ sở dữ liệu:** vào thư mục `backend`, ở file `db_config.json`,
    sửa `password` thành mật khẩu MySQL thật của bạn (nếu dùng XAMPP mặc định
    thường để trống `""`).
    - Backend sẽ **tự động tạo database, tạo bảng và seed dữ liệu mẫu** ngay
@@ -54,13 +53,40 @@ chưa từng chạy thử lần nào:
     "database": "user_management"
   }
   ```
-  File này chỉ chứa giá trị mẫu (`your_password_here`) và đã được thêm vào
+  File này chỉ chứa giá trị mẫu (`your_password`) và đã được thêm vào
   `.gitignore` - **hãy thay bằng mật khẩu MySQL thật của bạn** (hoặc dùng biến
   môi trường `DB_PASSWORD`) trước khi chạy. Server sẽ cảnh báo ra console nếu
   phát hiện giá trị mẫu này chưa được đổi.
 - File cấu trúc bảng: `schema.sql`
 - File dữ liệu mẫu ban đầu (chỉ cần cho import thủ công, backend tự seed lúc
   khởi động): `seed_data.sql`
+
+---
+
+## GỬI EMAIL THÔNG BÁO KẾT QUẢ XÉT DUYỆT
+
+Khi HR **duyệt** hoặc **từ chối** hồ sơ, hệ thống gửi email thật tới ứng viên (từ chối kèm lý do).
+Việc gửi chạy **nền** qua hàng đợi trong bộ nhớ (EventEmitter), nên HR nhận phản hồi ngay và lỗi mail
+không làm hỏng việc duyệt. Mỗi email được ghi vào bảng `email_logs`; lỗi tạm thời (mất mạng, timeout)
+được tự thử lại tối đa 3 lần (chờ 5s, 15s, 45s), còn lỗi vĩnh viễn (sai mật khẩu SMTP, email nhận sai)
+ghi thất bại ngay. Email không bao giờ chứa mật khẩu.
+
+**Cấu hình SMTP (chỉ Admin):**
+
+1. Cài thư viện: `cd backend` rồi `npm install` (bắt buộc, vì `run.bat` chỉ tự cài khi chưa có `node_modules`).
+2. Sao chép `backend/mail_config.example.json` thành `backend/mail_config.json`, hoặc nhập trực tiếp
+   trên giao diện: đăng nhập Admin, bấm vào tên tài khoản (góc phải) -> **Cấu hình Email (SMTP)**.
+3. Nếu dùng Gmail: bật xác minh 2 bước, vào https://myaccount.google.com/apppasswords tạo
+   **App Password** (16 ký tự) và dán vào ô mật khẩu (không dùng mật khẩu Gmail thường).
+   Dùng host `smtp.gmail.com`, cổng `587` (STARTTLS) hoặc `465` (SSL).
+4. Bấm **Gửi thử** để kiểm tra cấu hình. Mật khẩu không bao giờ được trả về giao diện;
+   để trống ô mật khẩu khi lưu nghĩa là giữ mật khẩu cũ.
+
+`mail_config.json` chứa mật khẩu nên đã nằm trong `.gitignore`, đừng gửi file này cho người khác.
+
+**Nhật ký gửi email (chỉ HR):** mục **Nhật ký gửi Email** ở thanh bên cho xem trạng thái từng email
+(Chờ gửi / Đang thử lại / Đã gửi / Thất bại), lọc, phân trang và bấm **Gửi lại** với email thất bại.
+Sau khi duyệt/từ chối, giao diện tự theo dõi và hiện thông báo kết quả gửi mail.
 
 ---
 
@@ -78,30 +104,34 @@ chưa từng chạy thử lần nào:
 
 ## BỘ KIỂM THỬ TỰ ĐỘNG (AUTOMATED TEST SUITES)
 
-Mở Terminal tại thư mục `backend` và chạy các lệnh (yêu cầu đã `npm install`,
-MySQL Server đang chạy, và backend `node server.js` đang mở ở cổng 5000):
+Các file test nằm trong `backend/tests/`. Chỉ cần: đã cài Node.js và **MySQL Server đang chạy**
+(đúng mật khẩu trong `backend/db_config.json`). **Không cần bật backend bằng tay.**
 
 ```bash
-# 1. Đăng nhập & Băm mật khẩu (bcrypt)
-node test_login.js
-
-# 2. (Admin tạo tài khoản)
-node test.js
-
-# 3. (Admin phân quyền RBAC & Middleware)
-node test_rbac.js
-
-# 4. (Intern đăng ký ứng tuyển công khai)
-node test_register.js
-
-# 5. User Story 4 & 5 (HR thêm mới & chỉnh sửa hồ sơ thực tập sinh)
-node test_interns.js
-
-# 6. (HR thêm mới mentor)
-node test_mentors.js
+cd backend
+npm test                      # Chạy TẤT CẢ test bằng 1 lệnh
+npm run test:unit             # Chỉ unit test (KHÔNG cần MySQL / backend)
 ```
 
-**Lưu ý về kết quả kiểm thử:** để trước tiên gọi `/api/auth/login` lấy token rồi
-gửi kèm `Authorization: Bearer <token>` thay vì header cũ, nếu không sẽ nhận
-lỗi `401 Unauthorized`. Vui lòng chạy lại toàn bộ bộ test sau khi cập nhật và
-đính kèm log thực tế thay vì ghi số PASS cố định trong tài liệu.
+`npm test` (file `tests/run_all.js`) tự động làm toàn bộ các bước sau:
+
+1. Tự `npm install` nếu chưa có `node_modules`.
+2. Chạy unit test (email, upload).
+3. Kiểm tra MySQL; báo lỗi rõ ràng nếu chưa bật / sai mật khẩu.
+4. Tự bật backend ở cổng 5000 (nếu backend đã chạy sẵn thì dùng luôn và không tắt nó).
+5. Chạy lần lượt các test API (login, create-account, rbac, register, interns, mentors,
+   applications, documents-api, email-api).
+6. Dọn dữ liệu test còn sót, tự tắt backend do script bật, in bảng tổng kết.
+7. Thoát mã `1` nếu có bộ test nào FAIL hoặc bị bỏ qua do lỗi môi trường (dùng được cho CI).
+
+Chạy riêng một bộ test: `node tests/run_all.js --only rbac` (hoặc `npm run test:rbac` nếu đã tự bật backend).
+Log backend do script bật nằm ở `backend/tests/.server.log`.
+
+```bash
+# dọn dữ liệu test thủ công (khi test bị Ctrl+C giữa chừng)
+npm run test:cleanup
+```
+
+---
+
+**Test:** `cd backend && npm test` (cần MySQL đang chạy; backend được tự bật). Chỉ chạy test không cần DB: `npm run test:unit`.
