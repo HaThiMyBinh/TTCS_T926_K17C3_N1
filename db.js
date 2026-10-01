@@ -241,12 +241,12 @@ async function initDatabase() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
-  // US7: bổ sung cột phục vụ duyệt / từ chối hồ sơ (an toàn khi chạy lại nhiều lần)
+  // cột phục vụ duyệt / từ chối hồ sơ
   await ensureColumn("candidate_profiles", "rejection_reason", "TEXT NULL");
   await ensureColumn("candidate_profiles", "reviewed_by", "BIGINT NULL");
   await ensureColumn("candidate_profiles", "reviewed_at", "DATETIME NULL");
 
-  // US8: bảng nhật ký gửi email thông báo kết quả xét duyệt
+  // bảng nhật ký gửi email thông báo kết quả xét duyệt
   await pool.query(`
     CREATE TABLE IF NOT EXISTS \`email_logs\` (
       \`id\` BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -262,6 +262,23 @@ async function initDatabase() {
       \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       \`sent_at\` DATETIME NULL,
       FOREIGN KEY (\`application_id\`) REFERENCES \`candidate_profiles\`(\`id\`) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  // bảng tài liệu hồ sơ ứng tuyển (CV & Đơn xin thực tập)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS \`application_documents\` (
+      \`id\` BIGINT AUTO_INCREMENT PRIMARY KEY,
+      \`application_id\` BIGINT NOT NULL,
+      \`doc_type\` ENUM('CV', 'APPLICATION_LETTER') NOT NULL,
+      \`original_name\` VARCHAR(255) NOT NULL,
+      \`stored_name\` VARCHAR(255) NOT NULL,
+      \`mime_type\` VARCHAR(100) NOT NULL,
+      \`size_bytes\` BIGINT NOT NULL,
+      \`uploaded_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY \`uq_application_doc_type\` (\`application_id\`, \`doc_type\`),
+      FOREIGN KEY (\`application_id\`) REFERENCES \`candidate_profiles\`(\`id\`) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
@@ -328,7 +345,6 @@ async function seedDefaultAccounts() {
   }
 }
 
-// TÌM USER THEO EMAIL
 async function findUserByEmail(email) {
   const db = requireDb();
   const [rows] = await db.query(
@@ -341,7 +357,7 @@ async function findUserByEmail(email) {
   return rows[0] || null;
 }
 
-// TÌM USER THEO ACCOUNT HOẶC EMAIL HOẶC ID (LOGIN)
+// Tra cứu theo account, email hoặc id (dùng khi đăng nhập)
 async function findUserForLogin(account) {
   const db = requireDb();
   const [rows] = await db.query(
@@ -355,7 +371,6 @@ async function findUserForLogin(account) {
   return rows[0] || null;
 }
 
-// TẠO USER MỚI (POST /api/users) - US 1 Task 3
 async function insertUser({
   name,
   email,
@@ -403,7 +418,6 @@ async function insertUser({
   };
 }
 
-// LẤY TẤT CẢ USERS (GET /api/users)
 async function getAllUsers() {
   const db = requireDb();
   const [rows] = await db.query(
@@ -416,7 +430,6 @@ async function getAllUsers() {
   return rows;
 }
 
-// XÓA USER (DELETE /api/users/:id)
 async function deleteUser(id) {
   await withTransaction(async (conn) => {
     const [rows] = await conn.query(
@@ -491,20 +504,7 @@ async function insertCandidate({
   };
 }
 
-// LẤY DANH SÁCH ỨNG VIÊN
-async function getAllCandidates() {
-  const db = requireDb();
-  const [rows] = await db.query(
-    `SELECT id, user_id AS userId, full_name AS name, email, phone, university, major,
-            cv_link AS cvLink, status, applied_at AS createdAt
-     FROM candidate_profiles ORDER BY id DESC`,
-  );
-  return rows;
-}
-
-// ============================================================================
-// US7: DUYỆT / TỪ CHỐI HỒ SƠ ỨNG VIÊN
-// ============================================================================
+// ---  DUYỆT / TỪ CHỐI HỒ SƠ ỨNG VIÊN ---
 const APPLICATION_COLUMNS = `
   id, user_id AS userId, full_name AS name, email, phone, university, major,
   cv_link AS cvLink, status, rejection_reason AS rejectionReason,
@@ -578,7 +578,6 @@ async function reviewApplicationAtomic({
   });
 }
 
-// LẤY DANH SÁCH MENTOR
 async function getAllMentors() {
   const db = requireDb();
   const [rows] = await db.query(
@@ -637,7 +636,7 @@ async function upsertProfileAccount(
   }
 }
 
-// TẠO MENTOR MỚI (đồng thời tạo tài khoản Mentor tương ứng nếu chưa có)
+// Tạo mentor, kèm tài khoản Mentor tương ứng nếu chưa có
 async function insertMentor({
   fullName,
   email,
@@ -669,7 +668,7 @@ async function insertMentor({
   };
 }
 
-// CẬP NHẬT THÔNG TIN MENTOR (đồng bộ họ tên/email/SĐT sang tài khoản Mentor)
+// Đồng bộ họ tên/email/SĐT sang tài khoản Mentor
 async function updateMentor(
   id,
   { fullName, email, phone, department, specialization },
@@ -717,7 +716,7 @@ async function updateMentor(
   });
 }
 
-// XÓA MENTOR (xóa luôn tài khoản Mentor tương ứng)
+// Xóa mentor kèm tài khoản Mentor tương ứng
 async function deleteMentor(id) {
   const mentorRoleId = await getRoleId("Mentor");
   await withTransaction(async (conn) => {
@@ -794,7 +793,6 @@ async function syncMentorsWithAccounts() {
   );
 }
 
-// LẤY DANH SÁCH HỒ SƠ THỰC TẬP SINH
 async function getAllStudents() {
   const db = requireDb();
   const [rows] = await db.query(
@@ -805,7 +803,7 @@ async function getAllStudents() {
   return rows;
 }
 
-// THÊM MỚI HỒ SƠ THỰC TẬP SINH (đồng thời tạo tài khoản Intern tương ứng nếu chưa có)
+// Tạo hồ sơ thực tập sinh, kèm tài khoản Intern tương ứng nếu chưa có
 async function insertStudent({
   studentCode,
   fullName,
@@ -914,7 +912,7 @@ async function updateStudent(
   });
 }
 
-// XÓA HỒ SƠ THỰC TẬP SINH (xóa luôn tài khoản Intern tương ứng)
+// Xóa hồ sơ kèm tài khoản Intern tương ứng
 async function deleteStudent(id) {
   const internRoleId = await getRoleId("Intern");
   await withTransaction(async (conn) => {
@@ -996,9 +994,7 @@ async function syncInternsWithAccounts() {
   );
 }
 
-// ============================================================================
-//  US8: NHẬT KÝ GỬI EMAIL THÔNG BÁO KẾT QUẢ XÉT DUYỆT (email_logs)
-// ============================================================================
+// --- NHẬT KÝ GỬI EMAIL THÔNG BÁO KẾT QUẢ XÉT DUYỆT (email_logs) ---
 const EMAIL_LOG_COLUMNS = `
   id, application_id AS applicationId, recipient_email AS recipientEmail,
   recipient_name AS recipientName, email_type AS emailType, subject,
@@ -1018,7 +1014,13 @@ async function insertEmailLog({
     `INSERT INTO email_logs
        (application_id, recipient_email, recipient_name, email_type, subject, status, attempts)
      VALUES (?, ?, ?, ?, ?, 'PENDING', 0)`,
-    [applicationId || null, recipientEmail, recipientName || null, emailType, subject],
+    [
+      applicationId || null,
+      recipientEmail,
+      recipientName || null,
+      emailType,
+      subject,
+    ],
   );
   return result.insertId;
 }
@@ -1110,6 +1112,158 @@ async function listEmailLogs({
   return { rows, total, page: safePage, pageSize: safePageSize };
 }
 
+// --- TÀI LIỆU HỒ SƠ ỨNG TUYỂN (CV & ĐƠN XIN THỰC TẬP - application_documents) ---
+const DOCUMENT_COLUMNS = `
+  id, application_id AS applicationId, doc_type AS docType,
+  original_name AS originalName, stored_name AS storedName,
+  mime_type AS mimeType, size_bytes AS sizeBytes,
+  uploaded_at AS uploadedAt, updated_at AS updatedAt
+`;
+
+async function findApplicationByUserIdOrEmail(userId, email) {
+  const [rows] = await requireDb().query(
+    `SELECT ${APPLICATION_COLUMNS} FROM candidate_profiles
+     WHERE (user_id = ? AND user_id IS NOT NULL) OR LOWER(email) = LOWER(?)
+     ORDER BY id DESC LIMIT 1`,
+    [userId || 0, email || ""],
+  );
+  return rows[0] || null;
+}
+
+async function findDocumentsByApplicationId(applicationId) {
+  const [rows] = await requireDb().query(
+    `SELECT ${DOCUMENT_COLUMNS} FROM application_documents
+     WHERE application_id = ?
+     ORDER BY id ASC`,
+    [applicationId],
+  );
+  return rows;
+}
+
+async function findDocumentById(docId) {
+  const [rows] = await requireDb().query(
+    `SELECT ${DOCUMENT_COLUMNS} FROM application_documents
+     WHERE id = ? LIMIT 1`,
+    [docId],
+  );
+  return rows[0] || null;
+}
+
+// Lấy tài liệu của NHIỀU hồ sơ trong 1 truy vấn (HR xem danh sách ứng viên, tránh N+1)
+async function findDocumentsByApplicationIds(applicationIds) {
+  if (!Array.isArray(applicationIds) || applicationIds.length === 0) return [];
+  const [rows] = await requireDb().query(
+    `SELECT ${DOCUMENT_COLUMNS} FROM application_documents
+     WHERE application_id IN (?)
+     ORDER BY application_id ASC, id ASC`,
+    [applicationIds],
+  );
+  return rows;
+}
+
+// Tài khoản Intern được Admin tạo trực tiếp (không qua form ứng tuyển) chưa có hồ sơ.
+// Tạo hồ sơ 'Chờ duyệt' GẮN VỚI user hiện có (KHÔNG tạo thêm user mới như insertCandidate).
+async function createCandidateProfileForUser(userId) {
+  const db = requireDb();
+  const [users] = await db.query(
+    "SELECT id, name, email FROM users WHERE id = ? LIMIT 1",
+    [userId],
+  );
+  if (users.length === 0) return null;
+  const u = users[0];
+  try {
+    await db.query(
+      `INSERT INTO candidate_profiles
+         (user_id, full_name, email, phone, university, major, cv_link, password_hash, status)
+       VALUES (?, ?, ?, '', 'Chưa cập nhật', '', '', '', 'Chờ duyệt')`,
+      [u.id, u.name, u.email],
+    );
+  } catch (err) {
+    // Hai request đồng thời cùng tạo: UNIQUE(email) chặn bản thứ hai -> dùng bản đã có
+    if (err.code !== "ER_DUP_ENTRY") throw err;
+  }
+  return findApplicationByUserIdOrEmail(u.id, u.email);
+}
+
+// Lưu (thêm mới hoặc ghi đè) tài liệu CHỈ KHI hồ sơ còn 'Chờ duyệt'.
+// Khóa dòng hồ sơ bằng FOR UPDATE trong cùng transaction: HR không thể duyệt/từ chối
+// xen giữa bước kiểm tra trạng thái và bước ghi. Lỗi bất kỳ -> rollback toàn bộ.
+// Trả về { outcome: 'SAVED' | 'LOCKED' | 'NOT_FOUND', ... }
+async function saveDocumentIfPending({
+  applicationId,
+  docType,
+  originalName,
+  storedName,
+  mimeType,
+  sizeBytes,
+}) {
+  return withTransaction(async (conn) => {
+    const [apps] = await conn.query(
+      "SELECT status FROM candidate_profiles WHERE id = ? FOR UPDATE",
+      [applicationId],
+    );
+    if (apps.length === 0) return { outcome: "NOT_FOUND" };
+    if (apps[0].status !== "Chờ duyệt") {
+      return { outcome: "LOCKED", status: apps[0].status };
+    }
+
+    const [old] = await conn.query(
+      `SELECT stored_name AS storedName FROM application_documents
+       WHERE application_id = ? AND doc_type = ? FOR UPDATE`,
+      [applicationId, docType],
+    );
+
+    await conn.query(
+      `INSERT INTO application_documents
+         (application_id, doc_type, original_name, stored_name, mime_type, size_bytes)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         original_name = VALUES(original_name),
+         stored_name = VALUES(stored_name),
+         mime_type = VALUES(mime_type),
+         size_bytes = VALUES(size_bytes),
+         updated_at = CURRENT_TIMESTAMP`,
+      [applicationId, docType, originalName, storedName, mimeType, sizeBytes],
+    );
+
+    const [rows] = await conn.query(
+      `SELECT ${DOCUMENT_COLUMNS} FROM application_documents
+       WHERE application_id = ? AND doc_type = ? LIMIT 1`,
+      [applicationId, docType],
+    );
+    return {
+      outcome: "SAVED",
+      document: rows[0],
+      previousStoredName: old.length > 0 ? old[0].storedName : null,
+    };
+  });
+}
+
+// Xóa bản ghi tài liệu CHỈ KHI hồ sơ còn 'Chờ duyệt' (cùng cơ chế khóa như trên).
+// Trả về { outcome: 'DELETED' | 'LOCKED' | 'NOT_FOUND', storedName?, status? }
+async function deleteDocumentIfPending({ applicationId, docId }) {
+  return withTransaction(async (conn) => {
+    const [apps] = await conn.query(
+      "SELECT status FROM candidate_profiles WHERE id = ? FOR UPDATE",
+      [applicationId],
+    );
+    if (apps.length === 0) return { outcome: "NOT_FOUND" };
+    if (apps[0].status !== "Chờ duyệt") {
+      return { outcome: "LOCKED", status: apps[0].status };
+    }
+
+    const [docs] = await conn.query(
+      `SELECT stored_name AS storedName FROM application_documents
+       WHERE id = ? AND application_id = ? FOR UPDATE`,
+      [docId, applicationId],
+    );
+    if (docs.length === 0) return { outcome: "NOT_FOUND" };
+
+    await conn.query("DELETE FROM application_documents WHERE id = ?", [docId]);
+    return { outcome: "DELETED", storedName: docs[0].storedName };
+  });
+}
+
 module.exports = {
   initDatabase,
   findUserByEmail,
@@ -1118,7 +1272,6 @@ module.exports = {
   getAllUsers,
   deleteUser,
   insertCandidate,
-  getAllCandidates,
   listApplications,
   findApplicationById,
   reviewApplicationAtomic,
@@ -1130,12 +1283,16 @@ module.exports = {
   insertStudent,
   updateStudent,
   deleteStudent,
-  syncMentorsWithAccounts,
-  syncInternsWithAccounts,
   insertEmailLog,
   updateEmailLog,
   findEmailLogById,
   listPendingOrRetryingEmailLogs,
   listEmailLogs,
-  getIsMysqlConnected: () => isMysqlConnected,
+  findApplicationByUserIdOrEmail,
+  findDocumentsByApplicationId,
+  findDocumentById,
+  findDocumentsByApplicationIds,
+  createCandidateProfileForUser,
+  saveDocumentIfPending,
+  deleteDocumentIfPending,
 };

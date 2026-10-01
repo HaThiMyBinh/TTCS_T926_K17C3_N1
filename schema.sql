@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 5. BẢNG CANDIDATE_PROFILES (Hồ sơ ứng tuyển trực tuyến của thực tập sinh - US 3)
+-- 5. BẢNG CANDIDATE_PROFILES (Hồ sơ ứng tuyển trực tuyến của thực tập sinh )
 CREATE TABLE IF NOT EXISTS `candidate_profiles` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `user_id` BIGINT NULL,                         
@@ -56,9 +56,9 @@ CREATE TABLE IF NOT EXISTS `candidate_profiles` (
     `password_hash` VARCHAR(255) NOT NULL,      
     `status` ENUM('Chờ duyệt', 'Đã duyệt', 'Từ chối') DEFAULT 'Chờ duyệt',
     `applied_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `rejection_reason` TEXT NULL,                  -- US7: lý do từ chối
-    `reviewed_by` BIGINT NULL,                     -- US7: users.id của HR xử lý
-    `reviewed_at` DATETIME NULL,                   -- US7: thời điểm xử lý
+    `rejection_reason` TEXT NULL,                  -- lý do từ chối
+    `reviewed_by` BIGINT NULL,                     -- users.id của HR xử lý
+    `reviewed_at` DATETIME NULL,                   -- thời điểm xử lý
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS `intern_profiles` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 8. BẢNG EMAIL_LOGS (Nhật ký gửi email thông báo kết quả xét duyệt - US 8)
+-- 8. BẢNG EMAIL_LOGS (Nhật ký gửi email thông báo kết quả xét duyệt )
 CREATE TABLE IF NOT EXISTS `email_logs` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `application_id` BIGINT NULL,
@@ -105,6 +105,22 @@ CREATE TABLE IF NOT EXISTS `email_logs` (
     `sent_at` DATETIME NULL,
     FOREIGN KEY (`application_id`) REFERENCES `candidate_profiles`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 9. BẢNG APPLICATION_DOCUMENTS (Tài liệu hồ sơ ứng tuyển: CV & Đơn xin thực tập )
+CREATE TABLE IF NOT EXISTS `application_documents` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `application_id` BIGINT NOT NULL,
+    `doc_type` ENUM('CV', 'APPLICATION_LETTER') NOT NULL,
+    `original_name` VARCHAR(255) NOT NULL,
+    `stored_name` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `size_bytes` BIGINT NOT NULL,
+    `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uq_application_doc_type` (`application_id`, `doc_type`),
+    FOREIGN KEY (`application_id`) REFERENCES `candidate_profiles`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 
 -- ==============================================================================
