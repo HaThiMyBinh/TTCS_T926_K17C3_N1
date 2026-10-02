@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:5000/api/auth/login";
+const API_URL = `${process.env.TEST_BASE_URL || `http://127.0.0.1:${process.env.TEST_PORT || 5000}/api`}/auth/login`;
 
 async function runAutoLoginTests() {
   console.log("\n");
