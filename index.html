@@ -881,34 +881,45 @@
       .doc-hr-item {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 6px 8px;
+        gap: 6px;
+        padding: 4px 6px;
         border: 1px solid var(--slate-200);
         border-radius: 6px;
         background: #ffffff;
+      }
+      .doc-hr-item > i {
+        font-size: 14px;
+        color: var(--slate-600);
       }
       .doc-hr-meta {
         display: flex;
         flex-direction: column;
         min-width: 0;
         flex: 1;
+        line-height: 1.25;
       }
       .doc-hr-type {
-        font-size: 11px;
+        font-size: 10.5px;
         font-weight: 700;
         color: var(--primary);
+        white-space: nowrap;
       }
       .doc-hr-name {
-        font-size: 12px;
+        font-size: 11.5px;
         color: var(--slate-900);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        max-width: 220px;
       }
-      .doc-hr-sub {
+      .doc-mgmt-docs {
+        min-width: 260px;
+        max-width: 360px;
+      }
+      .review-note {
+        display: block;
+        margin-top: 6px;
         font-size: 11px;
-        color: var(--slate-600);
+        color: #64748b;
       }
       .doc-empty {
         font-size: 11px;
@@ -922,12 +933,37 @@
         border-radius: 8px;
         padding: 14px;
       }
-      .doc-download-btn {
+      .doc-progress {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 1px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 999px;
+      }
+      .doc-progress-ok {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .doc-progress-warn {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .approve-wrap {
+        display: inline-block;
+      }
+      .approve-wrap.is-blocked {
+        cursor: not-allowed;
+      }
+      .doc-download-btn,
+      .doc-view-btn {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 3px 8px;
-        font-size: 11px;
+        justify-content: center;
+        width: 26px;
+        height: 24px;
+        padding: 0;
+        font-size: 12px;
         font-weight: 600;
         border-radius: 4px;
         background: #eff6ff;
@@ -937,7 +973,8 @@
         transition: all 0.15s;
         text-decoration: none;
       }
-      .doc-download-btn:hover {
+      .doc-download-btn:hover,
+      .doc-view-btn:hover {
         background: #dbeafe;
         color: #1e40af;
       }
@@ -1631,6 +1668,32 @@
                       </td>
                     </tr>
                   </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="docMgmtCard" style="display: none">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-folder-open text-primary"></i> Quản Lý Tài Liệu
+              </h3>
+              <button class="btn btn-sm btn-primary" onclick="loadStudents()">
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
+            </div>
+            <div class="card-body" style="padding: 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Thực tập sinh</th>
+                      <th>Tài liệu</th>
+                      <th>Trạng thái hồ sơ</th>
+                      <th style="text-align: center">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody id="docMgmtBody"></tbody>
                 </table>
               </div>
             </div>
@@ -3465,46 +3528,139 @@
 
       // chỉ HR được xem/tải tài liệu ứng viên. Mọi dữ liệu đều qua escapeHtml;
       // nút tải dùng data-attribute (không nhúng tên file vào onclick) và event delegation bên dưới.
-      function renderCandidateDocs(c) {
+      // Tiến độ tài liệu bắt buộc (CV + Đơn xin thực tập): x/2. Server vẫn là nơi quyết định cuối cùng.
+      function getDocProgress(c) {
+        const types = new Set((c.documents || []).map((d) => d.doc_type));
+        const uploaded = ["CV", "APPLICATION_LETTER"].filter((t) => types.has(t)).length;
+        return { uploaded, required: 2, complete: uploaded === 2 };
+      }
+
+      function renderDocsPanel(c) {
         if (currentRole !== "HR") return "";
         const docs = c.documents || [];
+        const p = getDocProgress(c);
+        const chipCls = p.complete ? "doc-progress-ok" : "doc-progress-warn";
+        const progress = `<span class="doc-progress ${chipCls}">Tài liệu: ${p.uploaded}/${p.required}</span>`;
         if (docs.length === 0) {
-          return `<span class="doc-empty">Chưa nộp tài liệu</span>`;
+          return `${progress}<span class="doc-empty">Chưa nộp tài liệu</span>`;
         }
+
         const labels = { CV: "CV", APPLICATION_LETTER: "Đơn xin thực tập" };
-        return `<div class="doc-hr-list">${docs
-          .map(
-            (d) => `
+        const iconOf = (name) =>
+          /\.pdf$/i.test(name) ? "fa-file-pdf" : /\.docx?$/i.test(name) ? "fa-file-word" : "fa-file";
+        const iconButton = (cls, icon, label, d) => `
+            <button type="button" class="${cls}" title="${label}"
+              aria-label="${label} ${escapeHtml(d.original_name)}"
+              data-app-id="${Number(c.id)}" data-doc-id="${Number(d.id)}"
+              data-name="${escapeHtml(d.original_name)}">
+              <i class="fa-solid ${icon}"></i>
+            </button>`;
+
+        const items = docs.map((d) => {
+          const name = escapeHtml(d.original_name);
+          const size = escapeHtml(formatFileSize(d.size_bytes));
+          const when = escapeHtml(formatDateTime(d.uploaded_at));
+          return `
           <div class="doc-hr-item">
-            <i class="fa-solid ${d.doc_type === "CV" ? "fa-file-pdf" : "fa-file-word"}"></i>
-            <div class="doc-hr-meta">
-              <span class="doc-hr-type">${escapeHtml(labels[d.doc_type] || d.doc_type)}</span>
-              <span class="doc-hr-name" title="${escapeHtml(d.original_name)}">${escapeHtml(d.original_name)}</span>
-              <span class="doc-hr-sub">${escapeHtml(formatFileSize(d.size_bytes))} • ${escapeHtml(formatDateTime(d.uploaded_at))}</span>
+            <i class="fa-solid ${iconOf(d.original_name)}"></i>
+            <div class="doc-hr-meta" title="${name} • ${size} • ${when}">
+              <span class="doc-hr-type">${escapeHtml(labels[d.doc_type] || d.doc_type)} · ${size}</span>
+              <span class="doc-hr-name">${name}</span>
             </div>
-            <button type="button" class="doc-download-btn" data-app-id="${Number(c.id)}" data-doc-id="${Number(d.id)}" title="Tải xuống ${escapeHtml(d.original_name)}">
-              <i class="fa-solid fa-download"></i> Tải
-            </button>
-          </div>`,
-          )
-          .join("")}</div>`;
+            ${iconButton("doc-view-btn", "fa-eye", "Xem", d)}
+            ${iconButton("doc-download-btn", "fa-download", "Tải xuống", d)}
+          </div>`;
+        });
+        return `${progress}<div class="doc-hr-list">${items.join("")}</div>`;
       }
 
       document.addEventListener("click", (e) => {
         const btn =
           e.target.closest &&
-          e.target.closest(".doc-download-btn[data-doc-id]");
+          e.target.closest(".doc-download-btn[data-doc-id], .doc-view-btn[data-doc-id]");
         if (!btn) return;
         const appId = Number(btn.dataset.appId);
         const docId = Number(btn.dataset.docId);
-        const app = applicationsList.find((x) => x.id === appId);
-        const doc = app && (app.documents || []).find((d) => d.id === docId);
-        downloadCandidateDoc(
-          appId,
-          docId,
-          doc ? doc.original_name : "document",
-        );
+        const name = btn.dataset.name || "document";
+        if (btn.classList.contains("doc-view-btn")) viewDocumentFile(appId, docId, name);
+        else downloadDocumentFile(appId, docId, name);
       });
+
+      // Nút "Xem": PDF mở tab mới (server trả Content-Disposition: inline); DOC/DOCX tải về
+      async function viewDocumentFile(appId, docId, filename) {
+        if (!/\.pdf$/i.test(filename || "")) {
+          return downloadDocumentFile(appId, docId, filename);
+        }
+        const tab = window.open("", "_blank"); // mở ngay trong sự kiện click để không bị chặn popup
+        try {
+          const res = await fetch(
+            `${API_BASE}/applications/${appId}/documents/${docId}/download?disposition=inline`,
+            { headers: authHeaders() },
+          );
+          if (res.status === 401) {
+            if (tab) tab.close();
+            return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          }
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            if (tab) tab.close();
+            showToast(err.message || "Không mở được tài liệu!", "error");
+            return;
+          }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+          if (!tab) {
+            URL.revokeObjectURL(url);
+            showToast("Trình duyệt chặn cửa sổ mới, hãy cho phép popup hoặc dùng nút Tải!", "error");
+            return;
+          }
+          tab.location.href = url;
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } catch (err) {
+          if (tab) tab.close();
+          showToast("Lỗi khi mở tài liệu!", "error");
+        }
+      }
+
+      // Badge trạng thái hồ sơ + lý do từ chối (nếu có), dùng chung cho tab ứng tuyển và Quản lý Tài liệu
+      function renderStatusCell(status, rejectionReason) {
+        const ui = STATUS_UI[status] || STATUS_UI.PENDING;
+        const reason =
+          status === "REJECTED" && rejectionReason
+            ? `<span class="reject-reason">Lý do: ${escapeHtml(rejectionReason)}</span>`
+            : "";
+        return `<span class="badge ${ui.cls}">${ui.label}</span>${reason}`;
+      }
+
+      // Nút Duyệt / Từ chối. Nếu app.documents được truyền vào (tab Quản lý Tài liệu) thì Duyệt bị vô hiệu
+      // kèm tooltip khi thiếu tài liệu; nếu không (tab Hồ sơ ứng tuyển) thì duyệt không cần tài liệu.
+      function renderReviewActions(app) {
+        if (currentRole !== "HR" || app.status !== "PENDING") {
+          return `<span style="color:#94a3b8;">—</span>`;
+        }
+        const id = Number(app.id);
+        const disabledAll = busyApplicationIds.has(app.id) ? "disabled" : "";
+        const hasDocs = Array.isArray(app.documents);
+        const prog = getDocProgress(app);
+        const blocked = hasDocs && !prog.complete;
+        const blockTip = `Hồ sơ chưa đủ tài liệu (${prog.uploaded}/${prog.required}), không thể duyệt!`;
+        const approveArgs = hasDocs ? `${id}` : `${id}, false`;
+        return `<div class="action-group">
+            <span class="approve-wrap ${blocked ? "is-blocked" : ""}"
+              ${blocked ? `title="${escapeHtml(blockTip)}"` : ""}>
+              <button class="btn btn-sm btn-success" ${disabledAll || blocked ? "disabled" : ""}
+                onclick="approveApplication(${approveArgs})">Duyệt</button>
+            </span>
+            <button class="btn btn-sm btn-reject" ${disabledAll}
+              onclick="openRejectModal(${id})">Từ chối</button>
+          </div>`;
+      }
+
+      // Cập nhật mọi nơi đang hiển thị hồ sơ ứng tuyển (2 tab dùng chung dữ liệu duyệt)
+      function renderApplicationViews() {
+        renderCandidates();
+        if (studentsList.length) renderStudents();
+      }
 
       function renderCandidates() {
         const tbody = document.getElementById("candidateTableBody");
@@ -3512,39 +3668,22 @@
           tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">Chưa có hồ sơ ứng tuyển nào</td></tr>`;
           return;
         }
-        const canReview = currentRole === "HR";
         tbody.innerHTML = applicationsList
           .map((c) => {
-            const ui = STATUS_UI[c.status] || STATUS_UI.PENDING;
-            const busy = busyApplicationIds.has(c.id) ? "disabled" : "";
             const cv = /^https?:\/\//i.test(c.cvLink || "")
               ? ` <a href="${escapeHtml(c.cvLink)}" target="_blank" rel="noopener noreferrer" title="Xem CV"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`
               : "";
 
-            // US9: HR xem & tải các file CV / Đơn xin thực tập của ứng viên
-            const docsList = renderCandidateDocs(c);
-
-            const reason =
-              c.status === "REJECTED" && c.rejection_reason
-                ? `<span class="reject-reason">Lý do: ${escapeHtml(c.rejection_reason)}</span>`
-                : "";
-            const actions =
-              canReview && c.status === "PENDING"
-                ? `<div class="action-group">
-                     <button class="btn btn-sm btn-success" ${busy} onclick="approveApplication(${c.id})">Duyệt</button>
-                     <button class="btn btn-sm btn-reject" ${busy} onclick="openRejectModal(${c.id})">Từ chối</button>
-                   </div>`
-                : `<span style="color:#94a3b8;">—</span>`;
+            const actions = renderReviewActions({ id: c.id, status: c.status });
             return `
             <tr>
               <td>
                 <b>${escapeHtml(c.name)}</b>${cv}
-                ${docsList}
               </td>
               <td>${escapeHtml(c.email)}</td>
               <td>${escapeHtml(c.university || "N/A")}</td>
               <td>${escapeHtml(c.major || "N/A")}</td>
-              <td><span class="badge ${ui.cls}">${ui.label}</span>${reason}</td>
+              <td>${renderStatusCell(c.status, c.rejection_reason)}</td>
               <td align="center">${actions}</td>
             </tr>`;
           })
@@ -3584,7 +3723,7 @@
       async function submitApplicationStatus(id, payload) {
         if (busyApplicationIds.has(id)) return false;
         busyApplicationIds.add(id);
-        renderCandidates();
+        renderApplicationViews();
         try {
           const res = await fetch(`${API_BASE}/applications/${id}/status`, {
             method: "PATCH",
@@ -3599,11 +3738,28 @@
           if (!res.ok || !body.success) {
             showToast(body.message || "Thao tác thất bại!", "error");
             // 409: hồ sơ đã bị người khác xử lý -> đồng bộ lại danh sách
-            if (res.status === 409 || res.status === 404) loadCandidates();
+            if (res.status === 409 || res.status === 404) {
+              loadCandidates();
+              loadStudents();
+            } else if (res.status === 400) refreshApplicationDocs(id); // có thể tài liệu vừa thay đổi
             return false;
           }
+          // PATCH không trả documents -> giữ lại danh sách file của dòng đó
           applicationsList = applicationsList.map((c) =>
-            c.id === body.data.id ? body.data : c,
+            c.id === body.data.id ? { ...body.data, documents: c.documents } : c,
+          );
+          // Đồng bộ dòng tương ứng ở mục Quản lý Tài liệu (đổi trạng thái -> ẩn nút Duyệt/Từ chối)
+          studentsList = studentsList.map((s) =>
+            s.application && s.application.id === body.data.id
+              ? {
+                  ...s,
+                  application: {
+                    ...s.application,
+                    status: body.data.status,
+                    rejection_reason: body.data.rejection_reason,
+                  },
+                }
+              : s,
           );
           showToast(body.message, "success");
           return true;
@@ -3612,17 +3768,47 @@
           return false;
         } finally {
           busyApplicationIds.delete(id);
-          renderCandidates();
+          renderApplicationViews();
         }
       }
 
-      function approveApplication(id) {
-        return submitApplicationStatus(id, { status: "APPROVED" });
+      // Làm mới tài liệu của 1 dòng bằng GET /applications/:id/documents (HR)
+      async function refreshApplicationDocs(id) {
+        try {
+          const res = await fetch(`${API_BASE}/applications/${id}/documents`, {
+            headers: authHeaders(),
+          });
+          if (res.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok || !body.success) return;
+          applicationsList = applicationsList.map((c) =>
+            c.id === id ? { ...c, documents: body.documents } : c,
+          );
+          studentsList = studentsList.map((s) =>
+            s.application && s.application.id === id ? { ...s, documents: body.documents } : s,
+          );
+          renderApplicationViews();
+        } catch (err) {}
+      }
+
+      // requireDocs=false: duyệt hồ sơ online không cần tài liệu; Quản lý Tài liệu giữ mặc định (phải đủ 2/2)
+      function approveApplication(id, requireDocs = true) {
+        const payload = { status: "APPROVED" };
+        if (!requireDocs) payload.require_documents = false;
+        return submitApplicationStatus(id, payload);
+      }
+
+      // Tên + email người nộp hồ sơ, tìm ở tab ứng tuyển hoặc mục Quản lý Tài liệu
+      function findApplicationView(id) {
+        const c = applicationsList.find((x) => x.id === id);
+        if (c) return { name: c.name, email: c.email };
+        const s = studentsList.find((x) => x.application && x.application.id === id);
+        return s ? { name: s.fullName, email: s.email } : null;
       }
 
       // ---- Modal từ chối ----
       function openRejectModal(id) {
-        const c = applicationsList.find((x) => x.id === id);
+        const c = findApplicationView(id);
         if (!c) return;
         reviewingId = id;
         document.getElementById("rejectModalTarget").textContent =
@@ -3849,26 +4035,62 @@
       // =========================================================================
       let studentsList = [];
 
-      async function loadStudents() {
+      // Quản lý Tài liệu (chỉ HR): tài liệu của từng thực tập sinh, xem/tải file, duyệt hoặc từ chối hồ sơ.
+      // Thực tập sinh khớp hồ sơ ứng tuyển theo email (server trả sẵn s.application + s.documents).
+      function renderDocManagement() {
+        const card = document.getElementById("docMgmtCard");
+        const isHR = currentRole === "HR";
+        card.style.display = isHR ? "" : "none";
+        if (!isHR) return;
+
+        const dash = `<span style="color:#94a3b8;">—</span>`;
+        const tbody = document.getElementById("docMgmtBody");
+        if (!studentsList.length) {
+          tbody.innerHTML = `<tr><td colspan="4"
+            style="text-align:center;color:#94a3b8;padding:24px;">Chưa có thực tập sinh nào</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = studentsList
+          .map((s) => {
+            const who = `<b>${escapeHtml(s.fullName)}</b>
+              <span class="review-note">${escapeHtml(s.email)}</span>`;
+            const a = s.application;
+            if (!a) {
+              return `<tr><td>${who}</td>
+                <td><span class="doc-empty">Chưa nộp tài liệu</span></td>
+                <td>${dash}</td><td align="center">${dash}</td></tr>`;
+            }
+            const view = { id: a.id, status: a.status, documents: s.documents || [] };
+            const decision =
+              a.status === "PENDING"
+                ? renderReviewActions(view)
+                : `<span class="review-note">Đã xử lý</span>`;
+            return `<tr>
+              <td>${who}</td>
+              <td class="doc-mgmt-docs">${renderDocsPanel(view)}</td>
+              <td>${renderStatusCell(a.status, a.rejection_reason)}</td>
+              <td align="center">${decision}</td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      function renderStudents() {
         const tbody = document.getElementById("studentTableBody");
-        try {
-          const res = await fetch(`${API_BASE}/students`, {
-            headers: authHeaders(),
-          });
-          studentsList = await res.json();
+        renderDocManagement();
 
-          if (!Array.isArray(studentsList) || studentsList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có hồ sơ thực tập sinh nào</td></tr>`;
-            return;
-          }
+        if (!Array.isArray(studentsList) || studentsList.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có hồ sơ thực tập sinh nào</td></tr>`;
+          return;
+        }
 
-          tbody.innerHTML = studentsList
-            .map((s) => {
-              let stColor = "badge-active";
-              if (s.status === "Tạm dừng") stColor = "badge-pending";
-              else if (s.status === "Hoàn thành") stColor = "badge-hr";
+        tbody.innerHTML = studentsList
+          .map((s) => {
+            let stColor = "badge-active";
+            if (s.status === "Tạm dừng") stColor = "badge-pending";
+            else if (s.status === "Hoàn thành") stColor = "badge-hr";
 
-              return `
+            return `
             <tr>
               <td style="font-family: monospace; font-size: 12px; color: #64748b;">${escapeHtml(s.studentCode || "N/A")}</td>
               <td><b>${escapeHtml(s.fullName)}</b></td>
@@ -3888,8 +4110,22 @@
               </td>
             </tr>
           `;
-            })
-            .join("");
+          })
+          .join("");
+      }
+
+      async function loadStudents() {
+        const tbody = document.getElementById("studentTableBody");
+        try {
+          const res = await fetch(`${API_BASE}/students`, {
+            headers: authHeaders(),
+          });
+          if (res.status === 401) {
+            return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          }
+          const data = await res.json();
+          studentsList = Array.isArray(data) ? data : [];
+          renderStudents();
         } catch (err) {
           tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách hồ sơ thực tập sinh!</td></tr>`;
         }
@@ -4365,19 +4601,18 @@
         if (!myProfileState) return;
         const { application, documents, progress } = myProfileState;
 
-        // 1. Banner trạng thái duyệt / từ chối & khóa
+        // 1. Banner chỉ hiện khi hồ sơ bị từ chối (đã duyệt thì không hiện, Intern vẫn tải tài liệu được)
         const bannerEl = document.getElementById("profileStatusBanner");
         if (application.is_locked) {
           bannerEl.style.display = "block";
-          const isApproved = application.status === "Đã duyệt";
           bannerEl.style.padding = "14px 18px";
           bannerEl.style.borderRadius = "8px";
-          bannerEl.style.background = isApproved ? "#ecfdf5" : "#fef2f2";
-          bannerEl.style.border = `1px solid ${isApproved ? "#a7f3d0" : "#fecaca"}`;
-          bannerEl.style.color = isApproved ? "#065f46" : "#991b1b";
+          bannerEl.style.background = "#fef2f2";
+          bannerEl.style.border = "1px solid #fecaca";
+          bannerEl.style.color = "#991b1b";
           bannerEl.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
-              <i class="fa-solid ${isApproved ? "fa-circle-check" : "fa-circle-xmark"}" style="font-size: 20px;"></i>
+              <i class="fa-solid fa-circle-xmark" style="font-size: 20px;"></i>
               <div>
                 <b>Trạng thái hồ sơ: ${escapeHtml(application.status)}</b>
                 <div style="font-size: 13px; margin-top: 2px;">${escapeHtml(application.lock_reason)}</div>
@@ -4703,10 +4938,6 @@
           doc.id,
           doc.original_name,
         );
-      }
-
-      async function downloadCandidateDoc(applicationId, docId, filename) {
-        await downloadDocumentFile(applicationId, docId, filename);
       }
 
       async function downloadDocumentFile(applicationId, docId, filename) {
