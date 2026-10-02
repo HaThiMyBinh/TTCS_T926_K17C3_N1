@@ -123,6 +123,26 @@ CREATE TABLE IF NOT EXISTS `application_documents` (
 
 
 
+-- 10. BẢNG HỢP ĐỒNG THỰC TẬP SINH (hồ sơ chính thức)
+CREATE TABLE IF NOT EXISTS `internship_contracts` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `intern_id` BIGINT NOT NULL,
+    `title` VARCHAR(255) NULL,
+    `start_date` DATE NULL,
+    `end_date` DATE NULL,
+    `note` TEXT NULL,
+    `original_name` VARCHAR(255) NOT NULL,
+    `stored_name` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `size_bytes` BIGINT NOT NULL,
+    `uploaded_by` BIGINT NULL,
+    `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_contract_intern` (`intern_id`),
+    FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ==============================================================================
 -- DỮ LIỆU MẪU BAN ĐẦU (SEED DATA)
 -- ==============================================================================
@@ -145,6 +165,6 @@ INSERT INTO `permissions` (`id`, `perm_code`, `perm_name`, `description`) VALUES
 -- Gán quyền mặc định cho từng vai trò
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (1, 1), (1, 5), -- Admin: chỉ còn MANAGE_USERS và SYSTEM_SETTINGS
-(2, 1), (2, 4),                         -- HR: MANAGE_USERS, VIEW_REPORTS
+(2, 4),                                 -- HR: VIEW_REPORTS
 (3, 2),                                 -- Mentor: ASSIGN_TASKS
 (4, 3);                                 -- Intern: SUBMIT_WORK
