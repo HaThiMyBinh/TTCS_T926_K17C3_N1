@@ -28,11 +28,11 @@ INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (3, 2),
 (4, 3);
 
--- 5. NẠP DANH SÁCH HỒ SƠ ỨNG TUYỂN MẪU (CANDIDATE_PROFILES - US 3)
+-- 5. NẠP DANH SÁCH HỒ SƠ ỨNG TUYỂN MẪU (CANDIDATE_PROFILES )
 INSERT INTO `candidate_profiles` (`id`, `full_name`, `email`, `phone`, `university`, `major`, `cv_link`, `password_hash`, `status`) VALUES
-(2001, 'Nguyễn Văn An', 'an.nguyen@gmail.com', '0912345678', 'ĐH CNTT & Truyền Thông (ICTU)', 'Kỹ thuật phần mềm', 'https://github.com/nguyenvanan-cv', '<DÁN_HASH_BCRYPT_VÀO_ĐÂY>', 'Chờ duyệt'),
-(2002, 'Trần Thị Mai', 'mai.tran@gmail.com', '0987654321', 'ĐH Bách Khoa Hà Nội', 'Công nghệ thông tin', 'https://drive.google.com/cv-mai', '<DÁN_HASH_BCRYPT_VÀO_ĐÂY>', 'Đã duyệt'),
-(2003, 'Lê Minh Huy', 'huy.le@gmail.com', '0933445566', 'ĐH Sư Phạm Kỹ Thuật', 'Hệ thống thông tin', 'https://linkedin.com/in/huy-le', '<DÁN_HASH_BCRYPT_VÀO_ĐÂY>', 'Chờ duyệt')
+(2001, 'Lê Anh Đức', 'dtc245200050@ictu.edu.vn', '0912345678', 'ĐH CNTT & Truyền Thông (ICTU)', 'Kỹ thuật phần mềm', 'https://github.com/nguyenvanan-cv', '123456', 'Chờ duyệt'),
+(2002, 'Nguyễn Quốc Bảo', 'bao162650@gmail.com', '0987654321', 'ĐH Bách Khoa Hà Nội', 'Công nghệ thông tin', 'https://drive.google.com/cv-mai', '123456', 'Đã duyệt'),
+(2003, 'Cao Chiến', 'caoxuanchien963@gmail.com', '0933445566', 'ĐH Sư Phạm Kỹ Thuật', 'Hệ thống thông tin', 'https://linkedin.com/in/huy-le', '123456', 'Chờ duyệt')
 ON DUPLICATE KEY UPDATE
     `full_name` = VALUES(`full_name`),
     `phone` = VALUES(`phone`),

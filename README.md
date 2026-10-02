@@ -116,11 +116,11 @@ npm run test:unit             # Chỉ unit test (KHÔNG cần MySQL / backend)
 `npm test` (file `tests/run_all.js`) tự động làm toàn bộ các bước sau:
 
 1. Tự `npm install` nếu chưa có `node_modules`.
-2. Chạy unit test (email, upload).
+2. Chạy unit test (email, upload, review - điều kiện duyệt hồ sơ).
 3. Kiểm tra MySQL; báo lỗi rõ ràng nếu chưa bật / sai mật khẩu.
 4. Tự bật backend ở cổng 5000 (nếu backend đã chạy sẵn thì dùng luôn và không tắt nó).
 5. Chạy lần lượt các test API (login, create-account, rbac, register, interns, mentors,
-   applications, documents-api, email-api).
+   applications, documents-api, review-documents-api, email-api).
 6. Dọn dữ liệu test còn sót, tự tắt backend do script bật, in bảng tổng kết.
 7. Thoát mã `1` nếu có bộ test nào FAIL hoặc bị bỏ qua do lỗi môi trường (dùng được cho CI).
 

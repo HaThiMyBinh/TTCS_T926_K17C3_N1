@@ -3,7 +3,15 @@
     "MANAGE_USERS",
     "SYSTEM_SETTINGS"
   ],
-  "HR": [],
-  "Mentor": [],
-  "Intern": []
+  "HR": [
+    "MANAGE_USERS",
+    "VIEW_REPORTS"
+  ],
+  "Mentor": [
+    "ASSIGN_TASKS",
+    "SUBMIT_WORK"
+  ],
+  "Intern": [
+    "SUBMIT_WORK"
+  ]
 }

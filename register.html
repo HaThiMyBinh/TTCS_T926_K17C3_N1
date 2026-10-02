@@ -294,7 +294,7 @@
     </div>
 
     <script>
-      const API_URL = "http://127.0.0.1:5000/api/auth/register";
+      const API_URL = "/api/auth/register";
 
       async function handleRegister(e) {
         e.preventDefault();
@@ -357,7 +357,7 @@
       function showMsg(msg, type) {
         const alertEl = document.getElementById("alertMsg");
         alertEl.className = `alert alert-${type}`;
-        alertEl.innerHTML = msg;
+        alertEl.textContent = msg;
         alertEl.style.display = "flex";
         window.scrollTo({ top: 0, behavior: "smooth" });
       }

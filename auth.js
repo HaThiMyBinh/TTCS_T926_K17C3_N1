@@ -88,5 +88,4 @@ module.exports = {
   generateToken,
   authenticateToken,
   requireRole,
-  JWT_SECRET,
 };

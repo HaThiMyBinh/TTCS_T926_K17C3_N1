@@ -14,14 +14,21 @@
     "test:applications": "node tests/test_applications.js",
     "test:email-unit": "node tests/test_email_unit.js",
     "test:email-api": "node tests/test_email_api.js",
+    "test:upload-unit": "node tests/test_upload_unit.js",
+    "test:documents-api": "node tests/test_documents_api.js",
+    "test:review-unit": "node tests/test_review_unit.js",
+    "test:review-api": "node tests/test_review_documents_api.js",
     "test:cleanup": "node tests/cleanup_test_data.js",
-    "test": "npm run test:email-unit && npm run test:login && npm run test:create-account && npm run test:rbac && npm run test:register && npm run test:interns && npm run test:mentors && npm run test:applications && npm run test:email-api"
+    "test": "node tests/run_all.js",
+    "test:unit": "node tests/run_all.js --unit",
+    "test:manual-server": "npm run test:login && npm run test:create-account && npm run test:rbac && npm run test:register && npm run test:interns && npm run test:mentors && npm run test:applications && npm run test:documents-api && npm run test:review-api && npm run test:email-api"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.4.0",
     "mysql2": "^3.24.4",
     "nodemailer": "^6.9.16"
   },

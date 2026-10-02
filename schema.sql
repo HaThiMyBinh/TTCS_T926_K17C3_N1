@@ -7,7 +7,7 @@ USE `user_management`;
 -- 1. BẢNG ROLES (Vai trò trong hệ thống)
 CREATE TABLE IF NOT EXISTS `roles` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `role_name` VARCHAR(50) NOT NULL UNIQUE,       
+    `role_name` VARCHAR(50) NOT NULL UNIQUE,
     `description` VARCHAR(255) NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
 -- 2. BẢNG PERMISSIONS (Danh mục quyền chức năng)
 CREATE TABLE IF NOT EXISTS `permissions` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `perm_code` VARCHAR(50) NOT NULL UNIQUE,      
+    `perm_code` VARCHAR(50) NOT NULL UNIQUE,
     `perm_name` VARCHAR(100) NOT NULL,
     `description` VARCHAR(255) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(100) NOT NULL,
     `email` VARCHAR(150) NOT NULL UNIQUE,
-    `password_hash` VARCHAR(255) NOT NULL,          
+    `password_hash` VARCHAR(255) NOT NULL,
     `role_id` INT NOT NULL,
     `phone` VARCHAR(20) NULL,
     `status` ENUM('ACTIVE', 'INACTIVE', 'LOCKED', 'PENDING') DEFAULT 'ACTIVE',
@@ -46,14 +46,14 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- 5. BẢNG CANDIDATE_PROFILES (Hồ sơ ứng tuyển trực tuyến của thực tập sinh )
 CREATE TABLE IF NOT EXISTS `candidate_profiles` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `user_id` BIGINT NULL,                         
+    `user_id` BIGINT NULL,
     `full_name` VARCHAR(100) NOT NULL,
     `email` VARCHAR(150) NOT NULL UNIQUE,
     `phone` VARCHAR(20) NOT NULL,
     `university` VARCHAR(150) NOT NULL,
     `major` VARCHAR(100) NULL,
     `cv_link` VARCHAR(255) NULL,
-    `password_hash` VARCHAR(255) NOT NULL,      
+    `password_hash` VARCHAR(255) NOT NULL,
     `status` ENUM('Chờ duyệt', 'Đã duyệt', 'Từ chối') DEFAULT 'Chờ duyệt',
     `applied_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `rejection_reason` TEXT NULL,                  -- lý do từ chối
