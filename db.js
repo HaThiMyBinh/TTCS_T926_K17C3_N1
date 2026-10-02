@@ -517,6 +517,16 @@ async function listApplications() {
   return rows;
 }
 
+// Hồ sơ ứng tuyển khớp theo email (liên kết hồ sơ thực tập sinh <-> tài liệu); email so sánh không phân biệt hoa thường
+async function findApplicationsByEmails(emails) {
+  if (!Array.isArray(emails) || emails.length === 0) return [];
+  const [rows] = await requireDb().query(
+    `SELECT ${APPLICATION_COLUMNS} FROM candidate_profiles WHERE LOWER(email) IN (?)`,
+    [emails],
+  );
+  return rows;
+}
+
 async function findApplicationById(id) {
   const [rows] = await requireDb().query(
     `SELECT ${APPLICATION_COLUMNS} FROM candidate_profiles WHERE id = ?`,
@@ -533,13 +543,16 @@ async function reviewApplicationAtomic({
   newStatus, // 'Đã duyệt' | 'Từ chối'
   rejectionReason,
   reviewerId,
+  requiredDocs = 0, // > 0: chỉ đổi khi hồ sơ có ĐỦ ngần ấy loại tài liệu (kiểm tra trong cùng câu UPDATE)
 }) {
   return withTransaction(async (conn) => {
     const [result] = await conn.query(
       `UPDATE candidate_profiles
          SET status = ?, rejection_reason = ?, reviewed_by = ?, reviewed_at = NOW()
-       WHERE id = ? AND status = 'Chờ duyệt'`,
-      [newStatus, rejectionReason, reviewerId, id],
+       WHERE id = ? AND status = 'Chờ duyệt'
+         AND (? = 0 OR (SELECT COUNT(DISTINCT doc_type) FROM application_documents
+                        WHERE application_id = ?) >= ?)`,
+      [newStatus, rejectionReason, reviewerId, id, requiredDocs, id, requiredDocs],
     );
     if (result.affectedRows === 0) return null;
 
@@ -741,7 +754,7 @@ async function syncMentorsWithAccounts() {
   const defaultHash = await hashPassword(DEFAULT_ACCOUNT_PASSWORD);
 
   // 1. Tài khoản Mentor chưa có hồ sơ -> tạo hồ sơ mentor
-  const [createdProfiles] = await db.query(
+  await db.query(
     `INSERT INTO mentors (full_name, email, phone, department, specialization)
      SELECT u.name, u.email, COALESCE(u.phone, ''), ?, ''
      FROM users u
@@ -751,7 +764,7 @@ async function syncMentorsWithAccounts() {
   );
 
   // 2. Hồ sơ mentor chưa có tài khoản -> tạo tài khoản Mentor
-  const [createdAccounts] = await db.query(
+  await db.query(
     `INSERT INTO users (name, email, password_hash, role_id, phone, status)
      SELECT m.full_name, m.email, ?, ?, NULLIF(m.phone, ''), 'ACTIVE'
      FROM mentors m
@@ -769,7 +782,7 @@ async function syncMentorsWithAccounts() {
   );
 
   // 4. Cặp đã khớp email -> đưa họ tên & SĐT của tài khoản về giống hồ sơ mentor
-  const [aligned] = await db.query(
+  await db.query(
     `UPDATE users u JOIN mentors m ON LOWER(m.email) = LOWER(u.email)
      SET u.name = m.full_name, u.phone = NULLIF(m.phone, '')
      WHERE u.role_id = ?
@@ -938,7 +951,7 @@ async function syncInternsWithAccounts() {
   const defaultHash = await hashPassword(DEFAULT_ACCOUNT_PASSWORD);
 
   // 1. Tài khoản Intern chính thức chưa có hồ sơ -> tạo hồ sơ (lấy thêm trường/ngành từ hồ sơ ứng tuyển nếu có)
-  const [createdProfiles] = await db.query(
+  await db.query(
     `INSERT INTO intern_profiles
        (student_code, full_name, email, phone, university, major, mentor_name, status)
      SELECT '', u.name, u.email, COALESCE(NULLIF(u.phone, ''), c.phone, ''),
@@ -952,7 +965,7 @@ async function syncInternsWithAccounts() {
   );
 
   // 2. Hồ sơ thực tập sinh chưa có tài khoản -> tạo tài khoản Intern
-  const [createdAccounts] = await db.query(
+  await db.query(
     `INSERT INTO users (name, email, password_hash, role_id, phone, status)
      SELECT i.full_name, i.email, ?, ?, NULLIF(i.phone, ''), 'ACTIVE'
      FROM intern_profiles i
@@ -970,7 +983,7 @@ async function syncInternsWithAccounts() {
   );
 
   // 4. Cặp đã khớp email -> đưa họ tên & SĐT của tài khoản về giống hồ sơ thực tập sinh
-  const [aligned] = await db.query(
+  await db.query(
     `UPDATE users u JOIN intern_profiles i ON LOWER(i.email) = LOWER(u.email)
      SET u.name = i.full_name, u.phone = NULLIF(i.phone, '')
      WHERE u.role_id = ?
@@ -1185,7 +1198,20 @@ async function createCandidateProfileForUser(userId) {
   return findApplicationByUserIdOrEmail(u.id, u.email);
 }
 
-// Lưu (thêm mới hoặc ghi đè) tài liệu CHỈ KHI hồ sơ còn 'Chờ duyệt'.
+// Hồ sơ 'Chờ duyệt' và 'Đã duyệt' cho phép Intern thay đổi tài liệu; chỉ 'Từ chối' bị khóa.
+// Nếu hồ sơ đã duyệt mà tài liệu bị thay đổi -> chuyển về 'Chờ duyệt' để HR duyệt lại tài liệu
+// (KHÔNG đổi trạng thái tài khoản đăng nhập, Intern vẫn dùng hệ thống bình thường).
+async function reopenIfApproved(conn, applicationId, status) {
+  if (status !== "Đã duyệt") return;
+  await conn.query(
+    `UPDATE candidate_profiles
+        SET status = 'Chờ duyệt', rejection_reason = NULL, reviewed_by = NULL, reviewed_at = NULL
+      WHERE id = ? AND status = 'Đã duyệt'`,
+    [applicationId],
+  );
+}
+
+// Lưu (thêm mới hoặc ghi đè) tài liệu khi hồ sơ 'Chờ duyệt' hoặc 'Đã duyệt' (bị 'Từ chối' thì khóa).
 // Khóa dòng hồ sơ bằng FOR UPDATE trong cùng transaction: HR không thể duyệt/từ chối
 // xen giữa bước kiểm tra trạng thái và bước ghi. Lỗi bất kỳ -> rollback toàn bộ.
 // Trả về { outcome: 'SAVED' | 'LOCKED' | 'NOT_FOUND', ... }
@@ -1203,7 +1229,7 @@ async function saveDocumentIfPending({
       [applicationId],
     );
     if (apps.length === 0) return { outcome: "NOT_FOUND" };
-    if (apps[0].status !== "Chờ duyệt") {
+    if (apps[0].status === "Từ chối") {
       return { outcome: "LOCKED", status: apps[0].status };
     }
 
@@ -1226,6 +1252,8 @@ async function saveDocumentIfPending({
       [applicationId, docType, originalName, storedName, mimeType, sizeBytes],
     );
 
+    await reopenIfApproved(conn, applicationId, apps[0].status);
+
     const [rows] = await conn.query(
       `SELECT ${DOCUMENT_COLUMNS} FROM application_documents
        WHERE application_id = ? AND doc_type = ? LIMIT 1`,
@@ -1239,7 +1267,7 @@ async function saveDocumentIfPending({
   });
 }
 
-// Xóa bản ghi tài liệu CHỈ KHI hồ sơ còn 'Chờ duyệt' (cùng cơ chế khóa như trên).
+// Xóa bản ghi tài liệu khi hồ sơ không bị 'Từ chối' (cùng cơ chế khóa như trên).
 // Trả về { outcome: 'DELETED' | 'LOCKED' | 'NOT_FOUND', storedName?, status? }
 async function deleteDocumentIfPending({ applicationId, docId }) {
   return withTransaction(async (conn) => {
@@ -1248,7 +1276,7 @@ async function deleteDocumentIfPending({ applicationId, docId }) {
       [applicationId],
     );
     if (apps.length === 0) return { outcome: "NOT_FOUND" };
-    if (apps[0].status !== "Chờ duyệt") {
+    if (apps[0].status === "Từ chối") {
       return { outcome: "LOCKED", status: apps[0].status };
     }
 
@@ -1260,6 +1288,7 @@ async function deleteDocumentIfPending({ applicationId, docId }) {
     if (docs.length === 0) return { outcome: "NOT_FOUND" };
 
     await conn.query("DELETE FROM application_documents WHERE id = ?", [docId]);
+    await reopenIfApproved(conn, applicationId, apps[0].status);
     return { outcome: "DELETED", storedName: docs[0].storedName };
   });
 }
@@ -1274,6 +1303,7 @@ module.exports = {
   insertCandidate,
   listApplications,
   findApplicationById,
+  findApplicationsByEmails,
   reviewApplicationAtomic,
   getAllMentors,
   insertMentor,
