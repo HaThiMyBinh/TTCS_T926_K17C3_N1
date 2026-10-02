@@ -96,7 +96,7 @@ Sau khi duyệt/từ chối, giao diện tự theo dõi và hiện thông báo k
   - `run.bat` giờ **kiểm tra thật** server đã khởi động thành công (gọi `GET /api/health` tối đa 20 lần, cách nhau 1 giây) trước khi báo "THÀNH CÔNG" và mở trình duyệt - trước đây chỉ chờ cố định 3 giây rồi báo thành công vô điều kiện, kể cả khi server đã crash (ví dụ do thiếu thư viện, sai mật khẩu MySQL, hoặc cổng 5000 đang bị chiếm). Nếu sau 20 giây vẫn chưa lên được, script sẽ báo lỗi rõ ràng và yêu cầu bạn xem cửa sổ "Backend Server" để đọc thông báo lỗi thật từ Node.js.
 - **Tài khoản mẫu đăng nhập (Mật khẩu: `password123`):**
   - **Admin:** `admin@gmail.com` (Quản lý tài khoản, Cài đặt phân quyền)
-  - **HR:** `hr@company.com` (Quản lý tài khoản, Báo cáo, Hồ sơ ứng tuyển, Mentor, Hồ sơ thực tập sinh)
+  - **HR:** `hr@company.com` (Quản lý tài khoản, Báo cáo, Hồ sơ ứng tuyển, Mentor, Hồ sơ thực tập sinh và hợp đồng thực tập)
   - **Mentor:** `mentor@gmail.com` (Giao nhiệm vụ & Task)
   - **Intern:** `intern@gmail.com` (Trang nộp đơn đăng ký công khai `register.html`)
 
@@ -111,12 +111,14 @@ Các file test nằm trong `backend/tests/`. Chỉ cần: đã cài Node.js và 
 cd backend
 npm test                      # Chạy TẤT CẢ test bằng 1 lệnh
 npm run test:unit             # Chỉ unit test (KHÔNG cần MySQL / backend)
+npm run test:contracts-unit   # Unit test hợp đồng
+npm run test:contracts-api    # API test hợp đồng (cần MySQL / backend)
 ```
 
 `npm test` (file `tests/run_all.js`) tự động làm toàn bộ các bước sau:
 
 1. Tự `npm install` nếu chưa có `node_modules`.
-2. Chạy unit test (email, upload, review - điều kiện duyệt hồ sơ).
+2. Chạy unit test (email, upload, hợp đồng, review - điều kiện duyệt hồ sơ).
 3. Kiểm tra MySQL; báo lỗi rõ ràng nếu chưa bật / sai mật khẩu.
 4. Tự bật backend ở cổng 5000 (nếu backend đã chạy sẵn thì dùng luôn và không tắt nó).
 5. Chạy lần lượt các test API (login, create-account, rbac, register, interns, mentors,
@@ -135,3 +137,17 @@ npm run test:cleanup
 ---
 
 **Test:** `cd backend && npm test` (cần MySQL đang chạy; backend được tự bật). Chỉ chạy test không cần DB: `npm run test:unit`.
+
+## Hợp đồng thực tập
+
+HR có thể quản lý hợp đồng trong tab **Hồ sơ thực tập sinh**. API gồm `POST/GET /api/interns/:id/contracts`, `GET /api/interns/:id/contracts/:contractId/download` và `DELETE /api/interns/:id/contracts/:contractId`. Chấp nhận PDF/DOC/DOCX tối đa 5MB; metadata `title`, `start_date`, `end_date`, `note` là tùy chọn.
+
+## Gói demo (gửi cho người khác xem có cả dữ liệu lẫn file)
+
+Tên file trên giao diện nằm trong MySQL còn nội dung file nằm ở `backend/uploads/`, nên muốn người nhận mở được file thì hai thứ phải đi cùng nhau. Dự án có sẵn cơ chế đóng gói:
+
+1. **Trên máy bạn**, sau khi upload test xong: chạy `export_demo.bat` (hoặc `cd backend && npm run demo:export`). Lệnh này tạo thư mục `demo/` gồm `demo_data.json` (bản ghi DB) và `demo/uploads/` (chỉ các file đang được DB tham chiếu).
+2. Nén **cả dự án, kèm thư mục `demo/`**, rồi gửi đi (nên đổi mật khẩu MySQL trong `backend/db_config.json` thành giá trị mẫu).
+3. **Người nhận** chỉ cần bấm `run.bat`: khi khởi động, backend thấy `demo/` thì tự thay dữ liệu bằng bản demo và copy file vào `backend/uploads/`. Mỗi bản export chỉ nạp **một lần**; export bản mới thì sẽ được nạp lại (dữ liệu cũ trên máy người nhận bị thay thế).
+
+Lưu ý: bỏ qua nạp demo bằng biến môi trường `SKIP_DEMO=1` (cũng tự bỏ qua khi `NODE_ENV=production`). Gói demo chứa email và hash mật khẩu của tài khoản test, nên chỉ dùng dữ liệu giả. Nhật ký email (`email_logs`) không nằm trong gói demo.

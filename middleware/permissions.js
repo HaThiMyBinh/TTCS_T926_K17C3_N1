@@ -20,7 +20,7 @@ function ensurePermissionsFile() {
 
   const defaultPermissions = {
     Admin: ["MANAGE_USERS", "SYSTEM_SETTINGS"],
-    HR: ["MANAGE_USERS", "VIEW_REPORTS"],
+    HR: ["VIEW_REPORTS"],
     Mentor: ["ASSIGN_TASKS"],
     Intern: ["SUBMIT_WORK"],
   };
