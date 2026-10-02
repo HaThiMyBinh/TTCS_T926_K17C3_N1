@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../db");
 const { requireRole } = require("../auth");
+const { sendRouteError } = require("../errors");
 const { trimOrDefault } = require("../utils/request");
 const router = express.Router();
 router.get(
@@ -47,9 +48,7 @@ router.post("/mentors", requireRole("Admin", "HR"), async (req, res) => {
       .status(201)
       .json({ message: "Thêm mentor mới thành công!", mentor: newMentor });
   } catch (err) {
-    if (err.status) return res.status(err.status).json({ error: err.message });
-    console.error(err);
-    res.status(500).json({ error: "Lỗi server khi thêm mentor!" });
+    return sendRouteError(res, err, "Lỗi server khi thêm mentor!");
   }
 });
 
@@ -79,9 +78,7 @@ router.put("/mentors/:id", requireRole("Admin", "HR"), async (req, res) => {
       mentor: updated,
     });
   } catch (err) {
-    if (err.status) return res.status(err.status).json({ error: err.message });
-    console.error(err);
-    res.status(500).json({ error: "Lỗi server khi cập nhật mentor!" });
+    return sendRouteError(res, err, "Lỗi server khi cập nhật mentor!");
   }
 });
 

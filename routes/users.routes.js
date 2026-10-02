@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../db");
 const { hashPassword } = require("../auth");
+const { sendRouteError } = require("../errors");
 const { checkPermission } = require("../middleware/permissions");
 const { trimOrDefault } = require("../utils/request");
 const router = express.Router();
@@ -92,8 +93,7 @@ router.delete(
       await db.deleteUser(req.params.id);
       res.json({ message: "Đã xóa tài khoản thành công!" });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Lỗi khi xóa tài khoản!" });
+      return sendRouteError(res, err, "Lỗi khi xóa tài khoản!");
     }
   },
 );

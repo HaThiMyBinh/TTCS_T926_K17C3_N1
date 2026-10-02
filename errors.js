@@ -6,4 +6,13 @@ class HttpError extends Error {
   }
 }
 
-module.exports = { HttpError };
+// Trả lỗi route theo status nghiệp vụ nếu có, còn lại log và dùng thông báo an toàn.
+function sendRouteError(res, err, fallbackMessage) {
+  if (Number.isInteger(err?.status)) {
+    return res.status(err.status).json({ error: err.message });
+  }
+  console.error(err);
+  return res.status(500).json({ error: fallbackMessage });
+}
+
+module.exports = { HttpError, sendRouteError };

@@ -66,11 +66,13 @@ function removeFile(storedName) {
   }
 }
 
-function fileExists(storedName) {
+// Trả về đường dẫn an toàn nếu file còn trên đĩa, null nếu tên sai hoặc file đã mất.
+function resolveExistingPath(storedName) {
   try {
-    return fs.existsSync(resolveStoredPath(storedName));
-  } catch (e) {
-    return false;
+    const fullPath = resolveStoredPath(storedName);
+    return fs.existsSync(fullPath) ? fullPath : null;
+  } catch {
+    return null;
   }
 }
 
@@ -78,9 +80,8 @@ ensureUploadsDir();
 
 module.exports = {
   UPLOADS_DIR,
-  generateStoredName,
   resolveStoredPath,
+  resolveExistingPath,
   saveBuffer,
   removeFile,
-  fileExists,
 };

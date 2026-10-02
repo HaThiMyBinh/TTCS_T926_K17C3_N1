@@ -13,7 +13,7 @@ function sendError(res, err) {
   return res.status(500).json({
     success: false,
     message: "Lỗi server, vui lòng thử lại sau!",
-    error: err.message,
+    error: "Lỗi server, vui lòng thử lại sau!",
   });
 }
 
@@ -116,4 +116,5 @@ module.exports = {
   downloadDocument,
   listApplicationDocuments,
   deleteMyDocument,
+  sendError,
 };

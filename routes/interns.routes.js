@@ -1,15 +1,19 @@
 const express = require("express");
 const db = require("../db");
 const { requireRole } = require("../auth");
+const { sendRouteError } = require("../errors");
 const { attachApplicationsToStudents } = require("../services/applications.service");
 const { trimOrDefault } = require("../utils/request");
+const contractsService = require("../services/contracts.service");
 const router = express.Router();
 // --- QUẢN LÝ HỒ SƠ THỰC TẬP SINH (INTERNS / STUDENTS) ---
 
 // GET /api/interns & GET /api/students
 async function handleGetInterns(req, res) {
   try {
-    const students = await db.getAllStudents();
+    const students = await db.getAllStudents({
+      includeContractCount: req.user.role === "HR",
+    });
     // US10: chỉ HR nhận kèm hồ sơ ứng tuyển + tài liệu của từng thực tập sinh
     res.json(
       req.user.role === "HR" ? await attachApplicationsToStudents(students) : students,
@@ -77,9 +81,7 @@ async function handleCreateIntern(req, res) {
       intern: newStudent,
     });
   } catch (err) {
-    if (err.status) return res.status(err.status).json({ error: err.message });
-    console.error(err);
-    res.status(500).json({ error: "Lỗi server khi thêm hồ sơ thực tập sinh!" });
+    return sendRouteError(res, err, "Lỗi server khi thêm hồ sơ thực tập sinh!");
   }
 }
 router.post("/interns", requireRole("Admin", "HR"), handleCreateIntern);
@@ -147,11 +149,7 @@ async function handleUpdateIntern(req, res) {
       intern: updated,
     });
   } catch (err) {
-    if (err.status) return res.status(err.status).json({ error: err.message });
-    console.error(err);
-    res
-      .status(500)
-      .json({ error: "Lỗi server khi cập nhật hồ sơ thực tập sinh!" });
+    return sendRouteError(res, err, "Lỗi server khi cập nhật hồ sơ thực tập sinh!");
   }
 }
 router.put("/interns/:id", requireRole("Admin", "HR"), handleUpdateIntern);
@@ -160,11 +158,11 @@ router.put("/students/:id", requireRole("Admin", "HR"), handleUpdateIntern);
 // DELETE /api/interns/:id & DELETE /api/students/:id
 async function handleDeleteIntern(req, res) {
   try {
-    await db.deleteStudent(req.params.id);
+    const storedNames = await db.deleteStudent(req.params.id);
+    contractsService.removeFiles(storedNames);
     res.json({ message: "Đã xóa hồ sơ thực tập sinh!" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi khi xóa hồ sơ thực tập sinh!" });
+    return sendRouteError(res, err, "Lỗi khi xóa hồ sơ thực tập sinh!");
   }
 }
 router.delete("/interns/:id", requireRole("Admin", "HR"), handleDeleteIntern);

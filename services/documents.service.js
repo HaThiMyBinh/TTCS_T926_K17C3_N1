@@ -197,14 +197,9 @@ async function downloadDocument(user, { applicationId: rawAppId, docId: rawDocId
     throw new HttpError(404, "Không tìm thấy tài liệu yêu cầu!");
   }
 
-  // resolveStoredPath ép đường dẫn nằm trong uploads/ kể cả khi stored_name trong DB bị sửa
-  let filePath = null;
-  try {
-    filePath = storage.resolveStoredPath(doc.storedName);
-  } catch {
-    // Đường dẫn không hợp lệ -> filePath giữ null, xử lý 404 ngay bên dưới
-  }
-  if (!filePath || !storage.fileExists(doc.storedName)) {
+  // Resolve một lần, đồng thời xác nhận file tồn tại và vẫn nằm trong uploads/.
+  const filePath = storage.resolveExistingPath(doc.storedName);
+  if (!filePath) {
     throw new HttpError(404, "File tài liệu không còn tồn tại trên máy chủ!");
   }
 
