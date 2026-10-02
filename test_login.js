@@ -1,4 +1,3 @@
-// test_login.js
 const API_URL = "http://127.0.0.1:5000/api/auth/login";
 
 async function runAutoLoginTests() {
@@ -69,7 +68,6 @@ async function runAutoLoginTests() {
         password: "sai_mat_khau_123",
       }),
     });
-    const data = await res.json();
     if (res.status === 401) {
       console.log(" [PASS] TC_03: Chặn chính xác khi nhập sai mật khẩu (Báo lỗi 401)");
       passCount++;
@@ -121,8 +119,11 @@ async function runAutoLoginTests() {
   }
 
   console.log("\n");
-  console.log(` KẾT QUẢ TEST ĐĂNG NHẬP: ${passCount}/${totalCount} TEST CASES PASS 100%!`);
+  console.log(` KẾT QUẢ TEST ĐĂNG NHẬP: ${passCount}/${totalCount} TEST CASES PASS`);
   console.log("====================================================\n");
+
+  // Trả mã thoát khác 0 khi có test FAIL để `npm test` / CI nhận biết được
+  if (passCount < totalCount) process.exitCode = 1;
 }
 
 runAutoLoginTests();

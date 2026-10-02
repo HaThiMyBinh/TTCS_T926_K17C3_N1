@@ -1,19 +1,12 @@
-// tests/cleanup_test_data.js - Công cụ dọn TAY dữ liệu rác do các file test để lại trong
-// MySQL (ví dụ từ các lần chạy cũ trước khi test tự dọn, hoặc khi test bị dừng giữa chừng
-// (Ctrl+C) nên chưa kịp chạy xong khối "finally" dọn dẹp).
-//
-// AN TOÀN: chỉ xóa các bản ghi có email BẮT ĐẦU BẰNG một trong các tiền tố bên dưới - đây là
-// các tiền tố do chính các file test tự sinh (kèm Date.now() để không trùng nhau), KHÔNG khớp
-// với 4 tài khoản demo (admin@gmail.com, hr@company.com, mentor@gmail.com, intern@gmail.com)
-// hay 3 hồ sơ ứng viên mẫu thật (id 2001-2003) trong seed_data.sql.
-//
-// Cách chạy: node tests/cleanup_test_data.js   (yêu cầu MySQL đang chạy, không cần backend)
+// Dọn tay dữ liệu test còn sót trong MySQL (không cần backend): node tests/cleanup_test_data.js
+// Chỉ xóa bản ghi có email bắt đầu bằng các tiền tố do chính các test sinh ra,
+// không đụng tới tài khoản demo và hồ sơ mẫu trong seed_data.sql.
 const { cleanupByPattern } = require("./test_helpers");
 
-// Rà soát toàn bộ thư mục tests/ - mỗi dòng ghi rõ tiền tố thuộc file nào, để khi thêm file
-// test mới có tạo dữ liệu, chỉ cần bổ sung thêm 1 dòng vào đây.
+// Tiền tố email theo từng file test; thêm dòng mới khi test mới tạo dữ liệu
 const TEST_EMAIL_PREFIXES = [
   "us7_", // test_applications.js
+  "us9_", // test_documents_api.js
   "test_email_", // test_email_api.js
   "candidate_", // test_register.js
   "dup_", // test_register.js

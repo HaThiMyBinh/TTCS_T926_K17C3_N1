@@ -1,11 +1,9 @@
-// tests/test_email_unit.js - Unit tests cho Email Service, Templates & Error Handling (US8)
+// tests/test_email_unit.js - Unit tests cho Email Service, Templates & Error Handling
 // Chạy độc lập trong bộ nhớ, không cần kết nối mạng hay MySQL.
-const assert = require("assert");
 const templates = require("../services/email/templates");
 const emailSender = require("../services/email/emailSender");
 const smtpConfig = require("../services/email/smtpConfig");
 const {
-  EmailQueue,
   MAX_ATTEMPTS,
   RETRY_DELAYS_MS,
 } = require("../services/email/emailQueue");

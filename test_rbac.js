@@ -1,4 +1,3 @@
-// test_rbac.js
 const { BASE_URL, loginAs } = require("./test_helpers");
 
 async function runAutoRBACTests() {
@@ -22,7 +21,7 @@ async function runAutoRBACTests() {
       },
       body: JSON.stringify({ role: "Intern", permissions: [] }),
     });
-  } catch (e) {}
+  } catch { /* best-effort cleanup */ }
 
   // --- TC_01: Lấy danh sách ma trận phân quyền (yêu cầu đã đăng nhập) ---
   try {
@@ -167,13 +166,16 @@ async function runAutoRBACTests() {
       },
       body: JSON.stringify({ role: "Intern", permissions: [] }),
     });
-  } catch (e) {}
+  } catch { /* best-effort cleanup */ }
 
   console.log("\n");
   console.log(
     ` KẾT QUẢ KIỂM THỬ PHÂN QUYỀN: ${passCount}/${totalCount} TEST CASES PASS!`,
   );
   console.log("\n");
+
+  // Trả mã thoát khác 0 khi có test FAIL để `npm test` / CI nhận biết được
+  if (passCount < totalCount) process.exitCode = 1;
 }
 
 runAutoRBACTests();

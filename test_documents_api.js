@@ -182,7 +182,6 @@ async function runDocumentsApiTests() {
     }
 
     // TC_API_02: Intern upload Đơn xin thực tập (DOCX) -> 200, tiến độ 2/2 "Đã đủ hồ sơ"
-    let letterDocId = null;
     try {
       const res = await uploadDocRequest(intern1.token, {
         fileBuffer: DOCX_CONTENT,
@@ -192,9 +191,6 @@ async function runDocumentsApiTests() {
         docType: "APPLICATION_LETTER",
       });
 
-      if (res.body.data && res.body.data.id) {
-        letterDocId = res.body.data.id;
-      }
 
       report(
         "TC_API_02",
@@ -572,7 +568,7 @@ async function runDocumentsApiTests() {
       body: JSON.stringify({ status: "APPROVED" }),
     });
 
-    // TC_API_17: Sau khi duyệt, upload/thay thế tài liệu trả về 409 Conflict
+    // TC_API_17: Sau khi duyệt, Intern VẪN upload/thay thế được; hồ sơ quay lại 'Chờ duyệt' để HR duyệt lại
     try {
       const uploadAfterApprove = await uploadDocRequest(intern1.token, {
         fileBuffer: PDF_CONTENT,
@@ -581,10 +577,11 @@ async function runDocumentsApiTests() {
         docType: "CV",
       });
 
-      const deleteAfterApprove = await fetch(`${ME_DOCUMENTS_URL}/${cvDocId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${intern1.token}` },
-      });
+      const meAfter = await (
+        await fetch(ME_DOCUMENTS_URL, {
+          headers: { Authorization: `Bearer ${intern1.token}` },
+        })
+      ).json();
 
       // Tải xuống vẫn hoạt động bình thường
       const dlAfterApprove = await fetch(
@@ -594,13 +591,14 @@ async function runDocumentsApiTests() {
 
       report(
         "TC_API_17",
-        "Sau khi HR duyệt: upload/thay/xóa bị khóa với HTTP 409; tải xuống vẫn thành công (200)",
-        uploadAfterApprove.status === 409 &&
-          deleteAfterApprove.status === 409 &&
+        "Sau khi HR duyệt: Intern vẫn upload được (200), hồ sơ về 'Chờ duyệt' & không khóa; tải xuống vẫn 200",
+        uploadAfterApprove.status === 200 &&
+          meAfter.data.application.is_locked === false &&
+          meAfter.data.application.status === "Chờ duyệt" &&
           dlAfterApprove.status === 200,
       );
     } catch (e) {
-      report("TC_API_17", "Khóa hồ sơ sau khi duyệt", false, e.message);
+      report("TC_API_17", "Lỗi upload sau khi duyệt", false, e.message);
     }
 
     // --- LUỒNG 6: XÓA TÀI LIỆU KHI HỒ SƠ CÒN CHỜ DUYỆT ---
@@ -740,3 +738,4 @@ if (require.main === module) {
 }
 
 module.exports = { runDocumentsApiTests };
+

@@ -1,6 +1,11 @@
 // test_applications.js HR duyệt / từ chối hồ sơ ứng viên
 // Yêu cầu: MySQL đang chạy và backend đang mở ở cổng 5000 (node server.js / run.bat)
-const { BASE_URL, loginAs, cleanupTestData } = require("./test_helpers");
+const {
+  BASE_URL,
+  loginAs,
+  cleanupTestData,
+  seedFullDocuments,
+} = require("./test_helpers");
 
 const REGISTER_URL = `${BASE_URL}/auth/register`;
 const LOGIN_URL = `${BASE_URL}/auth/login`;
@@ -67,7 +72,7 @@ async function loginStatus(email) {
 
 async function runApplicationTests() {
   console.log("\n");
-  console.log(" BẮT ĐẦU TEST DUYỆT / TỪ CHỐI HỒ SƠ ỨNG VIÊN (US7)");
+  console.log(" BẮT ĐẦU TEST DUYỆT / TỪ CHỐI HỒ SƠ ỨNG VIÊN ");
   console.log("\n");
 
   let passCount = 0;
@@ -95,6 +100,9 @@ async function runApplicationTests() {
     createdEmails.push(candUntouched.email);
     const candRace = await registerCandidate("dongthoi");
     createdEmails.push(candRace.email);
+    // US10: duyệt yêu cầu đủ CV + Đơn xin thực tập
+    await seedFullDocuments(candApprove.id);
+    await seedFullDocuments(candRace.id);
 
     // TC_01: Chưa đăng nhập -> 401
     try {
@@ -325,6 +333,9 @@ async function runApplicationTests() {
     ` KẾT QUẢ TEST DUYỆT HỒ SƠ : ${passCount}/${totalCount} TEST CASES PASS ${passCount === totalCount ? "100%!" : ""}`,
   );
   console.log("\n");
+
+  // Trả mã thoát khác 0 khi có test FAIL để `npm test` / CI nhận biết được
+  if (passCount < totalCount) process.exitCode = 1;
 }
 
 runApplicationTests();
