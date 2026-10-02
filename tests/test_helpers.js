@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
 
-const BASE_URL = "http://127.0.0.1:5000/api";
+const BASE_URL = process.env.TEST_BASE_URL || `http://127.0.0.1:${process.env.TEST_PORT || 5000}/api`;
 
 // Tài khoản mẫu do db.js seed (mật khẩu password123)
 const DEMO_ACCOUNTS = {
@@ -74,6 +74,25 @@ async function cleanupTestData(emails) {
       // Bảng application_documents có thể chưa tồn tại
     }
 
+    try {
+      const [contracts] = await conn.query(
+        `SELECT c.stored_name FROM internship_contracts c
+         JOIN intern_profiles i ON i.id = c.intern_id
+         WHERE LOWER(i.email) IN (?)`,
+        [list],
+      );
+      const uploadsDir = path.join(__dirname, "..", "uploads");
+      for (const contract of contracts) {
+        const filePath = path.join(uploadsDir, contract.stored_name);
+        if (!fs.existsSync(filePath)) continue;
+        try {
+          fs.unlinkSync(filePath);
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
+    } catch { /* bảng hợp đồng có thể chưa tồn tại */ }
+
     // users xóa cuối vì các bảng kia tham chiếu tới nó
     for (const table of [
       "candidate_profiles",
@@ -103,8 +122,8 @@ async function cleanupByPattern(prefixes) {
     let total = 0;
     for (const prefix of list) {
       const [logResult] = await conn.query(
-        "DELETE FROM `email_logs` WHERE LOWER(recipient_email) LIKE ?",
-        [`${prefix.toLowerCase()}%`],
+        "DELETE FROM `email_logs` WHERE LEFT(LOWER(recipient_email), CHAR_LENGTH(?)) = LOWER(?)",
+        [prefix.toLowerCase(), prefix.toLowerCase()],
       );
       total += logResult.affectedRows;
     }
@@ -114,8 +133,8 @@ async function cleanupByPattern(prefixes) {
         const [docs] = await conn.query(
           `SELECT d.stored_name FROM application_documents d
            JOIN candidate_profiles c ON d.application_id = c.id
-           WHERE LOWER(c.email) LIKE ?`,
-          [`${prefix.toLowerCase()}%`],
+           WHERE LEFT(LOWER(c.email), CHAR_LENGTH(?)) = LOWER(?)`,
+          [prefix.toLowerCase(), prefix.toLowerCase()],
         );
         const uploadsDir = path.join(__dirname, "..", "uploads");
         for (const d of docs) {
@@ -129,12 +148,33 @@ async function cleanupByPattern(prefixes) {
         const [docResult] = await conn.query(
           `DELETE d FROM application_documents d
            JOIN candidate_profiles c ON d.application_id = c.id
-           WHERE LOWER(c.email) LIKE ?`,
-          [`${prefix.toLowerCase()}%`],
+           WHERE LEFT(LOWER(c.email), CHAR_LENGTH(?)) = LOWER(?)`,
+          [prefix.toLowerCase(), prefix.toLowerCase()],
         );
         total += docResult.affectedRows;
       }
     } catch { /* best-effort cleanup */ }
+
+    try {
+      for (const prefix of list) {
+        const [contracts] = await conn.query(
+          `SELECT c.stored_name FROM internship_contracts c
+           JOIN intern_profiles i ON i.id = c.intern_id
+           WHERE LEFT(LOWER(i.email), CHAR_LENGTH(?)) = LOWER(?)`,
+          [prefix.toLowerCase(), prefix.toLowerCase()],
+        );
+        const uploadsDir = path.join(__dirname, "..", "uploads");
+        for (const contract of contracts) {
+          const filePath = path.join(uploadsDir, contract.stored_name);
+          if (!fs.existsSync(filePath)) continue;
+          try {
+            fs.unlinkSync(filePath);
+          } catch {
+            // Best-effort cleanup.
+          }
+        }
+      }
+    } catch { /* bảng hợp đồng có thể chưa tồn tại */ }
 
     for (const table of [
       "candidate_profiles",
@@ -144,8 +184,8 @@ async function cleanupByPattern(prefixes) {
     ]) {
       for (const prefix of list) {
         const [result] = await conn.query(
-          `DELETE FROM \`${table}\` WHERE LOWER(email) LIKE ?`,
-          [`${prefix.toLowerCase()}%`],
+          `DELETE FROM \`${table}\` WHERE LEFT(LOWER(email), CHAR_LENGTH(?)) = LOWER(?)`,
+          [prefix.toLowerCase(), prefix.toLowerCase()],
         );
         total += result.affectedRows;
       }

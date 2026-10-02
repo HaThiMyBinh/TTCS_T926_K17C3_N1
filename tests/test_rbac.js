@@ -1,181 +1,123 @@
 const { BASE_URL, loginAs } = require("./test_helpers");
 
+async function request(endpoint, token, options = {}) {
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: `Bearer ${token}`,
+  };
+  return fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
+}
+
+async function updateInternPermissions(adminToken, permissions) {
+  return request("/permissions/update", adminToken, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role: "Intern", permissions }),
+  });
+}
+
 async function runAutoRBACTests() {
-  console.log("\n");
-  console.log("  BẮT ĐẦU KIỂM THỬ TỰ ĐỘNG PHÂN QUYỀN ");
-  console.log("\n");
+  console.log("\nBẮT ĐẦU KIỂM THỬ TỰ ĐỘNG PHÂN QUYỀN\n");
 
   let passCount = 0;
-  const totalCount = 6;
+  const totalCount = 8;
+  const adminToken = await loginAs("Admin");
+  const hrToken = await loginAs("HR");
+  const internToken = await loginAs("Intern");
+  let originalInternPermissions = ["SUBMIT_WORK"];
 
-  const adminToken = await loginAs("Admin").catch(() => null);
-  const hrToken = await loginAs("HR").catch(() => null);
-  const internToken = await loginAs("Intern").catch(() => null);
+  const check = (name, passed) => {
+    if (passed) {
+      passCount += 1;
+      console.log(`[PASS] ${name}`);
+    } else {
+      console.error(`[FAIL] ${name}`);
+    }
+  };
 
   try {
-    await fetch(`${BASE_URL}/permissions/update`, {
+    // Lấy và lưu cấu hình ban đầu trước khi test có thay đổi quyền.
+    const permissionsResponse = await request("/permissions", adminToken);
+    const permissions = await permissionsResponse.json();
+    if (Array.isArray(permissions.Intern)) {
+      originalInternPermissions = [...permissions.Intern];
+    }
+
+    check(
+      "TC_01: Đọc được ma trận quyền",
+      permissionsResponse.ok &&
+        permissions.HR &&
+        permissions.Mentor &&
+        permissions.Intern,
+    );
+
+    const hrReportResponse = await request("/reports", hrToken);
+    check("TC_02: HR truy cập báo cáo", hrReportResponse.status === 200);
+
+    const internReportResponse = await request("/reports", internToken);
+    check(
+      "TC_03: Intern bị chặn khỏi báo cáo",
+      internReportResponse.status === 403,
+    );
+
+    const updateResponse = await updateInternPermissions(adminToken, [
+      "VIEW_REPORTS",
+    ]);
+    const updatedReportResponse = await request("/reports", internToken);
+    check(
+      "TC_04: Quyền mới có hiệu lực ngay",
+      updateResponse.ok && updatedReportResponse.status === 200,
+    );
+
+    const selfUpdateResponse = await request("/permissions/update", internToken, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminToken}`,
-      },
-      body: JSON.stringify({ role: "Intern", permissions: [] }),
-    });
-  } catch { /* best-effort cleanup */ }
-
-  // --- TC_01: Lấy danh sách ma trận phân quyền (yêu cầu đã đăng nhập) ---
-  try {
-    const res = await fetch(`${BASE_URL}/permissions`, {
-      headers: { Authorization: `Bearer ${adminToken}` },
-    });
-    const data = await res.json();
-    if (res.status === 200 && data.HR && data.Mentor && data.Intern) {
-      console.log(
-        " [PASS] TC_01: Lấy thành công ma trận quyền của HR, Mentor, Intern",
-      );
-      passCount++;
-    } else {
-      console.log(" [FAIL] TC_01: Không lấy được danh sách quyền");
-    }
-  } catch (e) {
-    console.log(" [FAIL] TC_01: Lỗi kết nối API permissions");
-  }
-
-  // --- TC_02: Cho phép HR (đã đăng nhập thật) truy cập API báo cáo ---
-  try {
-    const res = await fetch(`${BASE_URL}/reports`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${hrToken}` },
-    });
-    if (res.status === 200) {
-      console.log(
-        " [PASS] TC_02: Cho phép đúng vai trò HR truy cập báo cáo (Mã 200 OK)",
-      );
-      passCount++;
-    } else {
-      console.log(" [FAIL] TC_02: HR có quyền nhưng bị chặn nhầm");
-    }
-  } catch (e) {
-    console.log(" [FAIL] TC_02: Lỗi kết nối API reports");
-  }
-
-  // --- TC_03: Chặn Intern truy cập API báo cáo (Intern không có quyền) ---
-  try {
-    const res = await fetch(`${BASE_URL}/reports`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${internToken}` },
-    });
-    if (res.status === 403) {
-      console.log(
-        " [PASS] TC_03: Chặn thành công Intern truy cập trái phép (Mã 403 Forbidden)",
-      );
-      passCount++;
-    } else {
-      console.log(
-        " [FAIL] TC_03: Lỗi bảo mật: Intern không có quyền nhưng vẫn vào được!",
-      );
-    }
-  } catch (e) {
-    console.log(" [FAIL] TC_03: Lỗi kết nối API");
-  }
-
-  // --- TC_04: Cập nhật quyền mới cho vai trò (chỉ Admin được phép) ---
-  try {
-    const resUpdate = await fetch(`${BASE_URL}/permissions/update`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminToken}`,
-      },
-      body: JSON.stringify({ role: "Intern", permissions: ["VIEW_REPORTS"] }),
-    });
-
-    // Thử cho Intern truy cập lại sau khi vừa được cấp quyền
-    const resCheck = await fetch(`${BASE_URL}/reports`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${internToken}` },
-    });
-
-    if (resUpdate.status === 200 && resCheck.status === 200) {
-      console.log(
-        " [PASS] TC_04: Cập nhật quyền thành công & Intern truy cập được ngay sau khi cấp quyền",
-      );
-      passCount++;
-    } else {
-      console.log(" [FAIL] TC_04: Cập nhật quyền không có hiệu lực");
-    }
-  } catch (e) {
-    console.log(" [FAIL] TC_04: Lỗi kết nối API update");
-  }
-
-  // --- TC_05: Chặn Intern tự cập nhật ma trận phân quyền (chỉ Admin được phép) ---
-  try {
-    const res = await fetch(`${BASE_URL}/permissions/update`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${internToken}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         role: "Intern",
         permissions: ["SYSTEM_SETTINGS"],
       }),
     });
-    if (res.status === 403) {
-      console.log(
-        " [PASS] TC_05: Chặn thành công Intern tự cấp quyền cho chính mình (Mã 403 Forbidden)",
-      );
-      passCount++;
-    } else {
-      console.log(
-        " [FAIL] TC_05: LỖ HỔNG LEO THANG ĐẶC QUYỀN: Intern tự cấp quyền được!",
-      );
-    }
-  } catch (e) {
-    console.log(" [FAIL] TC_05: Lỗi kết nối API");
-  }
+    check(
+      "TC_05: Intern không tự thay đổi ma trận quyền",
+      selfUpdateResponse.status === 403,
+    );
 
-  // --- TC_06: Header "x-user-role" giả mạo không còn được server tin tưởng ---
-  try {
-    const res = await fetch(`${BASE_URL}/reports`, {
-      method: "GET",
-      // Không gửi Authorization hợp lệ, chỉ gửi header giả mạo cũ
+    const spoofedRoleResponse = await fetch(`${BASE_URL}/reports`, {
       headers: { "x-user-role": "Admin" },
     });
-    if (res.status === 401) {
-      console.log(
-        " [PASS] TC_06: Header x-user-role giả mạo bị từ chối (Mã 401), yêu cầu JWT hợp lệ",
-      );
-      passCount++;
-    } else {
-      console.log(
-        " [FAIL] TC_06: LỖ HỔNG: Server vẫn tin vào header x-user-role giả mạo!",
-      );
-    }
-  } catch (e) {
-    console.log(" [FAIL] TC_06: Lỗi kết nối API");
+    check(
+      "TC_06: Từ chối header vai trò giả mạo",
+      spoofedRoleResponse.status === 401,
+    );
+
+    const hrUsersResponse = await request("/users", hrToken);
+    check(
+      "TC_07: HR không còn quyền quản lý tài khoản",
+      hrUsersResponse.status === 403,
+    );
+  } finally {
+    // Khôi phục đúng quyền đã đọc, kể cả khi một assertion hoặc request lỗi.
+    const restoreResponse = await updateInternPermissions(
+      adminToken,
+      originalInternPermissions,
+    );
+    const restoredSubmissionResponse = await request(
+      "/submissions",
+      internToken,
+    );
+    check(
+      "TC_08: Khôi phục quyền ban đầu và giữ quyền nộp bài",
+      restoreResponse.ok &&
+        originalInternPermissions.includes("SUBMIT_WORK") &&
+        restoredSubmissionResponse.status === 200,
+    );
   }
 
-  // Khôi phục lại quyền mặc định cho Intern để giữ nguyên vẹn dữ liệu hệ thống
-  try {
-    await fetch(`${BASE_URL}/permissions/update`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminToken}`,
-      },
-      body: JSON.stringify({ role: "Intern", permissions: [] }),
-    });
-  } catch { /* best-effort cleanup */ }
-
-  console.log("\n");
-  console.log(
-    ` KẾT QUẢ KIỂM THỬ PHÂN QUYỀN: ${passCount}/${totalCount} TEST CASES PASS!`,
-  );
-  console.log("\n");
-
-  // Trả mã thoát khác 0 khi có test FAIL để `npm test` / CI nhận biết được
+  console.log(`\n${passCount}/${totalCount} test phân quyền pass\n`);
   if (passCount < totalCount) process.exitCode = 1;
 }
 
-runAutoRBACTests();
+runAutoRBACTests().catch((err) => {
+  console.error("Lỗi khi chạy test phân quyền:", err);
+  process.exitCode = 1;
+});

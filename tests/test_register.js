@@ -1,6 +1,6 @@
 const { cleanupTestData } = require("./test_helpers");
 
-const API_URL = "http://127.0.0.1:5000/api/auth/register";
+const API_URL = `${process.env.TEST_BASE_URL || `http://127.0.0.1:${process.env.TEST_PORT || 5000}/api`}/auth/register`;
 
 async function runAutoRegisterTests() {
   console.log("\n");

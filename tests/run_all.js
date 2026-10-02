@@ -7,13 +7,18 @@ const fs = require("fs");
 const path = require("path");
 
 const BACKEND_DIR = path.join(__dirname, "..");
-const HEALTH_URL = "http://127.0.0.1:5000/api/health";
+const TEST_PORT = Number(process.env.TEST_PORT) || 5000;
+const TEST_BASE_URL = process.env.TEST_BASE_URL || `http://127.0.0.1:${TEST_PORT}/api`;
+const HEALTH_URL = `${TEST_BASE_URL}/health`;
 const SERVER_START_TIMEOUT_MS = 60000;
+const TEST_SUITE_TIMEOUT_MS = Number(process.env.TEST_SUITE_TIMEOUT_MS) || 120000;
+const INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
 
 // needsServer: cần MySQL và backend
 const SUITES = [
   { name: "email-unit", file: "test_email_unit.js", needsServer: false },
   { name: "upload-unit", file: "test_upload_unit.js", needsServer: false },
+  { name: "contracts-unit", file: "test_contracts_unit.js", needsServer: false },
   { name: "review-unit", file: "test_review_unit.js", needsServer: false },
   { name: "login", file: "test_login.js", needsServer: true },
   { name: "create-account", file: "test_create_account.js", needsServer: true },
@@ -23,6 +28,7 @@ const SUITES = [
   { name: "mentors", file: "test_mentors.js", needsServer: true },
   { name: "applications", file: "test_applications.js", needsServer: true },
   { name: "documents-api", file: "test_documents_api.js", needsServer: true },
+  { name: "contracts-api", file: "test_contracts_api.js", needsServer: true },
   { name: "review-documents-api", file: "test_review_documents_api.js", needsServer: true },
   { name: "email-api", file: "test_email_api.js", needsServer: true },
 ];
@@ -63,15 +69,36 @@ async function checkMysql() {
   }
 }
 
-function runNode(file, extraArgs = []) {
+function runNode(file, extraArgs = [], timeoutMs = TEST_SUITE_TIMEOUT_MS) {
   return new Promise((resolve) => {
     const started = Date.now();
     const child = spawn(process.execPath, [file, ...extraArgs], {
       cwd: BACKEND_DIR,
       stdio: "inherit",
+      env: { ...process.env, TEST_BASE_URL },
     });
-    child.on("error", () => resolve({ code: 1, ms: Date.now() - started }));
-    child.on("exit", (code) => resolve({ code: code ?? 1, ms: Date.now() - started }));
+    let finished = false;
+    const timer = setTimeout(() => {
+      console.error(
+        " Test " + path.basename(file) + " vượt quá " + Math.round(timeoutMs / 1000) + " giây; dừng tiến trình.",
+      );
+      child.kill();
+      finish({ code: 124, timedOut: true, ms: Date.now() - started });
+    }, timeoutMs);
+
+    function finish(result) {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      resolve(result);
+    }
+
+    child.on("error", () =>
+      finish({ code: 1, timedOut: false, ms: Date.now() - started }),
+    );
+    child.on("exit", (code) =>
+      finish({ code: code ?? 1, timedOut: false, ms: Date.now() - started }),
+    );
   });
 }
 
@@ -79,13 +106,31 @@ function ensureDependencies() {
   if (fs.existsSync(path.join(BACKEND_DIR, "node_modules"))) return Promise.resolve(true);
   console.log(" Chưa có node_modules -> tự chạy `npm install`...\n");
   return new Promise((resolve) => {
+    let finished = false;
     const child = spawn("npm", ["install"], {
       cwd: BACKEND_DIR,
       stdio: "inherit",
       shell: true, // npm là npm.cmd trên Windows
     });
-    child.on("exit", (code) => resolve(code === 0));
-    child.on("error", () => resolve(false));
+    const timer = setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      console.error(" npm install vượt quá 5 phút; dừng tiến trình.");
+      child.kill();
+      resolve(false);
+    }, INSTALL_TIMEOUT_MS);
+    child.on("exit", (code) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      resolve(code === 0);
+    });
+    child.on("error", () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      resolve(false);
+    });
   });
 }
 
@@ -96,6 +141,7 @@ async function startBackend() {
   const child = spawn(process.execPath, ["server.js"], {
     cwd: BACKEND_DIR,
     stdio: ["ignore", logFd, logFd],
+    env: { ...process.env, PORT: String(TEST_PORT) },
   });
   let exited = false;
   child.on("exit", () => {
@@ -159,9 +205,9 @@ async function main() {
     infraError = await checkMysql();
     if (!infraError) {
       if (await isServerUp()) {
-        console.log(" Backend đã chạy sẵn ở cổng 5000 -> dùng luôn (sẽ không tắt khi xong).\n");
+        console.log(` Backend đã chạy sẵn ở cổng ${TEST_PORT} -> dùng luôn (sẽ không tắt khi xong).\n`);
       } else {
-        console.log(" Đang tự bật backend ở cổng 5000...");
+        console.log(` Đang tự bật backend ở cổng ${TEST_PORT}...`);
         try {
           const started = await startBackend();
           serverChild = started.child;
@@ -181,8 +227,8 @@ async function main() {
     console.log(line("-"));
     console.log(` >>> ${suite.name}  (${suite.file})`);
     console.log(line("-"));
-    const { code, ms } = await runNode(path.join("tests", suite.file));
-    results.push({ ...suite, status: code === 0 ? "PASS" : "FAIL", ms });
+    const { code, ms, timedOut } = await runNode(path.join("tests", suite.file));
+    results.push({ ...suite, status: code === 0 ? "PASS" : "FAIL", timedOut, ms });
   }
 
   // Dọn dữ liệu test còn sót
@@ -200,7 +246,9 @@ async function main() {
   console.log(line());
   for (const r of results) {
     const mark = r.status === "PASS" ? "[PASS]" : r.status === "FAIL" ? "[FAIL]" : "[SKIP]";
-    console.log(` ${mark} ${r.name.padEnd(22)} ${r.status === "SKIP" ? "" : (r.ms / 1000).toFixed(1) + "s"}`);
+    const duration = r.status === "SKIP" ? "" : (r.ms / 1000).toFixed(1) + "s";
+    const timeoutLabel = r.timedOut ? " (timeout)" : "";
+    console.log(` ${mark} ${r.name.padEnd(22)} ${duration}${timeoutLabel}`);
   }
   if (infraError) {
     console.log("\n LỖI MÔI TRƯỜNG - các test cần MySQL/backend đã bị bỏ qua:");
