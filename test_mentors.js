@@ -130,9 +130,12 @@ async function runAutoMentorTests() {
 
   console.log("\n====================================================");
   console.log(
-    ` KẾT QUẢ KIỂM THỬ MENTOR: ${passCount}/${totalCount} TEST CASES PASS 100%!`,
+    ` KẾT QUẢ KIỂM THỬ MENTOR: ${passCount}/${totalCount} TEST CASES PASS`,
   );
   console.log("====================================================\n");
+
+  // Trả mã thoát khác 0 khi có test FAIL để `npm test` / CI nhận biết được
+  if (passCount < totalCount) process.exitCode = 1;
 }
 
 runAutoMentorTests();

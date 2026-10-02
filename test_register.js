@@ -1,4 +1,3 @@
-// test_register.js
 const { cleanupTestData } = require("./test_helpers");
 
 const API_URL = "http://127.0.0.1:5000/api/auth/register";
@@ -140,9 +139,12 @@ async function runAutoRegisterTests() {
 
   console.log("\n");
   console.log(
-    ` KẾT QUẢ TEST ĐĂNG KÝ: ${passCount}/${totalCount} TEST CASES PASS 100%!`,
+    ` KẾT QUẢ TEST ĐĂNG KÝ: ${passCount}/${totalCount} TEST CASES PASS`,
   );
   console.log("\n");
+
+  // Trả mã thoát khác 0 khi có test FAIL để `npm test` / CI nhận biết được
+  if (passCount < totalCount) process.exitCode = 1;
 }
 
 runAutoRegisterTests();

@@ -1,6 +1,11 @@
-// tests/test_email_api.js - Integration tests cho Email APIs, Phân quyền RBAC & Nhật ký (US8)
+// tests/test_email_api.js - Integration tests cho Email APIs, Phân quyền RBAC & Nhật ký
 // Yêu cầu: Backend đang chạy ở cổng 5000 và MySQL đang hoạt động.
-const { BASE_URL, loginAs, cleanupTestData } = require("./test_helpers");
+const {
+  BASE_URL,
+  loginAs,
+  cleanupTestData,
+  seedFullDocuments,
+} = require("./test_helpers");
 
 const CONFIG_URL = `${BASE_URL}/email/config`;
 const TEST_SEND_URL = `${BASE_URL}/email/config/test`;
@@ -58,7 +63,11 @@ async function runApiTests() {
     // TC_API_01: GET /api/email/config chưa đăng nhập -> 401
     try {
       const res = await fetch(CONFIG_URL);
-      report("TC_API_01", "Chưa đăng nhập truy cập /api/email/config bị chặn (401)", res.status === 401);
+      report(
+        "TC_API_01",
+        "Chưa đăng nhập truy cập /api/email/config bị chặn (401)",
+        res.status === 401,
+      );
     } catch (e) {
       report("TC_API_01", "Lỗi kết nối", false);
     }
@@ -85,7 +94,10 @@ async function runApiTests() {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       const body = await res.json();
-      const safe = body.data && body.data.pass === undefined && typeof body.data.hasPassword === "boolean";
+      const safe =
+        body.data &&
+        body.data.pass === undefined &&
+        typeof body.data.hasPassword === "boolean";
       report(
         "TC_API_03",
         "Admin lấy cấu hình SMTP thành công (200), mật khẩu được ẩn an toàn",
@@ -134,7 +146,9 @@ async function runApiTests() {
       report(
         "TC_API_05",
         "Admin cập nhật cấu hình SMTP thành công (200, success=true)",
-        res.status === 200 && body.success === true && body.data.host === "smtp.gmail.com",
+        res.status === 200 &&
+          body.success === true &&
+          body.data.host === "smtp.gmail.com",
       );
     } catch (e) {
       report("TC_API_05", "Lỗi kết nối", false);
@@ -187,7 +201,9 @@ async function runApiTests() {
       const bodies = await Promise.all(results.map((r) => r.json()));
       const ok =
         results.every((r) => r.status === 200) &&
-        bodies.every((b) => b.success === true && Array.isArray(b.data) && b.pagination);
+        bodies.every(
+          (b) => b.success === true && Array.isArray(b.data) && b.pagination,
+        );
       report(
         "TC_API_08",
         "Chỉ HR có quyền đọc Nhật ký gửi Email (200, có phân trang)",
@@ -198,11 +214,10 @@ async function runApiTests() {
     }
 
     // TC_API_09: HR Duyệt hồ sơ -> Phát sự kiện -> Tự động ghi Email Log (APPROVED)
-    let approvedCandidateId = null;
     try {
       const cand = await registerTestCandidate("duyet_gui_mail");
       createdEmails.push(cand.email);
-      approvedCandidateId = cand.id;
+      await seedFullDocuments(cand.id); // US10: duyệt cần đủ 2/2 tài liệu
 
       // HR duyệt hồ sơ
       const res = await fetch(`${APPLICATIONS_URL}/${cand.id}/status`, {
@@ -220,11 +235,16 @@ async function runApiTests() {
       await new Promise((r) => setTimeout(r, 400));
 
       // Kiểm tra nhật ký email xem đã có bản ghi APPROVED cho email này chưa
-      const logRes = await fetch(`${LOGS_URL}?search=${encodeURIComponent(cand.email)}`, {
-        headers: { Authorization: `Bearer ${hrToken}` },
-      });
+      const logRes = await fetch(
+        `${LOGS_URL}?search=${encodeURIComponent(cand.email)}`,
+        {
+          headers: { Authorization: `Bearer ${hrToken}` },
+        },
+      );
       const logBody = await logRes.json();
-      const foundLog = (logBody.data || []).find((l) => l.recipientEmail === cand.email.toLowerCase());
+      const foundLog = (logBody.data || []).find(
+        (l) => l.recipientEmail === cand.email.toLowerCase(),
+      );
 
       report(
         "TC_API_09",
@@ -259,11 +279,16 @@ async function runApiTests() {
       // Đợi ngắn (300ms) để background event consumer ghi log
       await new Promise((r) => setTimeout(r, 400));
 
-      const logRes = await fetch(`${LOGS_URL}?search=${encodeURIComponent(cand.email)}`, {
-        headers: { Authorization: `Bearer ${hrToken}` },
-      });
+      const logRes = await fetch(
+        `${LOGS_URL}?search=${encodeURIComponent(cand.email)}`,
+        {
+          headers: { Authorization: `Bearer ${hrToken}` },
+        },
+      );
       const logBody = await logRes.json();
-      const foundLog = (logBody.data || []).find((l) => l.recipientEmail === cand.email.toLowerCase());
+      const foundLog = (logBody.data || []).find(
+        (l) => l.recipientEmail === cand.email.toLowerCase(),
+      );
       if (foundLog) rejectedLogId = foundLog.id;
 
       report(
@@ -310,13 +335,14 @@ async function runApiTests() {
     } catch (e) {
       report("TC_API_12", "Lỗi gửi lại log: " + e.message, false);
     }
-
   } finally {
     // Dọn dẹp dữ liệu test
     try {
       const deleted = await cleanupTestData(createdEmails);
       if (deleted > 0) {
-        console.log(`\n [CLEANUP] Đã dọn dẹp ${deleted} bản ghi test trong database.`);
+        console.log(
+          `\n [CLEANUP] Đã dọn dẹp ${deleted} bản ghi test trong database.`,
+        );
       }
     } catch (cleanErr) {
       console.warn(" [CLEANUP] Cảnh báo dọn dữ liệu test:", cleanErr.message);
@@ -324,7 +350,9 @@ async function runApiTests() {
   }
 
   console.log("\n----------------------------------------------------");
-  console.log(` KẾT QUẢ INTEGRATION TEST EMAIL: ${passed}/${total} TEST CASES PASS (${Math.round((passed / total) * 100)}%)`);
+  console.log(
+    ` KẾT QUẢ INTEGRATION TEST EMAIL: ${passed}/${total} TEST CASES PASS (${Math.round((passed / total) * 100)}%)`,
+  );
   console.log("----------------------------------------------------\n");
 
   if (passed < total) {
