@@ -2821,7 +2821,132 @@
           </div>
         </div>
       </div>
+      <!-- HỢP ĐỒNG CỦA THỰC TẬP SINH -->
+      <div id="tab-my-contracts" class="tab-pane" style="display: none">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-file-contract text-primary"></i> Hợp đồng của tôi</h3>
+            <button class="btn btn-sm btn-primary" onclick="loadMyContracts()">
+              <i class="fa-solid fa-rotate"></i> Làm mới
+            </button>
+          </div>
+          <div class="card-body" id="myContractsList">
+            <p style="text-align:center;color:#94a3b8;padding:16px;">Đang tải danh sách hợp đồng...</p>
+          </div>
+        </div>
+      </div>
+      <!-- QUẢN LÝ HỢP ĐỒNG THỰC TẬP (HR) -->
+      <div id="tab-contracts" class="tab-pane" style="display: none">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-file-contract text-primary"></i> Hợp đồng thực tập sinh</h3>
+            <button class="btn btn-sm btn-primary" onclick="loadStudents()">
+              <i class="fa-solid fa-rotate"></i> Làm mới
+            </button>
+          </div>
+          <div class="card-body" style="padding: 0">
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Thực tập sinh</th><th>Email</th><th>MSSV</th><th style="text-align:center">Chức năng</th></tr></thead>
+                <tbody id="contractManagementBody">
+                  <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px;">Đang tải danh sách thực tập sinh...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
+
+    <div
+      id="contractsModal"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeContracts()"
+      aria-hidden="true"
+    >
+      <div class="modal-box" style="max-width: 760px; width: 95%">
+        <h3>
+          <i class="fa-solid fa-file-contract"></i>
+          Hợp đồng thực tập - <span id="contractsInternName"></span>
+        </h3>
+        <div id="contractsList" style="margin: 16px 0">
+          Đang tải danh sách hợp đồng...
+        </div>
+        <form id="contractUploadForm" onsubmit="uploadContract(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="contractTitle">Tên hợp đồng</label>
+              <input
+                id="contractTitle"
+                class="form-control"
+                name="title"
+                maxlength="255"
+              />
+            </div>
+            <div class="form-group">
+              <label for="contractFile">File hợp đồng (PDF, DOC, DOCX; tối đa 5MB) *</label>
+              <input
+                id="contractFile"
+                class="form-control"
+                name="file"
+                type="file"
+                accept=".pdf,.doc,.docx"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="contractStartDate">Ngày bắt đầu</label>
+              <input
+                id="contractStartDate"
+                class="form-control"
+                name="start_date"
+                type="date"
+              />
+            </div>
+            <div class="form-group">
+              <label for="contractEndDate">Ngày kết thúc</label>
+              <input
+                id="contractEndDate"
+                class="form-control"
+                name="end_date"
+                type="date"
+              />
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1">
+              <label for="contractNote">Ghi chú</label>
+              <textarea
+                id="contractNote"
+                class="form-control"
+                name="note"
+                rows="2"
+              ></textarea>
+            </div>
+          </div>
+          <div id="contractUploadProgress" style="display: none; margin: 10px 0">
+            <progress
+              id="contractProgress"
+              max="100"
+              value="0"
+              style="width: 100%"
+            ></progress>
+            <span id="contractProgressText">0%</span>
+          </div>
+          <div id="contractError" class="modal-error"></div>
+          <div class="modal-actions">
+            <button class="btn btn-primary" type="submit">
+              <i class="fa-solid fa-upload"></i> Tải hợp đồng lên
+            </button>
+            <button
+              class="btn btn-secondary"
+              type="button"
+              onclick="closeContracts()"
+            >
+              Đóng
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- JAVASCRIPT LOGIC CHO HỆ THỐNG -->
     <div id="toastContainer" aria-live="polite"></div>
@@ -2963,7 +3088,11 @@
         }
 
         await loadPermissions();
-        await loadUsers();
+        if (getRolePermissions(currentRole).includes("MANAGE_USERS")) {
+          await loadUsers();
+        } else {
+          usersList = [];
+        }
         currentTab = getDefaultTabForRole(currentRole);
         updateRoleContext();
       });
@@ -3031,11 +3160,17 @@
         if (tabId === "tab-my-profile") {
           return role === "Intern";
         }
+        if (tabId === "tab-my-contracts") {
+          return role === "Intern";
+        }
         if (tabId === "tab-candidates") {
           return role === "HR" || role === "Admin";
         }
         if (tabId === "tab-mentors" || tabId === "tab-students") {
           return role === "HR" || role === "Admin";
+        }
+        if (tabId === "tab-contracts") {
+          return role === "HR";
         }
         if (tabId === "tab-email-config") {
           return role === "Admin";
@@ -3064,7 +3199,7 @@
 
         // US9: Thêm tab "Hồ sơ của tôi" cho vai trò Intern lên đầu menu
         if (currentRole === "Intern") {
-          allowedCount++;
+          allowedCount += 2;
           const isProfileActive = currentTab === "tab-my-profile";
           const liProfile = document.createElement("li");
           liProfile.className = "nav-item";
@@ -3075,6 +3210,16 @@
           </a>
         `;
           menuEl.appendChild(liProfile);
+
+          const liMyContracts = document.createElement("li");
+          liMyContracts.className = "nav-item";
+          liMyContracts.innerHTML = `
+          <a class="nav-link ${currentTab === "tab-my-contracts" ? "active" : ""}" onclick="switchTab('tab-my-contracts')">
+            <i class="fa-solid fa-file-contract"></i>
+            <span>Hợp đồng của tôi</span>
+          </a>
+        `;
+          menuEl.appendChild(liMyContracts);
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -3105,12 +3250,13 @@
           );
         }
 
-        // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh, Nhật ký Email
+        // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh, Hợp đồng, Nhật ký Email
         if (currentRole === "HR") {
-          allowedCount += 4;
+          allowedCount += 5;
           const isCandidateActive = currentTab === "tab-candidates";
           const isMentorActive = currentTab === "tab-mentors";
           const isStudentActive = currentTab === "tab-students";
+          const isContractsActive = currentTab === "tab-contracts";
           const isEmailLogsActive = currentTab === "tab-email-logs";
 
           const liCand = document.createElement("li");
@@ -3142,6 +3288,16 @@
           </a>
         `;
           menuEl.appendChild(liStudent);
+
+          const liContracts = document.createElement("li");
+          liContracts.className = "nav-item";
+          liContracts.innerHTML = `
+          <a class="nav-link ${isContractsActive ? "active" : ""}" onclick="switchTab('tab-contracts')">
+            <i class="fa-solid fa-file-contract"></i>
+            <span>Quản lý hợp đồng</span>
+          </a>
+        `;
+          menuEl.appendChild(liContracts);
 
           const liEmailLogs = document.createElement("li");
           liEmailLogs.className = "nav-item";
@@ -3201,6 +3357,11 @@
             document.getElementById("pageSubtitle").innerText =
               "Tải lên CV và Đơn xin thực tập để hoàn thiện hồ sơ ứng tuyển (US 9)";
             loadMyDocuments();
+          } else if (tabId === "tab-my-contracts") {
+            document.getElementById("pageTitle").innerText = "Hợp Đồng Của Tôi";
+            document.getElementById("pageSubtitle").innerText =
+              "Xem và xác nhận hợp đồng thực tập do HR gửi";
+            loadMyContracts();
           } else if (tabId === "tab-candidates") {
             document.getElementById("pageTitle").innerText =
               "Hồ Sơ Ứng Tuyển Online";
@@ -3219,6 +3380,11 @@
             document.getElementById("pageSubtitle").innerText =
               "HR thêm mới / chỉnh sửa thông tin cá nhân của thực tập sinh";
             loadMentorsForSelect();
+            loadStudents();
+          } else if (tabId === "tab-contracts") {
+            document.getElementById("pageTitle").innerText = "Quản Lý Hợp Đồng Thực Tập";
+            document.getElementById("pageSubtitle").innerText =
+              "HR tải lên, xem, tải xuống và xóa hợp đồng gắn với hồ sơ thực tập sinh";
             loadStudents();
           } else if (tabId === "tab-email-config") {
             document.getElementById("pageTitle").innerText =
@@ -3261,6 +3427,11 @@
       //  TẠO TÀI KHOẢN & QUẢN LÝ DANH SÁCH USERS
       // =========================================================================
       async function loadUsers() {
+        // Không gọi API quản lý tài khoản nếu vai trò hiện tại không có quyền.
+        if (!getRolePermissions(currentRole).includes("MANAGE_USERS")) {
+          usersList = [];
+          return;
+        }
         try {
           const res = await fetch(`${API_BASE}/users`, {
             headers: authHeaders(),
@@ -3927,7 +4098,7 @@
                   m.department && m.department !== "Chưa cập nhật"
                     ? ` — ${m.department}`
                     : "";
-                return `<option value="${m.fullName}">${m.fullName}${dept}</option>`;
+                return `<option value="${escapeHtml(m.fullName)}">${escapeHtml(m.fullName)}${escapeHtml(dept)}</option>`;
               })
               .join("");
           if (current) select.value = current;
@@ -4078,6 +4249,7 @@
       function renderStudents() {
         const tbody = document.getElementById("studentTableBody");
         renderDocManagement();
+        renderContractManagement();
 
         if (!Array.isArray(studentsList) || studentsList.length === 0) {
           tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có hồ sơ thực tập sinh nào</td></tr>`;
@@ -4100,6 +4272,7 @@
               <td><span class="badge ${stColor}">${escapeHtml(s.status || "Đang thực tập")}</span></td>
               <td align="center">
                 <div class="action-group">
+                  ${currentRole === "HR" ? `<button class="btn btn-sm btn-info" onclick="openContracts(${Number(s.id)}, ${escapeHtml(JSON.stringify(s.fullName))})" title="Hợp đồng"><i class="fa-solid fa-file-contract"></i></button>` : ""}
                   <button class="btn btn-sm btn-primary" onclick="editStudent(${s.id})" title="Chỉnh sửa">
                     <i class="fa-solid fa-pen"></i>
                   </button>
@@ -4112,6 +4285,35 @@
           `;
           })
           .join("");
+      }
+
+      // Hiển thị danh sách thực tập sinh để HR mở quản lý hợp đồng.
+      function renderContractManagement() {
+        const tbody = document.getElementById("contractManagementBody");
+        if (!tbody) return;
+        if (!Array.isArray(studentsList) || studentsList.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px;">Chưa có hồ sơ thực tập sinh nào</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = studentsList.map((s) => {
+          const contractCount = Number(s.contract_count) || 0;
+          return `
+          <tr>
+            <td><b>${escapeHtml(s.fullName)}</b></td>
+            <td>${escapeHtml(s.email)}</td>
+            <td>${escapeHtml(s.studentCode || "N/A")}</td>
+            <td align="center">
+              <div class="action-group" style="justify-content:center;flex-wrap:nowrap;gap:6px">
+                <button class="btn btn-sm btn-info" onclick="openContracts(${Number(s.id)}, ${escapeHtml(JSON.stringify(s.fullName))})">
+                  <i class="fa-solid fa-file-contract"></i> Hợp đồng
+                </button>
+                ${contractCount > 0 ? `<button class="btn btn-sm btn-outline-primary" onclick="openContracts(${Number(s.id)}, ${escapeHtml(JSON.stringify(s.fullName))}, true)" title="Xem hợp đồng">
+                  <i class="fa-solid fa-eye"></i> Xem
+                </button>` : ""}
+              </div>
+            </td>
+          </tr>`;
+        }).join("");
       }
 
       async function loadStudents() {
@@ -4128,6 +4330,8 @@
           renderStudents();
         } catch (err) {
           tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách hồ sơ thực tập sinh!</td></tr>`;
+          const contractsBody = document.getElementById("contractManagementBody");
+          if (contractsBody) contractsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#ef4444;padding:24px;">Lỗi tải danh sách thực tập sinh. Vui lòng thử lại.</td></tr>`;
         }
       }
 
@@ -4573,6 +4777,15 @@
         return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
       }
 
+      function formatDateOnly(dateValue) {
+        if (!dateValue) return "";
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateValue));
+        if (match) return `${match[3]}/${match[2]}/${match[1]}`;
+        const date = new Date(dateValue);
+        if (Number.isNaN(date.getTime())) return String(dateValue);
+        return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+      }
+
       async function loadMyDocuments() {
         if (currentRole !== "Intern") return;
         try {
@@ -4975,6 +5188,283 @@
           showToast("Tải xuống tài liệu thành công!", "success");
         } catch (err) {
           showToast("Lỗi khi tải xuống tài liệu!", "error");
+        }
+      }
+
+
+      // HỢP ĐỒNG CỦA THỰC TẬP SINH
+      let myContracts = [];
+      const confirmingMyContracts = new Set();
+
+      async function loadMyContracts() {
+        if (currentRole !== "Intern") return;
+        const list = document.getElementById("myContractsList");
+        list.innerHTML = `<p style="text-align:center;color:#94a3b8;padding:16px;">Đang tải danh sách hợp đồng...</p>`;
+        try {
+          const response = await fetch(`${API_BASE}/me/contracts`, { headers: authHeaders() });
+          if (response.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          const body = await response.json();
+          if (!response.ok || !body.success) throw new Error(body.message || "Không tải được hợp đồng.");
+          myContracts = Array.isArray(body.data) ? body.data : [];
+          renderMyContracts();
+        } catch (err) {
+          list.innerHTML = `<p style="text-align:center;color:#ef4444;padding:16px;">${escapeHtml(err.message || "Lỗi tải danh sách hợp đồng.")}</p>`;
+        }
+      }
+
+      function renderMyContracts() {
+        const list = document.getElementById("myContractsList");
+        if (!myContracts.length) {
+          list.innerHTML = `<p style="text-align:center;color:#94a3b8;padding:16px;">HR chưa gửi hợp đồng thực tập cho bạn.</p>`;
+          return;
+        }
+        list.innerHTML = myContracts.map((contract) => {
+          const confirmed = contract.confirmation_status === "CONFIRMED";
+          const busy = confirmingMyContracts.has(Number(contract.id));
+          return `
+            <article style="padding:16px 4px;border-bottom:1px solid #e2e8f0">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+                <div style="min-width:220px;flex:1">
+                  <b>${escapeHtml(contract.title || contract.original_name)}</b>
+                  <div style="color:#64748b;margin-top:4px">
+                    ${escapeHtml(contract.original_name)} · ${escapeHtml(formatDateOnly(contract.start_date) || "Chưa có ngày bắt đầu")} – ${escapeHtml(formatDateOnly(contract.end_date) || "Chưa có ngày kết thúc")}
+                  </div>
+                  ${contract.note ? `<small style="display:block;margin-top:4px;color:#64748b">${escapeHtml(contract.note)}</small>` : ""}
+                  <div style="margin-top:8px">
+                    <span class="badge ${confirmed ? "badge-active" : "badge-pending"}">${confirmed ? "Đã xác nhận" : "Chờ xác nhận"}</span>
+                    ${confirmed && contract.confirmed_at ? `<small style="color:#64748b;margin-left:8px">Xác nhận lúc ${escapeHtml(formatDateTime(contract.confirmed_at))}</small>` : ""}
+                  </div>
+                </div>
+                <div class="action-group" style="flex-wrap:wrap;justify-content:flex-end">
+                  ${contract.mime_type === "application/pdf" ? `<button class="btn btn-sm btn-outline-primary" onclick="viewMyContract(${Number(contract.id)})"><i class="fa-solid fa-eye"></i> Xem</button>` : ""}
+                  <button class="btn btn-sm btn-primary" onclick="downloadMyContract(${Number(contract.id)})"><i class="fa-solid fa-download"></i> Tải xuống</button>
+                  ${confirmed
+                    ? `<button class="btn btn-sm" disabled><i class="fa-solid fa-check"></i> Đã xác nhận</button>`
+                    : `<button class="btn btn-sm btn-success" ${busy ? "disabled" : ""} onclick="confirmMyContract(${Number(contract.id)})"><i class="fa-solid ${busy ? "fa-spinner fa-spin" : "fa-check"}"></i> ${busy ? "Đang xác nhận..." : "Xác nhận hợp đồng"}</button>`}
+                </div>
+              </div>
+            </article>`;
+        }).join("");
+      }
+
+      async function confirmMyContract(contractId) {
+        const contract = myContracts.find((item) => Number(item.id) === Number(contractId));
+        if (!contract || contract.confirmation_status !== "PENDING") return;
+        if (!confirm(`Bạn xác nhận đã đọc và đồng ý với hợp đồng "${contract.title || contract.original_name}"?`)) return;
+        confirmingMyContracts.add(Number(contractId));
+        renderMyContracts();
+        try {
+          const response = await fetch(`${API_BASE}/me/contracts/${Number(contractId)}/confirm`, {
+            method: "POST",
+            headers: authHeaders(),
+          });
+          if (response.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          const body = await response.json();
+          if (!response.ok || !body.success) throw new Error(body.message || "Không xác nhận được hợp đồng.");
+          myContracts = myContracts.map((item) => Number(item.id) === Number(contractId) ? body.data : item);
+          showToast(body.message || "Đã xác nhận hợp đồng thành công!", "success");
+        } catch (err) {
+          showToast(err.message || "Không xác nhận được hợp đồng!", "error");
+        } finally {
+          confirmingMyContracts.delete(Number(contractId));
+          renderMyContracts();
+        }
+      }
+
+      async function fetchMyContractBlob(contractId) {
+        const response = await fetch(`${API_BASE}/me/contracts/${Number(contractId)}/download`, {
+          headers: authHeaders(),
+        });
+        if (response.status === 401) {
+          forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          throw new Error("Phiên đăng nhập đã hết hạn.");
+        }
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.message || "Không tải được file hợp đồng.");
+        }
+        return response.blob();
+      }
+
+      async function viewMyContract(contractId) {
+        const preview = window.open("about:blank", "_blank");
+        if (!preview) return showToast("Trình duyệt đã chặn cửa sổ xem file. Hãy cho phép cửa sổ bật lên rồi thử lại.", "error");
+        preview.opener = null;
+        try {
+          const blob = await fetchMyContractBlob(contractId);
+          const objectUrl = URL.createObjectURL(blob);
+          preview.location.href = objectUrl;
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+        } catch (err) {
+          preview.close();
+          showToast(err.message || "Không xem được hợp đồng!", "error");
+        }
+      }
+
+      async function downloadMyContract(contractId) {
+        try {
+          const blob = await fetchMyContractBlob(contractId);
+          const contract = myContracts.find((item) => Number(item.id) === Number(contractId));
+          const objectUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = contract?.original_name || "hop-dong";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        } catch (err) {
+          showToast(err.message || "Không tải được hợp đồng!", "error");
+        }
+      }
+
+      let contractsInternId = null;
+
+      function openContracts(id, name, viewOnly = false) {
+        contractsInternId = id;
+        document.getElementById("contractsInternName").textContent = name;
+        document.getElementById("contractUploadForm").style.display = viewOnly ? "none" : "";
+        document.getElementById("contractsModal").classList.add("open");
+        document.getElementById("contractError").textContent = "";
+        loadContracts();
+      }
+
+      function closeContracts() {
+        document.getElementById("contractsModal").classList.remove("open");
+      }
+
+      async function loadContracts() {
+        const list = document.getElementById("contractsList");
+        list.innerHTML = "Đang tải danh sách hợp đồng...";
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/interns/${contractsInternId}/contracts`,
+            { headers: authHeaders() },
+          );
+          const body = await response.json();
+          if (!response.ok) throw new Error(body.message || "Không tải được hợp đồng.");
+
+          if (!body.data.length) {
+            list.innerHTML = "<p>Thực tập sinh chưa có hợp đồng nào.</p>";
+            return;
+          }
+
+          list.innerHTML = body.data.map((contract) => `
+            <div style="display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid #e2e8f0">
+              <div>
+                <b>${escapeHtml(contract.title || contract.original_name)}</b>
+                <div>
+                  ${escapeHtml(contract.original_name)} · ${escapeHtml(formatDateOnly(contract.start_date) || "Chưa có ngày bắt đầu")} – ${escapeHtml(formatDateOnly(contract.end_date) || "Chưa có ngày kết thúc")}
+                </div>
+                <small>${escapeHtml(contract.note || "")}</small>
+                <div style="margin-top:6px;font-size:12px">
+                  <span class="badge ${contract.confirmation_status === "CONFIRMED" ? "badge-active" : "badge-pending"}">${contract.confirmation_status === "CONFIRMED" ? "Đã xác nhận" : "Chờ xác nhận"}</span>
+                  ${contract.confirmed_at ? `<span style="color:#64748b;margin-left:6px">Xác nhận lúc ${escapeHtml(formatDateTime(contract.confirmed_at))}</span>` : ""}
+                </div>
+              </div>
+              <div>
+                ${contract.mime_type === "application/pdf" ? `<button class="btn btn-sm btn-outline-primary" onclick="downloadContract(${Number(contract.id)}, true)"><i class="fa-solid fa-eye"></i> Xem</button>` : ""}
+                <button class="btn btn-sm btn-primary" onclick="downloadContract(${Number(contract.id)}, false, ${escapeHtml(JSON.stringify(contract.original_name))})">Tải xuống</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteContract(${Number(contract.id)})">Xóa</button>
+              </div>
+            </div>
+          `).join("");
+        } catch (err) {
+          list.innerHTML = `<p style="color:#ef4444">${escapeHtml(err.message || "Lỗi tải danh sách hợp đồng.")}</p>`;
+        }
+      }
+
+      function uploadContract(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const formData = new FormData(form);
+        const progress = document.getElementById("contractUploadProgress");
+        const progressBar = document.getElementById("contractProgress");
+        const progressText = document.getElementById("contractProgressText");
+        const errorBox = document.getElementById("contractError");
+        errorBox.textContent = "";
+        progress.style.display = "block";
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${API_BASE}/interns/${contractsInternId}/contracts`);
+        xhr.setRequestHeader("Authorization", `Bearer ${getAuthToken()}`);
+        xhr.upload.onprogress = (event) => {
+          if (!event.lengthComputable) return;
+          const percent = Math.round((event.loaded / event.total) * 100);
+          progressBar.value = percent;
+          progressText.textContent = `${percent}%`;
+        };
+        xhr.onload = () => {
+          let body = {};
+          try {
+            body = JSON.parse(xhr.responseText);
+          } catch {
+            // Response rỗng hoặc không phải JSON.
+          }
+
+          if (xhr.status >= 200 && xhr.status < 300) {
+            form.reset();
+            loadContracts();
+            const student = studentsList.find((item) => Number(item.id) === Number(contractsInternId));
+            if (student) student.contract_count = (Number(student.contract_count) || 0) + 1;
+            renderContractManagement();
+          } else {
+            errorBox.textContent = body.message || "Tải hợp đồng thất bại.";
+          }
+          progress.style.display = "none";
+        };
+        xhr.onerror = () => {
+          errorBox.textContent = "Lỗi kết nối khi tải hợp đồng.";
+          progress.style.display = "none";
+        };
+        xhr.send(formData);
+      }
+
+      async function downloadContract(contractId, inline = false, originalName = "hop-dong") {
+        try {
+          const response = await fetch(
+            `${API_BASE}/interns/${contractsInternId}/contracts/${contractId}/download${inline ? "?disposition=inline" : ""}`,
+            { headers: authHeaders() },
+          );
+          if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            throw new Error(body.message || "Tải file thất bại.");
+          }
+
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          if (inline) {
+            window.open(objectUrl, "_blank", "noopener");
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+            return;
+          }
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = originalName || "hop-dong";
+          link.click();
+          URL.revokeObjectURL(objectUrl);
+        } catch (err) {
+          document.getElementById("contractError").textContent = err.message;
+        }
+      }
+
+      async function deleteContract(contractId) {
+        if (!confirm("Bạn có chắc chắn muốn xóa hợp đồng này không?")) return;
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/interns/${contractsInternId}/contracts/${contractId}`,
+            { method: "DELETE", headers: authHeaders() },
+          );
+          const body = await response.json();
+          if (!response.ok) throw new Error(body.message || "Xóa hợp đồng thất bại.");
+          const student = studentsList.find((item) => Number(item.id) === Number(contractsInternId));
+          if (student) student.contract_count = Math.max(0, (Number(student.contract_count) || 1) - 1);
+          renderContractManagement();
+          await loadContracts();
+        } catch (err) {
+          document.getElementById("contractError").textContent = err.message;
         }
       }
 
