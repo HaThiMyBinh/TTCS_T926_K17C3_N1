@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "demo:export": "node scripts/export_demo.js",
     "test:login": "node tests/test_login.js",
     "test:create-account": "node tests/test_create_account.js",
     "test:rbac": "node tests/test_rbac.js",
@@ -21,7 +22,9 @@
     "test:cleanup": "node tests/cleanup_test_data.js",
     "test": "node tests/run_all.js",
     "test:unit": "node tests/run_all.js --unit",
-    "test:manual-server": "npm run test:login && npm run test:create-account && npm run test:rbac && npm run test:register && npm run test:interns && npm run test:mentors && npm run test:applications && npm run test:documents-api && npm run test:review-api && npm run test:email-api"
+    "test:manual-server": "npm run test:login && npm run test:create-account && npm run test:rbac && npm run test:register && npm run test:interns && npm run test:mentors && npm run test:applications && npm run test:documents-api && npm run test:contracts-api && npm run test:review-api && npm run test:email-api",
+    "test:contracts-unit": "node tests/test_contracts_unit.js",
+    "test:contracts-api": "node tests/test_contracts_api.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

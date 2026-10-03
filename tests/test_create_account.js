@@ -1,11 +1,9 @@
 // test.js
-const fs = require("fs");
-const path = require("path");
 const mysql = require("mysql2/promise");
-const { loginAs, cleanupTestData } = require("./test_helpers");
+const { loginAs, cleanupTestData, readDbConfig } = require("./test_helpers");
 
 // Sử dụng 127.0.0.1 để tránh lỗi mạng Windows
-const API_URL = "http://127.0.0.1:5000/api/users";
+const API_URL = `${process.env.TEST_BASE_URL || `http://127.0.0.1:${process.env.TEST_PORT || 5000}/api`}/users`;
 
 async function runAutoTests() {
   console.log("\n");
@@ -138,9 +136,7 @@ async function runAutoTests() {
 
   // Kiểm tra tính bảo mật mật khẩu trong Database (đọc trực tiếp từ MySQL)
   try {
-    const configPath = path.join(__dirname, "..", "db_config.json");
-    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    const conn = await mysql.createConnection(config);
+    const conn = await mysql.createConnection(readDbConfig());
 
     const [rows] = await conn.query(
       "SELECT password_hash FROM users WHERE email = ? LIMIT 1",

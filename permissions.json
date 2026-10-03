@@ -4,12 +4,10 @@
     "SYSTEM_SETTINGS"
   ],
   "HR": [
-    "MANAGE_USERS",
     "VIEW_REPORTS"
   ],
   "Mentor": [
-    "ASSIGN_TASKS",
-    "SUBMIT_WORK"
+    "ASSIGN_TASKS"
   ],
   "Intern": [
     "SUBMIT_WORK"

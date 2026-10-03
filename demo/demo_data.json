@@ -1,0 +1,443 @@
+{
+  "version": 1,
+  "exportedAt": "2026-10-02T11:28:12.084Z",
+  "tables": {
+    "users": [
+      {
+        "id": 1,
+        "name": "Hà Thị Mỹ Bình",
+        "email": "admin@gmail.com",
+        "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+        "role_id": 1,
+        "phone": null,
+        "status": "ACTIVE",
+        "created_at": "2026-09-25 17:24:20",
+        "updated_at": "2026-09-25 17:24:20"
+      },
+      {
+        "id": 2,
+        "name": "Hà Thị Mỹ Bình",
+        "email": "hr@company.com",
+        "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+        "role_id": 2,
+        "phone": null,
+        "status": "ACTIVE",
+        "created_at": "2026-09-25 17:24:20",
+        "updated_at": "2026-09-25 17:24:20"
+      },
+      {
+        "id": 3,
+        "name": "hsdkd",
+        "email": "mentor@gmail.com",
+        "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+        "role_id": 3,
+        "phone": "098458653",
+        "status": "ACTIVE",
+        "created_at": "2026-09-25 17:24:20",
+        "updated_at": "2026-09-28 11:07:56"
+      },
+      {
+        "id": 35,
+        "name": "Hoang Thương",
+        "email": "hathimybinh2006@gmail.com",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "role_id": 4,
+        "phone": "0817364782",
+        "status": "ACTIVE",
+        "created_at": "2026-09-26 15:08:52",
+        "updated_at": "2026-09-30 23:26:48"
+      },
+      {
+        "id": 41,
+        "name": "Le Anh Duc",
+        "email": "lad@gmail.com",
+        "password_hash": "$2a$10$8Nuv/HzAo2pxCMoRr4WOqu7uEW6SnmtNzour2qdRScqX1KgEY3bG.",
+        "role_id": 4,
+        "phone": null,
+        "status": "ACTIVE",
+        "created_at": "2026-09-28 10:53:39",
+        "updated_at": "2026-09-28 10:53:39"
+      },
+      {
+        "id": 42,
+        "name": "Lê Anh Đức",
+        "email": "duc.le@company.com",
+        "password_hash": "$2a$10$AuxBWAL/D8CpaSRoHn9lkOhpAngUvrvMSEKio7.Z4IT7qNIufzts2",
+        "role_id": 3,
+        "phone": "0901111222",
+        "status": "ACTIVE",
+        "created_at": "2026-09-28 11:07:56",
+        "updated_at": "2026-09-29 14:14:43"
+      },
+      {
+        "id": 43,
+        "name": "Trần Thị Bình",
+        "email": "binh.tran@company.com",
+        "password_hash": "$2a$10$AuxBWAL/D8CpaSRoHn9lkOhpAngUvrvMSEKio7.Z4IT7qNIufzts2",
+        "role_id": 3,
+        "phone": "0902222333",
+        "status": "ACTIVE",
+        "created_at": "2026-09-28 11:07:56",
+        "updated_at": "2026-09-28 11:07:56"
+      },
+      {
+        "id": 44,
+        "name": "Dương Chuẩn",
+        "email": "chuan.duong@company.com",
+        "password_hash": "$2a$10$AuxBWAL/D8CpaSRoHn9lkOhpAngUvrvMSEKio7.Z4IT7qNIufzts2",
+        "role_id": 3,
+        "phone": "0903333444",
+        "status": "ACTIVE",
+        "created_at": "2026-09-28 11:07:56",
+        "updated_at": "2026-09-29 14:14:20"
+      },
+      {
+        "id": 45,
+        "name": "Phạm Thị Hoa",
+        "email": "hoa.pham@ictu.edu.vn",
+        "password_hash": "$2a$10$hu0ivfciXSkxkzojgV2mMOeWN6p8jF01q5OfUipdubHGOhkMFuACi",
+        "role_id": 4,
+        "phone": "0911111222",
+        "status": "ACTIVE",
+        "created_at": "2026-09-28 17:39:12",
+        "updated_at": "2026-09-28 17:39:12"
+      },
+      {
+        "id": 46,
+        "name": "Đỗ Văn Kiên",
+        "email": "kien.do@ictu.edu.vn",
+        "password_hash": "$2a$10$hu0ivfciXSkxkzojgV2mMOeWN6p8jF01q5OfUipdubHGOhkMFuACi",
+        "role_id": 4,
+        "phone": "0912222333",
+        "status": "ACTIVE",
+        "created_at": "2026-09-28 17:39:12",
+        "updated_at": "2026-09-28 17:39:12"
+      },
+      {
+        "id": 47,
+        "name": "Vũ Thị Lan",
+        "email": "lan.vu@ictu.edu.vn",
+        "password_hash": "$2a$10$hu0ivfciXSkxkzojgV2mMOeWN6p8jF01q5OfUipdubHGOhkMFuACi",
+        "role_id": 4,
+        "phone": "0913333444",
+        "status": "ACTIVE",
+        "created_at": "2026-09-28 17:39:12",
+        "updated_at": "2026-09-28 17:39:12"
+      },
+      {
+        "id": 54,
+        "name": "Nguyen Thi Giang",
+        "email": "nguyengiang@gmail.com",
+        "password_hash": "$2a$10$CNGovd1qEXQxSx4xd9WnGuJzaR9Rsl7cX1/IeaIgtBLDKT.zau2WS",
+        "role_id": 4,
+        "phone": null,
+        "status": "ACTIVE",
+        "created_at": "2026-09-29 14:44:20",
+        "updated_at": "2026-09-29 14:44:20"
+      },
+      {
+        "id": 55,
+        "name": "Pham Hoang Anh",
+        "email": "anh.pham@gmail.com",
+        "password_hash": "$2a$10$7Jdjhq5bMw/AWs6g/uz7pe.vXBkK9jl/2dVMy.U72N/qRq802fRAu",
+        "role_id": 2,
+        "phone": null,
+        "status": "ACTIVE",
+        "created_at": "2026-09-29 14:54:51",
+        "updated_at": "2026-09-29 14:54:51"
+      },
+      {
+        "id": 56,
+        "name": "Hoang Ha",
+        "email": "ha.hoang@gmail.com",
+        "password_hash": "$2a$10$SdlfTGSz58463a6HV.Hp9.mHDTvtdyly09Loq.JivcRwwQpk4W6Qi",
+        "role_id": 4,
+        "phone": "0987654321",
+        "status": "ACTIVE",
+        "created_at": "2026-09-29 14:56:24",
+        "updated_at": "2026-09-30 11:02:09"
+      },
+      {
+        "id": 57,
+        "name": "Hai Anh",
+        "email": "haianh@gmail.com",
+        "password_hash": "$2a$10$i/oC8cqU7vWI7RMJJMYeaOrg./63FLuevbScdXH6c9asU0UhLhfcK",
+        "role_id": 3,
+        "phone": "098638922",
+        "status": "ACTIVE",
+        "created_at": "2026-09-29 15:01:02",
+        "updated_at": "2026-09-29 15:01:02"
+      },
+      {
+        "id": 116,
+        "name": "HB",
+        "email": "habinh2112006t@gmail.com",
+        "password_hash": "$2a$10$g8g/.3demxslWpkZ3I/3iuKw2UuTYOOJk3OsCW0o3l8oWIznQctou",
+        "role_id": 4,
+        "phone": "0983672828",
+        "status": "ACTIVE",
+        "created_at": "2026-10-01 16:46:00",
+        "updated_at": "2026-10-01 23:19:17"
+      },
+      {
+        "id": 270,
+        "name": "Intern",
+        "email": "intern@gmail.com",
+        "password_hash": "$2a$10$zMhOrYhFK50orqVqCw5odu1SjZUc3MrG2F92q2lXwiIHgRiu0Kd6q",
+        "role_id": 4,
+        "phone": null,
+        "status": "ACTIVE",
+        "created_at": "2026-10-02 15:45:46",
+        "updated_at": "2026-10-02 15:45:46"
+      }
+    ],
+    "candidate_profiles": [
+      {
+        "id": 13,
+        "user_id": 35,
+        "full_name": "Hoang Thương",
+        "email": "hathimybinh2006@gmail.com",
+        "phone": "0817364782",
+        "university": "ICTU",
+        "major": "CNTT",
+        "cv_link": "https://github.com/HaThiMyBinh/my-project",
+        "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "status": "Đã duyệt",
+        "applied_at": "2026-09-26 15:08:52",
+        "rejection_reason": null,
+        "reviewed_by": 2,
+        "reviewed_at": "2026-09-30 23:23:02"
+      },
+      {
+        "id": 18,
+        "user_id": 56,
+        "full_name": "Hoang Ha",
+        "email": "ha.hoang@gmail.com",
+        "phone": "0987654321",
+        "university": "dai học mo",
+        "major": "marketing",
+        "cv_link": "https://github.com/HaThiMyBinh/my-project",
+        "password_hash": "$2a$10$SdlfTGSz58463a6HV.Hp9.mHDTvtdyly09Loq.JivcRwwQpk4W6Qi",
+        "status": "Đã duyệt",
+        "applied_at": "2026-09-29 14:56:24",
+        "rejection_reason": null,
+        "reviewed_by": null,
+        "reviewed_at": null
+      },
+      {
+        "id": 60,
+        "user_id": 116,
+        "full_name": "HB",
+        "email": "habinh2112006t@gmail.com",
+        "phone": "0983672828",
+        "university": "ICTU",
+        "major": "ktpm",
+        "cv_link": "",
+        "password_hash": "$2a$10$g8g/.3demxslWpkZ3I/3iuKw2UuTYOOJk3OsCW0o3l8oWIznQctou",
+        "status": "Chờ duyệt",
+        "applied_at": "2026-10-01 16:46:00",
+        "rejection_reason": null,
+        "reviewed_by": null,
+        "reviewed_at": null
+      }
+    ],
+    "mentors": [
+      {
+        "id": 1,
+        "full_name": "hsdkd",
+        "email": "mentor@gmail.com",
+        "phone": "098458653",
+        "department": "cntt",
+        "specialization": "full",
+        "created_at": "2026-09-25 17:26:08"
+      },
+      {
+        "id": 2,
+        "full_name": "Lê Anh Đức",
+        "email": "duc.le@company.com",
+        "phone": "0901111222",
+        "department": "Phòng Công nghệ",
+        "specialization": "Frontend Development",
+        "created_at": "2026-09-25 17:33:39"
+      },
+      {
+        "id": 3,
+        "full_name": "Trần Thị Bình",
+        "email": "binh.tran@company.com",
+        "phone": "0902222333",
+        "department": "Phòng Nhân sự",
+        "specialization": "Đào tạo & Phát triển",
+        "created_at": "2026-09-25 17:33:39"
+      },
+      {
+        "id": 4,
+        "full_name": "Dương Chuẩn",
+        "email": "chuan.duong@company.com",
+        "phone": "0903333444",
+        "department": "Phòng Kinh doanh",
+        "specialization": "Backend Development",
+        "created_at": "2026-09-25 17:33:39"
+      },
+      {
+        "id": 15,
+        "full_name": "Hai Anh",
+        "email": "haianh@gmail.com",
+        "phone": "098638922",
+        "department": "sale",
+        "specialization": "Sales & CRM",
+        "created_at": "2026-09-29 15:01:02"
+      }
+    ],
+    "intern_profiles": [
+      {
+        "id": 1,
+        "student_code": "SV2026001",
+        "full_name": "Phạm Thị Hoa",
+        "email": "hoa.pham@ictu.edu.vn",
+        "phone": "0911111222",
+        "university": "ĐH Công nghệ Thông tin & Truyền thông",
+        "major": "Công nghệ thông tin",
+        "mentor_name": "Nguyễn Văn An",
+        "status": "Đang thực tập",
+        "created_at": "2026-09-25 17:33:39"
+      },
+      {
+        "id": 2,
+        "student_code": "SV2026002",
+        "full_name": "Đỗ Văn Kiên",
+        "email": "kien.do@ictu.edu.vn",
+        "phone": "0912222333",
+        "university": "ĐH Bách Khoa Hà Nội",
+        "major": "Kỹ thuật phần mềm",
+        "mentor_name": "Trần Thị Bình",
+        "status": "Đang thực tập",
+        "created_at": "2026-09-25 17:33:39"
+      },
+      {
+        "id": 3,
+        "student_code": "SV2026003",
+        "full_name": "Vũ Thị Lan",
+        "email": "lan.vu@ictu.edu.vn",
+        "phone": "0913333444",
+        "university": "ĐH Kinh tế Quốc dân",
+        "major": "Marketing",
+        "mentor_name": "Lê Hoàng Nam",
+        "status": "Đang thực tập",
+        "created_at": "2026-09-25 17:33:39"
+      },
+      {
+        "id": 10,
+        "student_code": "",
+        "full_name": "Le Anh Duc",
+        "email": "lad@gmail.com",
+        "phone": "",
+        "university": "Chưa cập nhật",
+        "major": "",
+        "mentor_name": "",
+        "status": "Đang thực tập",
+        "created_at": "2026-09-28 17:39:12"
+      },
+      {
+        "id": 15,
+        "student_code": "",
+        "full_name": "Nguyen Thi Giang",
+        "email": "nguyengiang@gmail.com",
+        "phone": "",
+        "university": "Chưa cập nhật",
+        "major": "",
+        "mentor_name": "",
+        "status": "Đang thực tập",
+        "created_at": "2026-09-29 14:44:20"
+      },
+      {
+        "id": 17,
+        "student_code": "",
+        "full_name": "Hoang Ha",
+        "email": "ha.hoang@gmail.com",
+        "phone": "0987654321",
+        "university": "dai học mo",
+        "major": "marketing",
+        "mentor_name": "",
+        "status": "Đang thực tập",
+        "created_at": "2026-09-29 14:59:11"
+      },
+      {
+        "id": 38,
+        "student_code": "",
+        "full_name": "Hoang Thương",
+        "email": "hathimybinh2006@gmail.com",
+        "phone": "0817364782",
+        "university": "ICTU",
+        "major": "CNTT",
+        "mentor_name": "",
+        "status": "Đang thực tập",
+        "created_at": "2026-09-30 23:23:02"
+      },
+      {
+        "id": 47,
+        "student_code": "",
+        "full_name": "HB",
+        "email": "habinh2112006t@gmail.com",
+        "phone": "0983672828",
+        "university": "ICTU",
+        "major": "ktpm",
+        "mentor_name": "",
+        "status": "Đang thực tập",
+        "created_at": "2026-10-01 23:18:32"
+      },
+      {
+        "id": 131,
+        "student_code": "",
+        "full_name": "Intern",
+        "email": "intern@gmail.com",
+        "phone": "",
+        "university": "Chưa cập nhật",
+        "major": "",
+        "mentor_name": "",
+        "status": "Đang thực tập",
+        "created_at": "2026-10-02 15:45:46"
+      }
+    ],
+    "application_documents": [
+      {
+        "id": 191,
+        "application_id": 60,
+        "doc_type": "CV",
+        "original_name": "So_yeu_ly_lich.docx",
+        "stored_name": "ba576900-788b-4182-a615-23590dc18499",
+        "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "size_bytes": 14441,
+        "uploaded_at": "2026-10-02 18:27:19",
+        "updated_at": "2026-10-02 18:27:19"
+      },
+      {
+        "id": 192,
+        "application_id": 60,
+        "doc_type": "APPLICATION_LETTER",
+        "original_name": "Don_xin_viec.docx",
+        "stored_name": "dcce2656-10ad-494f-879f-8af6c347a087",
+        "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "size_bytes": 14454,
+        "uploaded_at": "2026-10-02 18:27:23",
+        "updated_at": "2026-10-02 18:27:23"
+      }
+    ],
+    "internship_contracts": [
+      {
+        "id": 58,
+        "intern_id": 47,
+        "title": "HOP DONG THUC TAP",
+        "start_date": "2026-10-02",
+        "end_date": "2027-10-02",
+        "note": null,
+        "original_name": "Hop_dong_thuc_tap.docx",
+        "stored_name": "2304bced-6191-4edb-b779-f284d45ff6e2",
+        "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "size_bytes": 14554,
+        "uploaded_by": 2,
+        "uploaded_at": "2026-10-02 18:25:45",
+        "updated_at": "2026-10-02 18:25:45"
+      }
+    ]
+  }
+}

@@ -2,6 +2,6 @@
   "host": "localhost",
   "port": 3306,
   "user": "root",
-  "password": "your_pasword",
+  "password": "your_password",
   "database": "user_management"
 }

@@ -7,6 +7,7 @@ const { cleanupByPattern } = require("./test_helpers");
 const TEST_EMAIL_PREFIXES = [
   "us7_", // test_applications.js
   "us9_", // test_documents_api.js
+  "contract_test_", // test_contracts_api.js
   "test_email_", // test_email_api.js
   "candidate_", // test_register.js
   "dup_", // test_register.js
