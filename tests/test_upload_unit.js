@@ -9,7 +9,6 @@ const {
 } = require("../services/documentValidator");
 const { HttpError } = require("../errors");
 const storage = require("../services/fileStorage");
-const { generateStoredName } = storage;
 const { calculateProgress } = require("../services/documents.service");
 
 function runUnitTests() {
@@ -275,17 +274,22 @@ function runUnitTests() {
   );
 
   // TC_UNIT_14: Tên lưu trên đĩa luôn là chuỗi UUID ngẫu nhiên v4 hợp lệ
-  const storedName = generateStoredName();
   var uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  report(
-    "TC_UNIT_14",
-    "Tên lưu trên đĩa luôn là chuỗi UUID ngẫu nhiên hợp lệ",
-    uuidRegex.test(storedName),
-  );
+  let storedName;
+  try {
+    storedName = storage.saveBuffer(validPdfBuffer);
+    report(
+      "TC_UNIT_14",
+      "Tên lưu trên đĩa luôn là chuỗi UUID ngẫu nhiên hợp lệ",
+      uuidRegex.test(storedName),
+    );
+  } finally {
+    if (storedName) storage.removeFile(storedName);
+  }
 
   // TC_UNIT_15: resolveStoredPath chặn path traversal, chỉ nhận UUID nằm trong uploads/
-  const uuid = generateStoredName();
+  const uuid = storedName;
   let traversalBlocked = true;
   for (const evil of [
     "../server.js",

@@ -115,9 +115,11 @@ async function runApiTests() {
       );
       const body = await response.json();
       check(
-        `Upload ${filename}`,
+        `Upload ${filename} và trả ngày dạng YYYY-MM-DD`,
         response.status === 201 &&
           body.data &&
+          body.data.start_date === "2026-01-01" &&
+          body.data.end_date === "2026-12-31" &&
           !Object.hasOwn(body.data, "stored_name"),
       );
       if (response.ok) {

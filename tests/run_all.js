@@ -19,6 +19,7 @@ const SUITES = [
   { name: "email-unit", file: "test_email_unit.js", needsServer: false },
   { name: "upload-unit", file: "test_upload_unit.js", needsServer: false },
   { name: "contracts-unit", file: "test_contracts_unit.js", needsServer: false },
+  { name: "contract-confirm-unit", file: "test_contract_confirmation_unit.js", needsServer: false },
   { name: "review-unit", file: "test_review_unit.js", needsServer: false },
   { name: "login", file: "test_login.js", needsServer: true },
   { name: "create-account", file: "test_create_account.js", needsServer: true },
@@ -29,6 +30,7 @@ const SUITES = [
   { name: "applications", file: "test_applications.js", needsServer: true },
   { name: "documents-api", file: "test_documents_api.js", needsServer: true },
   { name: "contracts-api", file: "test_contracts_api.js", needsServer: true },
+  { name: "contract-confirm-api", file: "test_contract_confirm_api.js", needsServer: true },
   { name: "review-documents-api", file: "test_review_documents_api.js", needsServer: true },
   { name: "email-api", file: "test_email_api.js", needsServer: true },
 ];
