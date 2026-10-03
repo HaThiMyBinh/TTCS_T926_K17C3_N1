@@ -1,5 +1,21 @@
 # HƯỚNG DẪN KHỞI ĐỘNG VÀ BÁO CÁO TOÀN DIỆN HỆ THỐNG
 
+## Chương trình thực tập theo phòng ban
+
+HR có thể tạo, sửa, lọc và xóa chương trình từ mục **Chương trình thực tập**.
+Admin chỉ xem; các vai trò Mentor và Intern không có mục này. API nằm dưới
+`/api/departments` và `/api/programs`. Hai bảng mới `departments` và
+`internship_programs` được tạo idempotent khi khởi động. Nếu `departments` đang
+trống, hệ thống chỉ đọc tên phòng ban khác rỗng từ `mentors.department` để khởi
+tạo danh mục. Không cần thay đổi cột `mentors.department`.
+
+Kiểm tra nhanh: `npm run test:programs-unit` chạy độc lập; `npm test` chạy cả
+bộ. Các bài API và bảo vệ dữ liệu cần MySQL hoạt động và `backend/db_config.json`
+được cấu hình chính xác. Bài API chạy độc lập bằng `npm run test:programs-api`,
+bài idempotency bằng `npm run test:programs-safety`.
+Tên chương trình được xem là trùng trong cùng phòng ban nếu các khoảng ngày
+chồng lấn; khoảng ngày bỏ trống được xem là không giới hạn ở đầu hoặc cuối.
+
 ## 0. BẮT ĐẦU TỪ FILE NÉN (.ZIP) — CÁC BƯỚC CHẠY LẦN ĐẦU
 
 Làm theo đúng thứ tự dưới đây nếu bạn vừa nhận được file `.zip` của dự án và
@@ -60,6 +76,26 @@ chưa từng chạy thử lần nào:
 - File cấu trúc bảng: `schema.sql`
 - File dữ liệu mẫu ban đầu (chỉ cần cho import thủ công, backend tự seed lúc
   khởi động): `seed_data.sql`
+
+### Tạo ZIP bàn giao kèm database và file đã tải lên
+
+Để người nhận có thể mở lại các file đã tải lên, hãy tạo gói portable trước khi
+gửi thay vì dùng ZIP mã nguồn thông thường. Mở PowerShell tại thư mục gốc và chạy:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\backend\scripts\create_portable_zip.ps1
+```
+
+Script dùng cấu hình MySQL từ `backend/db_config.json` (hoặc các biến môi trường
+`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`), xuất database, rồi
+đóng gói cùng toàn bộ `backend/uploads/`. Cần có `mysqldump` trong `PATH`.
+ZIP được tạo ở thư mục cha của project. File trong ZIP là bản sao chụp tại thời
+điểm đóng gói nên vẫn còn trong ZIP nếu file trên server bị xóa về sau. Chạy lại
+script để cập nhật gói sau khi thêm/sửa dữ liệu hoặc tải file mới.
+
+Người nhận giải nén, import `database/user_management.sql`, cấu hình MySQL riêng
+trong `backend/db_config.json` theo `backend/db_config.example.json`, rồi chạy
+`run.bat`. ZIP chứa cả database và hồ sơ upload, nên chỉ gửi qua kênh phù hợp.
 
 ---
 
@@ -138,16 +174,23 @@ npm run test:cleanup
 
 **Test:** `cd backend && npm test` (cần MySQL đang chạy; backend được tự bật). Chỉ chạy test không cần DB: `npm run test:unit`.
 
+## BACKEND SOURCE STRUCTURE
+
+Backend routing and middleware are organized by responsibility:
+
+- `backend/server.js` configures Express, middleware order, router mounting, and server startup.
+- `backend/routes/` contains route modules for authentication, users, permissions, mentors, interns, applications, and email.
+- `backend/middleware/` contains API JWT authentication and permission checks.
+- `backend/controllers/` and `backend/services/` hold the existing application, document, and email handlers and business logic.
+- `backend/utils/` contains shared request helpers.
+
+The frontend files and existing API paths are unchanged by this refactor.
+
+
 ## Hợp đồng thực tập
 
 HR có thể quản lý hợp đồng trong tab **Hồ sơ thực tập sinh**. API gồm `POST/GET /api/interns/:id/contracts`, `GET /api/interns/:id/contracts/:contractId/download` và `DELETE /api/interns/:id/contracts/:contractId`. Chấp nhận PDF/DOC/DOCX tối đa 5MB; metadata `title`, `start_date`, `end_date`, `note` là tùy chọn.
 
-## Gói demo (gửi cho người khác xem có cả dữ liệu lẫn file)
+Thực tập sinh đăng nhập có thể xem hợp đồng gắn với hồ sơ cùng email, tải file và xác nhận hợp đồng đang chờ trong tab **Hợp đồng của tôi**. Các API dành riêng cho vai trò Intern là `GET /api/me/contracts`, `GET /api/me/contracts/:contractId/download` và `POST /api/me/contracts/:contractId/confirm`. Xác nhận được lưu trạng thái `CONFIRMED`, thời điểm và tài khoản xác nhận. HR không thể xóa hợp đồng đã xác nhận; hệ thống cũng từ chối xóa hồ sơ hoặc tài khoản Intern đang giữ hợp đồng đã xác nhận để tránh mất giấy tờ và file.
 
-Tên file trên giao diện nằm trong MySQL còn nội dung file nằm ở `backend/uploads/`, nên muốn người nhận mở được file thì hai thứ phải đi cùng nhau. Dự án có sẵn cơ chế đóng gói:
-
-1. **Trên máy bạn**, sau khi upload test xong: chạy `export_demo.bat` (hoặc `cd backend && npm run demo:export`). Lệnh này tạo thư mục `demo/` gồm `demo_data.json` (bản ghi DB) và `demo/uploads/` (chỉ các file đang được DB tham chiếu).
-2. Nén **cả dự án, kèm thư mục `demo/`**, rồi gửi đi (nên đổi mật khẩu MySQL trong `backend/db_config.json` thành giá trị mẫu).
-3. **Người nhận** chỉ cần bấm `run.bat`: khi khởi động, backend thấy `demo/` thì tự thay dữ liệu bằng bản demo và copy file vào `backend/uploads/`. Mỗi bản export chỉ nạp **một lần**; export bản mới thì sẽ được nạp lại (dữ liệu cũ trên máy người nhận bị thay thế).
-
-Lưu ý: bỏ qua nạp demo bằng biến môi trường `SKIP_DEMO=1` (cũng tự bỏ qua khi `NODE_ENV=production`). Gói demo chứa email và hash mật khẩu của tài khoản test, nên chỉ dùng dữ liệu giả. Nhật ký email (`email_logs`) không nằm trong gói demo.
+Các trạng thái và index được khai báo trong `schema.sql` và `CREATE TABLE` của `db.js`; khi khởi động, `initDatabase()` bổ sung cột còn thiếu và đổi tên index FK tự sinh sang `idx_contract_confirmed_by` (hoặc tạo index nếu chưa có) để database cũ đồng bộ với database mới. Hợp đồng cũ được đặt ở trạng thái `PENDING`. Chạy kiểm thử bằng `cd backend && npm run test:unit` hoặc `SKIP_DEMO=1 npm test`; hai suite xác nhận hợp đồng là `test_contract_confirmation_unit.js` và `test_contract_confirm_api.js`.
