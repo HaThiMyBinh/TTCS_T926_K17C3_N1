@@ -21,6 +21,7 @@ const SUITES = [
   { name: "contracts-unit", file: "test_contracts_unit.js", needsServer: false },
   { name: "contract-confirm-unit", file: "test_contract_confirmation_unit.js", needsServer: false },
   { name: "review-unit", file: "test_review_unit.js", needsServer: false },
+  { name: "programs-unit", file: "test_programs_unit.js", needsServer: false },
   { name: "login", file: "test_login.js", needsServer: true },
   { name: "create-account", file: "test_create_account.js", needsServer: true },
   { name: "rbac", file: "test_rbac.js", needsServer: true },
@@ -33,6 +34,8 @@ const SUITES = [
   { name: "contract-confirm-api", file: "test_contract_confirm_api.js", needsServer: true },
   { name: "review-documents-api", file: "test_review_documents_api.js", needsServer: true },
   { name: "email-api", file: "test_email_api.js", needsServer: true },
+  { name: "programs-api", file: "test_programs_api.js", needsServer: true },
+  { name: "programs-safety", file: "test_programs_safety.js", needsServer: true },
 ];
 
 const args = process.argv.slice(2);

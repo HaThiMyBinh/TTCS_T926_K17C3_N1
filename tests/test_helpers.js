@@ -120,6 +120,12 @@ async function cleanupByPattern(prefixes) {
   const conn = await mysql.createConnection(readDbConfig());
   try {
     let total = 0;
+    for (const prefix of list.filter((p) => p.startsWith("program_test_"))) {
+      const [programs] = await conn.query("DELETE FROM internship_programs WHERE LEFT(LOWER(name), CHAR_LENGTH(?)) = LOWER(?)", [prefix, prefix]);
+      total += programs.affectedRows;
+      const [departments] = await conn.query("DELETE FROM departments WHERE LEFT(LOWER(name), CHAR_LENGTH(?)) = LOWER(?) AND NOT EXISTS (SELECT 1 FROM internship_programs p WHERE p.department_id = departments.id)", [prefix, prefix]);
+      total += departments.affectedRows;
+    }
     for (const prefix of list) {
       const [logResult] = await conn.query(
         "DELETE FROM `email_logs` WHERE LEFT(LOWER(recipient_email), CHAR_LENGTH(?)) = LOWER(?)",
