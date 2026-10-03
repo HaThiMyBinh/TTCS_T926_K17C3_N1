@@ -5,6 +5,18 @@ const controller = require("../controllers/contracts.controller");
 
 const router = express.Router();
 
+router.get("/me/contracts", requireRole("Intern"), controller.listMine);
+router.get(
+  "/me/contracts/:contractId/download",
+  requireRole("Intern"),
+  controller.downloadMine,
+);
+router.post(
+  "/me/contracts/:contractId/confirm",
+  requireRole("Intern"),
+  controller.confirmMine,
+);
+
 router.post(
   "/interns/:id/contracts",
   requireRole("HR"),

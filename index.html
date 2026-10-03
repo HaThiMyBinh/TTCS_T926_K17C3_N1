@@ -2821,6 +2821,20 @@
           </div>
         </div>
       </div>
+      <!-- HỢP ĐỒNG CỦA THỰC TẬP SINH -->
+      <div id="tab-my-contracts" class="tab-pane" style="display: none">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-file-contract text-primary"></i> Hợp đồng của tôi</h3>
+            <button class="btn btn-sm btn-primary" onclick="loadMyContracts()">
+              <i class="fa-solid fa-rotate"></i> Làm mới
+            </button>
+          </div>
+          <div class="card-body" id="myContractsList">
+            <p style="text-align:center;color:#94a3b8;padding:16px;">Đang tải danh sách hợp đồng...</p>
+          </div>
+        </div>
+      </div>
       <!-- QUẢN LÝ HỢP ĐỒNG THỰC TẬP (HR) -->
       <div id="tab-contracts" class="tab-pane" style="display: none">
         <div class="card">
@@ -3146,6 +3160,9 @@
         if (tabId === "tab-my-profile") {
           return role === "Intern";
         }
+        if (tabId === "tab-my-contracts") {
+          return role === "Intern";
+        }
         if (tabId === "tab-candidates") {
           return role === "HR" || role === "Admin";
         }
@@ -3182,7 +3199,7 @@
 
         // US9: Thêm tab "Hồ sơ của tôi" cho vai trò Intern lên đầu menu
         if (currentRole === "Intern") {
-          allowedCount++;
+          allowedCount += 2;
           const isProfileActive = currentTab === "tab-my-profile";
           const liProfile = document.createElement("li");
           liProfile.className = "nav-item";
@@ -3193,6 +3210,16 @@
           </a>
         `;
           menuEl.appendChild(liProfile);
+
+          const liMyContracts = document.createElement("li");
+          liMyContracts.className = "nav-item";
+          liMyContracts.innerHTML = `
+          <a class="nav-link ${currentTab === "tab-my-contracts" ? "active" : ""}" onclick="switchTab('tab-my-contracts')">
+            <i class="fa-solid fa-file-contract"></i>
+            <span>Hợp đồng của tôi</span>
+          </a>
+        `;
+          menuEl.appendChild(liMyContracts);
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -3330,6 +3357,11 @@
             document.getElementById("pageSubtitle").innerText =
               "Tải lên CV và Đơn xin thực tập để hoàn thiện hồ sơ ứng tuyển (US 9)";
             loadMyDocuments();
+          } else if (tabId === "tab-my-contracts") {
+            document.getElementById("pageTitle").innerText = "Hợp Đồng Của Tôi";
+            document.getElementById("pageSubtitle").innerText =
+              "Xem và xác nhận hợp đồng thực tập do HR gửi";
+            loadMyContracts();
           } else if (tabId === "tab-candidates") {
             document.getElementById("pageTitle").innerText =
               "Hồ Sơ Ứng Tuyển Online";
@@ -4745,6 +4777,15 @@
         return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
       }
 
+      function formatDateOnly(dateValue) {
+        if (!dateValue) return "";
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateValue));
+        if (match) return `${match[3]}/${match[2]}/${match[1]}`;
+        const date = new Date(dateValue);
+        if (Number.isNaN(date.getTime())) return String(dateValue);
+        return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+      }
+
       async function loadMyDocuments() {
         if (currentRole !== "Intern") return;
         try {
@@ -5151,6 +5192,132 @@
       }
 
 
+      // HỢP ĐỒNG CỦA THỰC TẬP SINH
+      let myContracts = [];
+      const confirmingMyContracts = new Set();
+
+      async function loadMyContracts() {
+        if (currentRole !== "Intern") return;
+        const list = document.getElementById("myContractsList");
+        list.innerHTML = `<p style="text-align:center;color:#94a3b8;padding:16px;">Đang tải danh sách hợp đồng...</p>`;
+        try {
+          const response = await fetch(`${API_BASE}/me/contracts`, { headers: authHeaders() });
+          if (response.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          const body = await response.json();
+          if (!response.ok || !body.success) throw new Error(body.message || "Không tải được hợp đồng.");
+          myContracts = Array.isArray(body.data) ? body.data : [];
+          renderMyContracts();
+        } catch (err) {
+          list.innerHTML = `<p style="text-align:center;color:#ef4444;padding:16px;">${escapeHtml(err.message || "Lỗi tải danh sách hợp đồng.")}</p>`;
+        }
+      }
+
+      function renderMyContracts() {
+        const list = document.getElementById("myContractsList");
+        if (!myContracts.length) {
+          list.innerHTML = `<p style="text-align:center;color:#94a3b8;padding:16px;">HR chưa gửi hợp đồng thực tập cho bạn.</p>`;
+          return;
+        }
+        list.innerHTML = myContracts.map((contract) => {
+          const confirmed = contract.confirmation_status === "CONFIRMED";
+          const busy = confirmingMyContracts.has(Number(contract.id));
+          return `
+            <article style="padding:16px 4px;border-bottom:1px solid #e2e8f0">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+                <div style="min-width:220px;flex:1">
+                  <b>${escapeHtml(contract.title || contract.original_name)}</b>
+                  <div style="color:#64748b;margin-top:4px">
+                    ${escapeHtml(contract.original_name)} · ${escapeHtml(formatDateOnly(contract.start_date) || "Chưa có ngày bắt đầu")} – ${escapeHtml(formatDateOnly(contract.end_date) || "Chưa có ngày kết thúc")}
+                  </div>
+                  ${contract.note ? `<small style="display:block;margin-top:4px;color:#64748b">${escapeHtml(contract.note)}</small>` : ""}
+                  <div style="margin-top:8px">
+                    <span class="badge ${confirmed ? "badge-active" : "badge-pending"}">${confirmed ? "Đã xác nhận" : "Chờ xác nhận"}</span>
+                    ${confirmed && contract.confirmed_at ? `<small style="color:#64748b;margin-left:8px">Xác nhận lúc ${escapeHtml(formatDateTime(contract.confirmed_at))}</small>` : ""}
+                  </div>
+                </div>
+                <div class="action-group" style="flex-wrap:wrap;justify-content:flex-end">
+                  ${contract.mime_type === "application/pdf" ? `<button class="btn btn-sm btn-outline-primary" onclick="viewMyContract(${Number(contract.id)})"><i class="fa-solid fa-eye"></i> Xem</button>` : ""}
+                  <button class="btn btn-sm btn-primary" onclick="downloadMyContract(${Number(contract.id)})"><i class="fa-solid fa-download"></i> Tải xuống</button>
+                  ${confirmed
+                    ? `<button class="btn btn-sm" disabled><i class="fa-solid fa-check"></i> Đã xác nhận</button>`
+                    : `<button class="btn btn-sm btn-success" ${busy ? "disabled" : ""} onclick="confirmMyContract(${Number(contract.id)})"><i class="fa-solid ${busy ? "fa-spinner fa-spin" : "fa-check"}"></i> ${busy ? "Đang xác nhận..." : "Xác nhận hợp đồng"}</button>`}
+                </div>
+              </div>
+            </article>`;
+        }).join("");
+      }
+
+      async function confirmMyContract(contractId) {
+        const contract = myContracts.find((item) => Number(item.id) === Number(contractId));
+        if (!contract || contract.confirmation_status !== "PENDING") return;
+        if (!confirm(`Bạn xác nhận đã đọc và đồng ý với hợp đồng "${contract.title || contract.original_name}"?`)) return;
+        confirmingMyContracts.add(Number(contractId));
+        renderMyContracts();
+        try {
+          const response = await fetch(`${API_BASE}/me/contracts/${Number(contractId)}/confirm`, {
+            method: "POST",
+            headers: authHeaders(),
+          });
+          if (response.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          const body = await response.json();
+          if (!response.ok || !body.success) throw new Error(body.message || "Không xác nhận được hợp đồng.");
+          myContracts = myContracts.map((item) => Number(item.id) === Number(contractId) ? body.data : item);
+          showToast(body.message || "Đã xác nhận hợp đồng thành công!", "success");
+        } catch (err) {
+          showToast(err.message || "Không xác nhận được hợp đồng!", "error");
+        } finally {
+          confirmingMyContracts.delete(Number(contractId));
+          renderMyContracts();
+        }
+      }
+
+      async function fetchMyContractBlob(contractId) {
+        const response = await fetch(`${API_BASE}/me/contracts/${Number(contractId)}/download`, {
+          headers: authHeaders(),
+        });
+        if (response.status === 401) {
+          forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          throw new Error("Phiên đăng nhập đã hết hạn.");
+        }
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.message || "Không tải được file hợp đồng.");
+        }
+        return response.blob();
+      }
+
+      async function viewMyContract(contractId) {
+        const preview = window.open("about:blank", "_blank");
+        if (!preview) return showToast("Trình duyệt đã chặn cửa sổ xem file. Hãy cho phép cửa sổ bật lên rồi thử lại.", "error");
+        preview.opener = null;
+        try {
+          const blob = await fetchMyContractBlob(contractId);
+          const objectUrl = URL.createObjectURL(blob);
+          preview.location.href = objectUrl;
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+        } catch (err) {
+          preview.close();
+          showToast(err.message || "Không xem được hợp đồng!", "error");
+        }
+      }
+
+      async function downloadMyContract(contractId) {
+        try {
+          const blob = await fetchMyContractBlob(contractId);
+          const contract = myContracts.find((item) => Number(item.id) === Number(contractId));
+          const objectUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = contract?.original_name || "hop-dong";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        } catch (err) {
+          showToast(err.message || "Không tải được hợp đồng!", "error");
+        }
+      }
+
       let contractsInternId = null;
 
       function openContracts(id, name, viewOnly = false) {
@@ -5188,9 +5355,13 @@
               <div>
                 <b>${escapeHtml(contract.title || contract.original_name)}</b>
                 <div>
-                  ${escapeHtml(contract.original_name)} · ${escapeHtml(contract.start_date || "Chưa có ngày bắt đầu")} – ${escapeHtml(contract.end_date || "Chưa có ngày kết thúc")}
+                  ${escapeHtml(contract.original_name)} · ${escapeHtml(formatDateOnly(contract.start_date) || "Chưa có ngày bắt đầu")} – ${escapeHtml(formatDateOnly(contract.end_date) || "Chưa có ngày kết thúc")}
                 </div>
                 <small>${escapeHtml(contract.note || "")}</small>
+                <div style="margin-top:6px;font-size:12px">
+                  <span class="badge ${contract.confirmation_status === "CONFIRMED" ? "badge-active" : "badge-pending"}">${contract.confirmation_status === "CONFIRMED" ? "Đã xác nhận" : "Chờ xác nhận"}</span>
+                  ${contract.confirmed_at ? `<span style="color:#64748b;margin-left:6px">Xác nhận lúc ${escapeHtml(formatDateTime(contract.confirmed_at))}</span>` : ""}
+                </div>
               </div>
               <div>
                 ${contract.mime_type === "application/pdf" ? `<button class="btn btn-sm btn-outline-primary" onclick="downloadContract(${Number(contract.id)}, true)"><i class="fa-solid fa-eye"></i> Xem</button>` : ""}

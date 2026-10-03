@@ -21,17 +21,20 @@ function parseId(raw, label) {
 function toDto(row) {
   return {
     id: Number(row.id),
-    intern_id: Number(row.internId ?? row.intern_id),
+    intern_id: Number(row.internId),
     title: row.title,
-    start_date: row.startDate ?? row.start_date,
-    end_date: row.endDate ?? row.end_date,
+    start_date: row.startDate,
+    end_date: row.endDate,
     note: row.note,
-    original_name: sanitizeFileName(row.originalName ?? row.original_name),
-    mime_type: row.mimeType ?? row.mime_type,
-    size_bytes: Number(row.sizeBytes ?? row.size_bytes),
-    uploaded_by: row.uploadedBy ?? row.uploaded_by,
-    uploaded_at: row.uploadedAt ?? row.uploaded_at,
-    updated_at: row.updatedAt ?? row.updated_at,
+    original_name: sanitizeFileName(row.originalName),
+    mime_type: row.mimeType,
+    size_bytes: Number(row.sizeBytes),
+    uploaded_by: row.uploadedBy,
+    uploaded_at: row.uploadedAt,
+    updated_at: row.updatedAt,
+    confirmation_status: row.confirmationStatus || "PENDING",
+    confirmed_at: row.confirmedAt,
+    confirmed_by: row.confirmedBy == null ? null : Number(row.confirmedBy),
   };
 }
 
@@ -133,30 +136,84 @@ async function upload(rawInternId, user, metadata) {
   }
 }
 
-async function getDownload(rawInternId, rawContractId) {
-  const internId = parseId(rawInternId, "Mã thực tập sinh");
-  const contractId = parseId(rawContractId, "Mã hợp đồng");
+async function getDownloadForInternId(internId, contractId, missingFileMessage) {
   const contract = await db.findContractById(internId, contractId);
   if (!contract) {
     throw new HttpError(404, "Không tìm thấy hợp đồng của thực tập sinh!");
   }
 
+  const filePath = storage.resolveExistingPath(contract.storedName);
+  if (!filePath) {
+    throw new HttpError(404, missingFileMessage);
+  }
+
   return {
-    filePath: storage.resolveStoredPath(contract.storedName),
+    filePath,
     originalName: sanitizeFileName(contract.originalName),
     mimeType: contract.mimeType,
   };
 }
 
+async function getDownload(rawInternId, rawContractId) {
+  const internId = parseId(rawInternId, "Mã thực tập sinh");
+  const contractId = parseId(rawContractId, "Mã hợp đồng");
+  return getDownloadForInternId(
+    internId,
+    contractId,
+    "File hợp đồng không còn trên máy chủ. Vui lòng tải hợp đồng lên lại!",
+  );
+}
+
+async function findInternForUser(user) {
+  if (!user?.email) throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
+  const intern = await db.findInternProfileByEmail(user.email);
+  if (!intern) throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
+  return intern;
+}
+
+async function listForIntern(user) {
+  const intern = await findInternForUser(user);
+  return (await db.listContractsByInternId(intern.id)).map(toDto);
+}
+
+async function getDownloadForIntern(user, rawContractId) {
+  const contractId = parseId(rawContractId, "Mã hợp đồng");
+  const intern = await findInternForUser(user);
+  return getDownloadForInternId(
+    intern.id,
+    contractId,
+    "File hợp đồng không còn trên máy chủ. Vui lòng liên hệ HR để được hỗ trợ!",
+  );
+}
+
+async function confirmForIntern(user, rawContractId) {
+  const contractId = parseId(rawContractId, "Mã hợp đồng");
+  const intern = await findInternForUser(user);
+  const result = await db.confirmContractAtomic(intern.id, contractId, user.id);
+  if (result.outcome === "NOT_FOUND") {
+    throw new HttpError(404, "Không tìm thấy hợp đồng của thực tập sinh!");
+  }
+  if (result.outcome === "ALREADY_CONFIRMED") {
+    throw new HttpError(409, "Hợp đồng này đã được bạn xác nhận trước đó!");
+  }
+  if (result.outcome !== "CONFIRMED" || !result.contract) {
+    throw new HttpError(409, "Hợp đồng hiện không ở trạng thái chờ xác nhận!");
+  }
+  return toDto(result.contract);
+}
+
 async function remove(rawInternId, rawContractId) {
   const internId = parseId(rawInternId, "Mã thực tập sinh");
   const contractId = parseId(rawContractId, "Mã hợp đồng");
-  const storedName = await db.deleteContract(internId, contractId);
-  if (!storedName) {
+  const result = await db.deleteContract(internId, contractId);
+  if (result.outcome === "NOT_FOUND") {
     throw new HttpError(404, "Không tìm thấy hợp đồng của thực tập sinh!");
   }
+  if (result.outcome === "CONFIRMED") {
+    throw new HttpError(409, "Không thể xóa hợp đồng đã được thực tập sinh xác nhận!");
+  }
 
-  storage.removeFile(storedName);
+  storage.removeFile(result.storedName);
 }
 
 function removeFiles(storedNames = []) {
@@ -171,6 +228,9 @@ module.exports = {
   list,
   upload,
   getDownload,
+  listForIntern,
+  getDownloadForIntern,
+  confirmForIntern,
   remove,
   removeFiles,
 };

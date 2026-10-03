@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../db");
 const { requireRole } = require("../auth");
+const { sendRouteError } = require("../errors");
 const { attachApplicationsToStudents } = require("../services/applications.service");
 const { trimOrDefault } = require("../utils/request");
 const contractsService = require("../services/contracts.service");
@@ -80,9 +81,7 @@ async function handleCreateIntern(req, res) {
       intern: newStudent,
     });
   } catch (err) {
-    if (err.status) return res.status(err.status).json({ error: err.message });
-    console.error(err);
-    res.status(500).json({ error: "Lỗi server khi thêm hồ sơ thực tập sinh!" });
+    return sendRouteError(res, err, "Lỗi server khi thêm hồ sơ thực tập sinh!");
   }
 }
 router.post("/interns", requireRole("Admin", "HR"), handleCreateIntern);
@@ -150,11 +149,7 @@ async function handleUpdateIntern(req, res) {
       intern: updated,
     });
   } catch (err) {
-    if (err.status) return res.status(err.status).json({ error: err.message });
-    console.error(err);
-    res
-      .status(500)
-      .json({ error: "Lỗi server khi cập nhật hồ sơ thực tập sinh!" });
+    return sendRouteError(res, err, "Lỗi server khi cập nhật hồ sơ thực tập sinh!");
   }
 }
 router.put("/interns/:id", requireRole("Admin", "HR"), handleUpdateIntern);
@@ -167,8 +162,7 @@ async function handleDeleteIntern(req, res) {
     contractsService.removeFiles(storedNames);
     res.json({ message: "Đã xóa hồ sơ thực tập sinh!" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi khi xóa hồ sơ thực tập sinh!" });
+    return sendRouteError(res, err, "Lỗi khi xóa hồ sơ thực tập sinh!");
   }
 }
 router.delete("/interns/:id", requireRole("Admin", "HR"), handleDeleteIntern);

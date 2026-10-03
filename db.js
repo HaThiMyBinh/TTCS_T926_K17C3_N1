@@ -59,6 +59,11 @@ function requireDb() {
   return pool;
 }
 
+// Cho phép script xuất demo dùng pool hiện tại sau khi initDatabase() hoàn tất.
+function getPool() {
+  return requireDb();
+}
+
 function nowISO() {
   return new Date().toISOString();
 }
@@ -69,15 +74,18 @@ const DEFAULT_MENTOR_DEPARTMENT = "Chưa cập nhật";
 const DEFAULT_INTERN_UNIVERSITY = "Chưa cập nhật";
 const DEFAULT_INTERN_STATUS = "Đang thực tập";
 // Tài khoản Intern đang là ứng viên chờ duyệt / bị từ chối chưa phải thực tập sinh chính thức
-const NON_INTERN_ACCOUNT_STATUSES = "'PENDING', 'LOCKED'";
+const NON_INTERN_ACCOUNT_STATUSES = ["PENDING", "LOCKED"];
+const NON_INTERN_ACCOUNT_STATUSES_SQL = NON_INTERN_ACCOUNT_STATUSES
+  .map((status) => `'${status}'`)
+  .join(", ");
 // Mật khẩu mặc định của tài khoản được tạo tự động từ hồ sơ mentor / thực tập sinh
 const DEFAULT_ACCOUNT_PASSWORD = "password123";
 
-// Lỗi nghiệp vụ (trả về 400 cho client thay vì 500)
+// Lỗi nghiệp vụ; mặc định 400, có thể dùng status khác cho xung đột trạng thái.
 class ConflictError extends Error {
-  constructor(message) {
+  constructor(message, status = 400) {
     super(message);
-    this.status = 400;
+    this.status = status;
   }
 }
 
@@ -126,6 +134,52 @@ async function ensureColumn(table, column, definition) {
   }
 }
 
+async function ensureForeignKey(table, constraintName, definition) {
+  const [rows] = await pool.query(
+    `SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+     WHERE CONSTRAINT_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = ?
+       AND CONSTRAINT_TYPE = 'FOREIGN KEY' LIMIT 1`,
+    [config.database, table, constraintName],
+  );
+  if (rows.length === 0) {
+    await pool.query(
+      `ALTER TABLE \`${table}\` ADD CONSTRAINT \`${constraintName}\` ${definition}`,
+    );
+  }
+}
+
+// Đổi tên index FK MySQL tự sinh để database cũ dùng chung tên khai báo trong schema.sql.
+async function ensureIndex(table, indexName, columnName) {
+  const [namedIndexes] = await pool.query(
+    `SELECT 1 FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1`,
+    [config.database, table, indexName],
+  );
+  if (namedIndexes.length > 0) return;
+
+  const [supportingIndexes] = await pool.query(
+    `SELECT INDEX_NAME AS indexName
+     FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME <> 'PRIMARY'
+     GROUP BY INDEX_NAME
+     HAVING COUNT(*) = 1 AND SUM(CASE WHEN SEQ_IN_INDEX = 1 AND COLUMN_NAME = ? THEN 1 ELSE 0 END) = 1
+     LIMIT 1`,
+    [config.database, table, columnName],
+  );
+  const existingName = supportingIndexes[0]?.indexName;
+  if (existingName) {
+    const safeOldName = String(existingName).replace(/`/g, "``");
+    await pool.query(
+      `ALTER TABLE \`${table}\` RENAME INDEX \`${safeOldName}\` TO \`${indexName}\``,
+    );
+    return;
+  }
+
+  await pool.query(
+    `ALTER TABLE \`${table}\` ADD INDEX \`${indexName}\` (\`${columnName}\`)`,
+  );
+}
+
 // Khởi tạo kết nối MySQL, tạo bảng & seed dữ liệu mặc định nếu chưa có
 async function initDatabase() {
   // 1. Kết nối không chọn DB để tạo DB nếu chưa tồn tại
@@ -148,6 +202,7 @@ async function initDatabase() {
     user: config.user,
     password: config.password,
     database: config.database,
+    dateStrings: ["DATE"],
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -293,11 +348,30 @@ async function initDatabase() {
       \`mime_type\` VARCHAR(100) NOT NULL, \`size_bytes\` BIGINT NOT NULL,
       \`uploaded_by\` BIGINT NULL, \`uploaded_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      \`confirmation_status\` ENUM('PENDING', 'CONFIRMED') NOT NULL DEFAULT 'PENDING',
+      \`confirmed_at\` DATETIME NULL, \`confirmed_by\` BIGINT NULL,
       FOREIGN KEY (\`intern_id\`) REFERENCES \`intern_profiles\`(\`id\`) ON DELETE CASCADE,
       FOREIGN KEY (\`uploaded_by\`) REFERENCES \`users\`(\`id\`) ON DELETE SET NULL,
-      INDEX \`idx_contract_intern\` (\`intern_id\`)
+      CONSTRAINT \`fk_contract_confirmed_by\` FOREIGN KEY (\`confirmed_by\`) REFERENCES \`users\`(\`id\`) ON DELETE SET NULL,
+      INDEX \`idx_contract_intern\` (\`intern_id\`),
+      INDEX \`idx_contract_confirmed_by\` (\`confirmed_by\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+  // CREATE TABLE khai báo đủ cột cho database mới; ensureColumn bổ sung chúng vào database cũ.
+  // Hợp đồng cũ tự nhận PENDING, giữ nguyên dữ liệu và cho phép Intern xác nhận sau này.
+  await ensureColumn(
+    "internship_contracts",
+    "confirmation_status",
+    "ENUM('PENDING', 'CONFIRMED') NOT NULL DEFAULT 'PENDING'",
+  );
+  await ensureColumn("internship_contracts", "confirmed_at", "DATETIME NULL");
+  await ensureColumn("internship_contracts", "confirmed_by", "BIGINT NULL");
+  await ensureIndex("internship_contracts", "idx_contract_confirmed_by", "confirmed_by");
+  await ensureForeignKey(
+    "internship_contracts",
+    "fk_contract_confirmed_by",
+    "FOREIGN KEY (`confirmed_by`) REFERENCES `users`(`id`) ON DELETE SET NULL",
+  );
 
   // Seed dữ liệu mặc định: roles, permissions, role_permissions
   await pool.query(`
@@ -412,7 +486,7 @@ async function insertUser({
       );
     }
     // Đồng bộ: tài khoản Intern chính thức luôn có hồ sơ trong bảng intern_profiles
-    if (role === "Intern" && !["PENDING", "LOCKED"].includes(status)) {
+    if (role === "Intern" && !NON_INTERN_ACCOUNT_STATUSES.includes(status)) {
       await conn.query(
         `INSERT INTO intern_profiles
            (student_code, full_name, email, phone, university, major, mentor_name, status)
@@ -466,12 +540,16 @@ async function deleteUser(id) {
     }
     if (user.role === "Intern") {
       const [rows] = await conn.query(
-        `SELECT c.stored_name AS storedName
+        `SELECT c.stored_name AS storedName,
+                c.confirmation_status AS confirmationStatus
          FROM internship_contracts c
          JOIN intern_profiles i ON i.id = c.intern_id
          WHERE LOWER(i.email) = LOWER(?) FOR UPDATE`,
         [user.email],
       );
+      if (rows.some((contract) => contract.confirmationStatus === "CONFIRMED")) {
+        throw new ConflictError("Không thể xóa tài khoản Intern vì hồ sơ có hợp đồng đã được xác nhận!", 409);
+      }
       contracts = rows;
       await conn.query(
         "DELETE FROM intern_profiles WHERE LOWER(email) = LOWER(?)",
@@ -965,9 +1043,13 @@ async function deleteStudent(id) {
   const internRoleId = await getRoleId("Intern");
   const contractRows = await withTransaction(async (conn) => {
     const [contracts] = await conn.query(
-      "SELECT stored_name AS storedName FROM internship_contracts WHERE intern_id = ? FOR UPDATE",
+      `SELECT stored_name AS storedName, confirmation_status AS confirmationStatus
+       FROM internship_contracts WHERE intern_id = ? FOR UPDATE`,
       [id],
     );
+    if (contracts.some((contract) => contract.confirmationStatus === "CONFIRMED")) {
+      throw new ConflictError("Không thể xóa hồ sơ thực tập sinh vì có hợp đồng đã được xác nhận!", 409);
+    }
     const [rows] = await conn.query(
       "SELECT email FROM intern_profiles WHERE id = ?",
       [id],
@@ -999,7 +1081,7 @@ async function syncInternsWithAccounts() {
      FROM users u
      LEFT JOIN candidate_profiles c ON c.user_id = u.id
      WHERE u.role_id = ?
-       AND u.status NOT IN (${NON_INTERN_ACCOUNT_STATUSES})
+       AND u.status NOT IN (${NON_INTERN_ACCOUNT_STATUSES_SQL})
        AND NOT EXISTS (SELECT 1 FROM intern_profiles i WHERE LOWER(i.email) = LOWER(u.email))`,
     [DEFAULT_INTERN_UNIVERSITY, DEFAULT_INTERN_STATUS, internRoleId],
   );
@@ -1339,12 +1421,23 @@ const CONTRACT_COLUMNS =
   "end_date AS endDate, note, original_name AS originalName, " +
   "stored_name AS storedName, mime_type AS mimeType, " +
   "size_bytes AS sizeBytes, uploaded_by AS uploadedBy, " +
-  "uploaded_at AS uploadedAt, updated_at AS updatedAt";
+  "uploaded_at AS uploadedAt, updated_at AS updatedAt, " +
+  "confirmation_status AS confirmationStatus, confirmed_at AS confirmedAt, " +
+  "confirmed_by AS confirmedBy";
 
 async function findInternProfileById(id) {
   const [rows] = await requireDb().query(
     "SELECT id FROM intern_profiles WHERE id = ? LIMIT 1",
     [id],
+  );
+  return rows[0] || null;
+}
+
+async function findInternProfileByEmail(email) {
+  const [rows] = await requireDb().query(
+    `SELECT id, email FROM intern_profiles
+     WHERE LOWER(email) = LOWER(?) LIMIT 1`,
+    [email],
   );
   return rows[0] || null;
 }
@@ -1399,23 +1492,60 @@ async function findContractById(internId, contractId) {
 async function deleteContract(internId, contractId) {
   return withTransaction(async (conn) => {
     const [rows] = await conn.query(
-      `SELECT stored_name AS storedName FROM internship_contracts
+      `SELECT stored_name AS storedName,
+              confirmation_status AS confirmationStatus
+       FROM internship_contracts
        WHERE id = ? AND intern_id = ? FOR UPDATE`,
       [contractId, internId],
     );
-    if (rows.length === 0) return null;
+    if (rows.length === 0) return { outcome: "NOT_FOUND" };
+    if (rows[0].confirmationStatus !== "PENDING") {
+      return { outcome: "CONFIRMED" };
+    }
 
-    await conn.query(
-      "DELETE FROM internship_contracts WHERE id = ? AND intern_id = ?",
+    const [result] = await conn.query(
+      `DELETE FROM internship_contracts
+       WHERE id = ? AND intern_id = ? AND confirmation_status = 'PENDING'`,
       [contractId, internId],
     );
-    return rows[0].storedName;
+    if (result.affectedRows === 0) return { outcome: "CONFIRMED" };
+    return { outcome: "DELETED", storedName: rows[0].storedName };
+  });
+}
+
+async function confirmContractAtomic(internId, contractId, userId) {
+  return withTransaction(async (conn) => {
+    const [result] = await conn.query(
+      `UPDATE internship_contracts
+       SET confirmation_status = 'CONFIRMED', confirmed_at = NOW(), confirmed_by = ?
+       WHERE id = ? AND intern_id = ? AND confirmation_status = 'PENDING'`,
+      [userId, contractId, internId],
+    );
+    if (result.affectedRows === 1) {
+      const [rows] = await conn.query(
+        `SELECT ${CONTRACT_COLUMNS} FROM internship_contracts
+         WHERE id = ? AND intern_id = ? LIMIT 1`,
+        [contractId, internId],
+      );
+      return { outcome: "CONFIRMED", contract: rows[0] || null };
+    }
+
+    const [rows] = await conn.query(
+      `SELECT confirmation_status AS confirmationStatus
+       FROM internship_contracts WHERE id = ? AND intern_id = ? LIMIT 1`,
+      [contractId, internId],
+    );
+    if (rows.length === 0) return { outcome: "NOT_FOUND" };
+    if (rows[0].confirmationStatus === "CONFIRMED") {
+      return { outcome: "ALREADY_CONFIRMED" };
+    }
+    return { outcome: "NOT_PENDING" };
   });
 }
 
 module.exports = {
   initDatabase,
-  getPool: requireDb,
+  getPool,
   findUserByEmail,
   findUserForLogin,
   insertUser,
@@ -1447,8 +1577,10 @@ module.exports = {
   saveDocumentIfPending,
   deleteDocumentIfPending,
   findInternProfileById,
+  findInternProfileByEmail,
   listContractsByInternId,
   insertContract,
   findContractById,
   deleteContract,
+  confirmContractAtomic,
 };
