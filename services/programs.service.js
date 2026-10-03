@@ -3,6 +3,50 @@ const { HttpError } = require("../errors");
 
 const STATUSES = ["DRAFT", "OPEN", "ONGOING", "CLOSED"];
 const MAX_CAPACITY = 2147483647;
+const MAX_PROGRAM_DURATION_DAYS = 730;
+const TIME_STATES = ["UPCOMING", "RUNNING", "ENDED", "UNSCHEDULED"];
+
+function dateOrdinal(value) {
+  if (!validDate(value) || value == null || value === "") return null;
+  return Math.floor(Date.parse(`${value}T00:00:00Z`) / 86400000);
+}
+
+function getVietnamToday(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const fields = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${fields.year}-${fields.month}-${fields.day}`;
+}
+
+function calculateProgramTime(startDate, endDate, today) {
+  if (!startDate || !endDate) {
+    return {
+      time_state: "UNSCHEDULED",
+      duration_days: null,
+      days_remaining: null,
+    };
+  }
+
+  const start = dateOrdinal(startDate);
+  const end = dateOrdinal(endDate);
+  const current = dateOrdinal(today);
+  if (current == null) throw new TypeError("Hôm nay phải là ngày hợp lệ YYYY-MM-DD");
+  const durationDays = end - start + 1;
+  let timeState = "RUNNING";
+
+  if (current < start) timeState = "UPCOMING";
+  else if (current > end) timeState = "ENDED";
+
+  return {
+    time_state: timeState,
+    duration_days: durationDays,
+    days_remaining: Math.max(0, end - current),
+  };
+}
 
 function textLength(value) {
   return Array.from(value).length;
@@ -31,6 +75,10 @@ function validDate(value) {
 }
 
 function validateProgram(input = {}) {
+  if (input == null || typeof input !== "object" || Array.isArray(input)) {
+    throw new HttpError(400, "Dữ liệu chương trình không hợp lệ!");
+  }
+
   const name = typeof input.name === "string" ? input.name.trim() : "";
   if (!name) throw new HttpError(400, "Vui lòng nhập tên chương trình!");
   if (textLength(name) > 255) {
@@ -50,8 +98,12 @@ function validateProgram(input = {}) {
     throw new HttpError(400, "Mô tả không được vượt quá 2000 ký tự!");
   }
 
-  const startDate = input.start_date || null;
-  const endDate = input.end_date || null;
+  const startDate = input.start_date == null || input.start_date === ""
+    ? null
+    : input.start_date;
+  const endDate = input.end_date == null || input.end_date === ""
+    ? null
+    : input.end_date;
   if (!validDate(startDate) || !validDate(endDate)) {
     throw new HttpError(400, "Ngày phải đúng định dạng YYYY-MM-DD và là ngày có thật!");
   }
@@ -74,6 +126,18 @@ function validateProgram(input = {}) {
   if (!STATUSES.includes(status)) {
     throw new HttpError(400, "Trạng thái chương trình không hợp lệ!");
   }
+  if ((status === "OPEN" || status === "ONGOING") && (!startDate || !endDate)) {
+    throw new HttpError(400, "Chương trình OPEN hoặc ONGOING phải có đủ ngày bắt đầu và kết thúc!");
+  }
+  if (startDate && endDate) {
+    const durationDays = dateOrdinal(endDate) - dateOrdinal(startDate) + 1;
+    if (durationDays > MAX_PROGRAM_DURATION_DAYS) {
+      throw new HttpError(
+        400,
+        `Thời lượng chương trình không được vượt quá ${MAX_PROGRAM_DURATION_DAYS} ngày!`,
+      );
+    }
+  }
 
   return {
     departmentId,
@@ -86,9 +150,11 @@ function validateProgram(input = {}) {
   };
 }
 
-function toDto(row) {
+// API callers pass today's VN date to include calculated time fields. The
+// default keeps the pre-existing DTO shape for legacy direct service callers.
+function toDto(row, today = null) {
   if (!row) return null;
-  return {
+  const dto = {
     id: row.id,
     department_id: row.department_id,
     department_name: row.department_name,
@@ -102,6 +168,10 @@ function toDto(row) {
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
+
+  return today == null
+    ? dto
+    : { ...dto, ...calculateProgramTime(row.start_date, row.end_date, today) };
 }
 
 async function departments() {
@@ -156,14 +226,24 @@ async function list(query = {}) {
     }
     filters.status = query.status;
   }
+  if (query.time_state != null && query.time_state !== "") {
+    if (!TIME_STATES.includes(query.time_state)) {
+      throw new HttpError(400, "Trạng thái thời gian không hợp lệ!");
+    }
+    filters.timeState = query.time_state;
+  }
 
-  return (await db.listPrograms(filters)).map(toDto);
+  const today = getVietnamToday();
+  const programs = (await db.listPrograms(filters)).map((row) => toDto(row, today));
+  return filters.timeState
+    ? programs.filter((program) => program.time_state === filters.timeState)
+    : programs;
 }
 
 async function get(rawId) {
   const row = await db.findProgramById(parseId(rawId));
   if (!row) throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
-  return toDto(row);
+  return toDto(row, getVietnamToday());
 }
 
 function throwSaveError(outcome) {
@@ -191,7 +271,18 @@ async function create(input, user) {
 
 async function update(rawId, input) {
   const id = parseId(rawId);
-  const values = validateProgram(input);
+  let updateInput = input;
+  if (input != null && typeof input === "object" && !Array.isArray(input)) {
+    const existing = await db.findProgramById(id);
+    updateInput = { ...input };
+    if (!Object.prototype.hasOwnProperty.call(input, "start_date")) {
+      updateInput.start_date = existing?.start_date ?? null;
+    }
+    if (!Object.prototype.hasOwnProperty.call(input, "end_date")) {
+      updateInput.end_date = existing?.end_date ?? null;
+    }
+  }
+  const values = validateProgram(updateInput);
   if (!(await db.findDepartmentById(values.departmentId))) {
     throw new HttpError(404, "Phòng ban không tồn tại!");
   }
@@ -214,8 +305,13 @@ async function remove(rawId) {
 module.exports = {
   STATUSES,
   MAX_CAPACITY,
+  MAX_PROGRAM_DURATION_DAYS,
+  TIME_STATES,
   parseId,
   validDate,
+  dateOrdinal,
+  getVietnamToday,
+  calculateProgramTime,
   validateProgram,
   toDto,
   departments,
