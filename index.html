@@ -1010,6 +1010,7 @@
       .program-modal { max-width:620px; }
       .program-error { color:#b91c1c; min-height:20px; margin:8px 0; }
       .program-status { display:inline-block; border-radius:12px; padding:3px 9px; background:#e0e7ff; color:#3730a3; font-size:12px; }
+      .program-time-badge { display:inline-block; margin-left:6px; border-radius:12px; padding:3px 9px; background:#ecfeff; color:#155e75; font-size:12px; white-space:nowrap; }
       .program-modal .modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
       .program-modal .btn-close { border:0; background:transparent; color:#64748b; font-size:26px; line-height:1; cursor:pointer; }
       .program-table-responsive { width:100%; overflow-x:auto; }
@@ -2849,6 +2850,7 @@
         <div class="program-toolbar">
           <select id="programFilterDepartment" class="form-control" onchange="programLoad()"><option value="">Tất cả phòng ban</option></select>
           <select id="programFilterStatus" class="form-control" onchange="programLoad()"><option value="">Tất cả trạng thái</option><option>DRAFT</option><option>OPEN</option><option>ONGOING</option><option>CLOSED</option></select>
+          <select id="programFilterTimeState" class="form-control" onchange="programLoad()"><option value="">Mọi thời điểm</option><option value="UPCOMING">Sắp diễn ra</option><option value="RUNNING">Đang diễn ra</option><option value="ENDED">Đã kết thúc</option><option value="UNSCHEDULED">Chưa đặt lịch</option></select>
           <button id="programAddButton" class="btn btn-primary" onclick="programOpenModal()">Thêm chương trình</button>
         </div>
         <div class="program-table-responsive"><table class="table"><thead><tr><th>Tên</th><th>Phòng ban</th><th>Thời gian</th><th>Số lượng</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="programRows"><tr><td colspan="6">Đang tải...</td></tr></tbody></table></div>
@@ -3020,7 +3022,7 @@
           <label>Tên chương trình<input id="programName" class="form-control" maxlength="255" required></label>
           <label>Phòng ban<div class="program-toolbar"><select id="programDepartment" class="form-control" required></select><button type="button" class="btn btn-outline-primary" onclick="programQuickDepartment()">Thêm phòng ban</button></div></label>
           <label>Mô tả<textarea id="programDescription" class="form-control" maxlength="2000"></textarea></label>
-          <div class="program-toolbar"><label>Ngày bắt đầu<input id="programStartDate" class="form-control" type="date"></label><label>Ngày kết thúc<input id="programEndDate" class="form-control" type="date"></label><label>Số lượng<input id="programCapacity" class="form-control" type="number" min="1"></label></div>
+          <div class="program-toolbar"><label>Ngày bắt đầu<input id="programStartDate" class="form-control" type="date" onchange="programUpdateDateConstraints()"></label><label>Ngày kết thúc<input id="programEndDate" class="form-control" type="date"></label><label>Số lượng<input id="programCapacity" class="form-control" type="number" min="1"></label></div>
           <label>Trạng thái<select id="programStatus" class="form-control"><option value="DRAFT">DRAFT</option><option value="OPEN">OPEN</option><option value="ONGOING">ONGOING</option><option value="CLOSED">CLOSED</option></select></label>
           <div id="programError" class="program-error"></div><div class="modal-actions"><button type="button" class="btn btn-secondary" onclick="programCloseModal()">Hủy</button><button id="programSubmit" class="btn btn-primary">Lưu</button></div>
         </form>
@@ -5555,6 +5557,7 @@
       }
       let programItems = [];
       let programDepartments = [];
+      const programMaxDurationDays = 730;
 
       async function programRequest(url, options = {}) {
         const response = await fetch(`${API_BASE}${url}`, {
@@ -5592,8 +5595,10 @@
           const params = new URLSearchParams();
           const departmentId = document.getElementById("programFilterDepartment").value;
           const status = document.getElementById("programFilterStatus").value;
+          const timeState = document.getElementById("programFilterTimeState").value;
           if (departmentId) params.set("department_id", departmentId);
           if (status) params.set("status", status);
+          if (timeState) params.set("time_state", timeState);
 
           programItems = await programRequest(`/programs${params.size ? `?${params}` : ""}`);
           const editable = currentRole === "HR";
@@ -5613,10 +5618,20 @@
           : "";
         const capacity = program.capacity == null ? "—" : Number(program.capacity);
 
+        const timeStateLabels = {
+          UPCOMING: "Sắp diễn ra",
+          RUNNING: "Đang diễn ra",
+          ENDED: "Đã kết thúc",
+          UNSCHEDULED: "Chưa đặt lịch",
+        };
+        const period = program.time_state === "UNSCHEDULED"
+          ? "Chưa đặt lịch"
+          : `${escapeHtml(programFormatDate(program.start_date))} – ${escapeHtml(programFormatDate(program.end_date))} · ${escapeHtml(program.duration_days)} ngày`;
+
         return `<tr>
           <td>${escapeHtml(program.name)}</td>
           <td>${escapeHtml(program.department_name)}</td>
-          <td>${escapeHtml(program.start_date || "—")} – ${escapeHtml(program.end_date || "—")}</td>
+          <td>${period}<span class="program-time-badge">${escapeHtml(timeStateLabels[program.time_state] || program.time_state)}</span></td>
           <td>${capacity}</td>
           <td><span class="program-status">${escapeHtml(program.status)}</span></td>
           <td>${actions}</td>
@@ -5634,7 +5649,54 @@
         document.getElementById("programCapacity").value = item?.capacity ?? "";
         document.getElementById("programStatus").value = item?.status || "DRAFT";
         document.getElementById("programDepartment").value = item?.department_id || programDepartments[0]?.id || "";
+        programUpdateDateConstraints();
         document.getElementById("programModal").style.display = "flex";
+      }
+
+      function programFormatDate(value) {
+        if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "—";
+        const [year, month, day] = value.split("-");
+        return `${day}/${month}/${year}`;
+      }
+
+      function programDateOrdinal(value) {
+        if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+        const parsed = new Date(`${value}T00:00:00Z`);
+        if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) return null;
+        return Math.floor(parsed.getTime() / 86400000);
+      }
+
+      function programUpdateDateConstraints() {
+        const startDate = document.getElementById("programStartDate").value;
+        document.getElementById("programEndDate").min = startDate;
+      }
+
+      function programValidateDateForm() {
+        const startDate = document.getElementById("programStartDate").value;
+        const endDate = document.getElementById("programEndDate").value;
+        const status = document.getElementById("programStatus").value;
+        const error = document.getElementById("programError");
+        const start = startDate ? programDateOrdinal(startDate) : null;
+        const end = endDate ? programDateOrdinal(endDate) : null;
+        error.innerText = "";
+
+        if ((status === "OPEN" || status === "ONGOING") && (!startDate || !endDate)) {
+          error.innerText = "Chương trình OPEN hoặc ONGOING phải có đủ ngày bắt đầu và kết thúc!";
+          return false;
+        }
+        if ((startDate && start == null) || (endDate && end == null)) {
+          error.innerText = "Ngày phải đúng định dạng YYYY-MM-DD và là ngày có thật!";
+          return false;
+        }
+        if (start != null && end != null && end < start) {
+          error.innerText = "Ngày kết thúc không được trước ngày bắt đầu!";
+          return false;
+        }
+        if (start != null && end != null && end - start + 1 > programMaxDurationDays) {
+          error.innerText = `Thời lượng chương trình không được vượt quá ${programMaxDurationDays} ngày!`;
+          return false;
+        }
+        return true;
       }
 
       function programEdit(id) {
@@ -5648,6 +5710,8 @@
 
       async function programSave(event) {
         event.preventDefault();
+        programUpdateDateConstraints();
+        if (!programValidateDateForm()) return;
         const id = document.getElementById("programId").value;
         const payload = {
           name: document.getElementById("programName").value,
