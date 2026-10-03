@@ -138,10 +138,42 @@ CREATE TABLE IF NOT EXISTS `internship_contracts` (
     `uploaded_by` BIGINT NULL,
     `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `confirmation_status` ENUM('PENDING', 'CONFIRMED') NOT NULL DEFAULT 'PENDING',
+    `confirmed_at` DATETIME NULL,
+    `confirmed_by` BIGINT NULL,
     INDEX `idx_contract_intern` (`intern_id`),
+    INDEX `idx_contract_confirmed_by` (`confirmed_by`),
     FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+    FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_contract_confirmed_by` FOREIGN KEY (`confirmed_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Bảng mới cho kế hoạch chương trình thực tập; không thay đổi bảng hiện có.
+CREATE TABLE IF NOT EXISTS `departments` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(150) NOT NULL COLLATE utf8mb4_unicode_ci,
+  `description` TEXT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_departments_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `internship_programs` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `department_id` INT NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `description` TEXT NULL,
+  `start_date` DATE NULL,
+  `end_date` DATE NULL,
+  `capacity` INT NULL,
+  CONSTRAINT `chk_program_capacity` CHECK (`capacity` IS NULL OR `capacity` >= 1),
+  `status` ENUM('DRAFT','OPEN','ONGOING','CLOSED') NOT NULL DEFAULT 'DRAFT',
+  `created_by` BIGINT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT `fk_program_department` FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_program_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  INDEX `idx_program_department_status` (`department_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ==============================================================================
 -- DỮ LIỆU MẪU BAN ĐẦU (SEED DATA)

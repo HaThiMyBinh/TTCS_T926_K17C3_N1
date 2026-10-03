@@ -16,12 +16,14 @@ const DEMO_UPLOADS_DIR = path.join(DEMO_DIR, "uploads");
 
 // Thứ tự cha -> con (xóa thì đi ngược lại)
 const TABLES = [
+  "departments",
   "users",
   "candidate_profiles",
   "mentors",
   "intern_profiles",
   "application_documents",
   "internship_contracts",
+  "internship_programs",
 ];
 const FILE_TABLES = ["application_documents", "internship_contracts"];
 const DATE_ONLY_COLUMNS = new Set(["start_date", "end_date"]);

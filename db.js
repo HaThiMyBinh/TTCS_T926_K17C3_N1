@@ -64,6 +64,21 @@ function getPool() {
   return requireDb();
 }
 
+async function seedDepartmentsFromMentors(targetPool = requireDb()) {
+  const [departmentCount] = await targetPool.query("SELECT COUNT(*) AS total FROM departments");
+  if (Number(departmentCount[0].total) > 0) return false;
+  await targetPool.query(`INSERT IGNORE INTO departments (name)
+    SELECT DISTINCT TRIM(department) FROM mentors
+    WHERE department IS NOT NULL AND TRIM(department) <> ''`);
+  return true;
+}
+
+async function closePool() {
+  if (pool) await pool.end();
+  pool = null;
+  isMysqlConnected = false;
+}
+
 function nowISO() {
   return new Date().toISOString();
 }
@@ -182,6 +197,10 @@ async function ensureIndex(table, indexName, columnName) {
 
 // Khởi tạo kết nối MySQL, tạo bảng & seed dữ liệu mặc định nếu chưa có
 async function initDatabase() {
+  // Repeated initialization replaces the previous pool instead of leaking it.
+  if (pool) await pool.end();
+  pool = null;
+  isMysqlConnected = false;
   // 1. Kết nối không chọn DB để tạo DB nếu chưa tồn tại
   const rootConn = await mysql.createConnection({
     host: config.host,
@@ -372,6 +391,32 @@ async function initDatabase() {
     "fk_contract_confirmed_by",
     "FOREIGN KEY (`confirmed_by`) REFERENCES `users`(`id`) ON DELETE SET NULL",
   );
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS departments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL COLLATE utf8mb4_unicode_ci,
+    description TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_departments_name (name)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS internship_programs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    department_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    start_date DATE NULL,
+    end_date DATE NULL,
+    capacity INT NULL,
+    CONSTRAINT chk_program_capacity CHECK (capacity IS NULL OR capacity >= 1),
+    status ENUM('DRAFT','OPEN','ONGOING','CLOSED') NOT NULL DEFAULT 'DRAFT',
+    created_by BIGINT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_program_department FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_program_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_program_department_status (department_id, status)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await seedDepartmentsFromMentors(pool);
 
   // Seed dữ liệu mặc định: roles, permissions, role_permissions
   await pool.query(`
@@ -1543,9 +1588,206 @@ async function confirmContractAtomic(internId, contractId, userId) {
   });
 }
 
+async function listDepartments() {
+  const [rows] = await requireDb().query(
+    "SELECT id, name, description, created_at FROM departments ORDER BY name",
+  );
+  return rows;
+}
+
+async function findDepartmentByName(name) {
+  const [rows] = await requireDb().query(
+    "SELECT id, name, description, created_at FROM departments WHERE name = ? LIMIT 1",
+    [name],
+  );
+  return rows[0] || null;
+}
+
+async function findDepartmentById(id) {
+  const [rows] = await requireDb().query(
+    "SELECT id, name FROM departments WHERE id = ? LIMIT 1",
+    [id],
+  );
+  return rows[0] || null;
+}
+
+async function insertDepartment({ name, description }) {
+  const [result] = await requireDb().query(
+    "INSERT INTO departments (name, description) VALUES (?, ?)",
+    [name, description || null],
+  );
+  return findDepartmentById(result.insertId);
+}
+
+async function deleteDepartment(id) {
+  return withTransaction(async (conn) => {
+    const [rows] = await conn.query("SELECT id FROM departments WHERE id = ? FOR UPDATE", [id]);
+    if (!rows.length) return "NOT_FOUND";
+    const [programs] = await conn.query("SELECT id FROM internship_programs WHERE department_id = ? LIMIT 1", [id]);
+    if (programs.length) return "IN_USE";
+    await conn.query("DELETE FROM departments WHERE id = ?", [id]);
+    return "DELETED";
+  });
+}
+const PROGRAM_SELECT = `SELECT p.id, p.department_id, d.name AS department_name, p.name, p.description,
+  p.start_date, p.end_date, p.capacity, p.status, p.created_by, p.created_at, p.updated_at
+  FROM internship_programs p JOIN departments d ON d.id = p.department_id`;
+async function listPrograms({ departmentId, status } = {}) {
+  const where = [];
+  const values = [];
+
+  if (departmentId) {
+    where.push("p.department_id = ?");
+    values.push(departmentId);
+  }
+  if (status) {
+    where.push("p.status = ?");
+    values.push(status);
+  }
+
+  const whereSql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+  const [rows] = await requireDb().query(
+    `${PROGRAM_SELECT}${whereSql} ORDER BY p.created_at DESC, p.id DESC`,
+    values,
+  );
+  return rows;
+}
+
+async function findProgramById(id) {
+  const [rows] = await requireDb().query(
+    `${PROGRAM_SELECT} WHERE p.id = ? LIMIT 1`,
+    [id],
+  );
+  return rows[0] || null;
+}
+async function saveProgramAtomic(value, { id = null, createdBy = null } = {}) {
+  const conn = await requireDb().getConnection();
+  let lockAcquired = false;
+  let transactionOpen = false;
+
+  try {
+    await conn.beginTransaction();
+    transactionOpen = true;
+
+    if (id != null) {
+      const [existing] = await conn.query(
+        "SELECT id FROM internship_programs WHERE id = ? FOR UPDATE",
+        [id],
+      );
+      if (existing.length === 0) {
+        await conn.rollback();
+        transactionOpen = false;
+        return { outcome: "NOT_FOUND" };
+      }
+    }
+
+    // Serialize writes for the same department/name until the transaction commits.
+    const [lockRows] = await conn.query(
+      "SELECT GET_LOCK(CONCAT('program:', ?, ':', MD5(LOWER(?))), 10) AS acquired",
+      [value.departmentId, value.name],
+    );
+    lockAcquired = Number(lockRows[0]?.acquired) === 1;
+    if (!lockAcquired) {
+      await conn.rollback();
+      transactionOpen = false;
+      return { outcome: "LOCK_TIMEOUT" };
+    }
+
+    const [duplicates] = await conn.query(
+      `SELECT id FROM internship_programs
+       WHERE department_id = ? AND LOWER(name) = LOWER(?)
+         AND (end_date IS NULL OR ? IS NULL OR end_date >= ?)
+         AND (start_date IS NULL OR ? IS NULL OR start_date <= ?)
+         AND (? IS NULL OR id <> ?)
+       LIMIT 1 FOR UPDATE`,
+      [
+        value.departmentId,
+        value.name,
+        value.startDate,
+        value.startDate,
+        value.endDate,
+        value.endDate,
+        id,
+        id,
+      ],
+    );
+    if (duplicates.length > 0) {
+      await conn.rollback();
+      transactionOpen = false;
+      return { outcome: "DUPLICATE" };
+    }
+
+    if (id == null) {
+      const [result] = await conn.query(
+        `INSERT INTO internship_programs
+          (department_id, name, description, start_date, end_date, capacity, status, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          value.departmentId,
+          value.name,
+          value.description || null,
+          value.startDate,
+          value.endDate,
+          value.capacity,
+          value.status,
+          createdBy,
+        ],
+      );
+      id = result.insertId;
+    } else {
+      await conn.query(
+        `UPDATE internship_programs
+         SET department_id = ?, name = ?, description = ?, start_date = ?,
+             end_date = ?, capacity = ?, status = ?
+         WHERE id = ?`,
+        [
+          value.departmentId,
+          value.name,
+          value.description || null,
+          value.startDate,
+          value.endDate,
+          value.capacity,
+          value.status,
+          id,
+        ],
+      );
+    }
+
+    await conn.commit();
+    transactionOpen = false;
+    return { outcome: "SAVED", id };
+  } catch (err) {
+    if (transactionOpen) await conn.rollback();
+    throw err;
+  } finally {
+    if (lockAcquired) {
+      try {
+        await conn.query(
+          "SELECT RELEASE_LOCK(CONCAT('program:', ?, ':', MD5(LOWER(?))))",
+          [value.departmentId, value.name],
+        );
+      } catch {
+        // Closing a broken connection releases its named locks automatically.
+      }
+    }
+    conn.release();
+  }
+}
+async function deleteProgram(id) {
+  return withTransaction(async (conn) => {
+    const [rows] = await conn.query("SELECT status FROM internship_programs WHERE id = ? FOR UPDATE", [id]);
+    if (!rows.length) return "NOT_FOUND";
+    if (rows[0].status === "ONGOING") return "ONGOING";
+    await conn.query("DELETE FROM internship_programs WHERE id = ?", [id]);
+    return "DELETED";
+  });
+}
+
 module.exports = {
   initDatabase,
   getPool,
+  seedDepartmentsFromMentors,
+  closePool,
   findUserByEmail,
   findUserForLogin,
   insertUser,
@@ -1583,4 +1825,13 @@ module.exports = {
   findContractById,
   deleteContract,
   confirmContractAtomic,
+  listDepartments,
+  findDepartmentByName,
+  findDepartmentById,
+  insertDepartment,
+  deleteDepartment,
+  listPrograms,
+  findProgramById,
+  saveProgramAtomic,
+  deleteProgram,
 };

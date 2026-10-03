@@ -12,6 +12,7 @@ const authRouter = require("./routes/auth.routes");
 const mentorsRouter = require("./routes/mentors.routes");
 const internsRouter = require("./routes/interns.routes");
 const contractsRouter = require("./routes/contracts.routes");
+const programsRouter = require("./routes/programs.routes");
 const {
   applicationEvents,
   REVIEWED_EVENT,
@@ -48,6 +49,7 @@ app.use("/api/email", emailRouter);
 app.use("/api", mentorsRouter);
 app.use("/api", internsRouter);
 app.use("/api", contractsRouter);
+app.use("/api", programsRouter);
 
 app.get("/login", (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "login.html"));
@@ -89,6 +91,13 @@ async function start() {
     await loadDemoIfNeeded(db.getPool());
   } catch (err) {
     console.error("[DEMO] Không nạp được dữ liệu demo:", err.message);
+  }
+
+  // Gói demo cũ không có departments; nạp lại danh mục từ mentors nếu đang trống.
+  try {
+    await db.seedDepartmentsFromMentors();
+  } catch (err) {
+    console.error("[DATABASE] Không thể nạp danh mục phòng ban:", err.message);
   }
 
   try {
