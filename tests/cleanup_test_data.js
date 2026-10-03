@@ -8,6 +8,7 @@ const TEST_EMAIL_PREFIXES = [
   "us7_", // test_applications.js
   "us9_", // test_documents_api.js
   "contract_test_", // test_contracts_api.js
+  "contract_confirm_", // test_contract_confirm_api.js
   "test_email_", // test_email_api.js
   "candidate_", // test_register.js
   "dup_", // test_register.js
@@ -17,6 +18,7 @@ const TEST_EMAIL_PREFIXES = [
   "auto_hr_", // test_create_account.js
   "auto_mentor_", // test_create_account.js
   "trung_email_", // test_create_account.js
+  "program_test_", // test_programs_api.js — chỉ bản ghi có tiền tố này
 ];
 
 (async () => {
