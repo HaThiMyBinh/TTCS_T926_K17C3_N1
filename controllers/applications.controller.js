@@ -3,7 +3,9 @@ const { HttpError } = require("../errors");
 
 function sendError(res, err) {
   if (err instanceof HttpError) {
-    return res.status(err.status).json({ success: false, message: err.message });
+    return res
+      .status(err.status)
+      .json({ success: false, message: err.message });
   }
   console.error("[APPLICATIONS]", err);
   return res
@@ -14,7 +16,11 @@ function sendError(res, err) {
 async function list(req, res) {
   try {
     const data = await service.listApplications(req.user);
-    res.json({ success: true, message: "Lấy danh sách hồ sơ thành công!", data });
+    res.json({
+      success: true,
+      message: "Lấy danh sách hồ sơ thành công!",
+      data,
+    });
   } catch (err) {
     sendError(res, err);
   }

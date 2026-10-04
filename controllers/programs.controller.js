@@ -5,7 +5,8 @@ function sendError(res, err) {
   const status = err instanceof HttpError ? err.status : 500;
   if (status === 500) console.error("[PROGRAMS]", err);
 
-  const message = status === 500 ? "Lỗi server, vui lòng thử lại sau!" : err.message;
+  const message =
+    status === 500 ? "Lỗi server, vui lòng thử lại sau!" : err.message;
   return res.status(status).json({
     success: false,
     message,
@@ -26,7 +27,11 @@ async function run(res, work, message, status = 200) {
 }
 
 function departments(req, res) {
-  return run(res, () => service.departments(), "Lấy danh sách phòng ban thành công!");
+  return run(
+    res,
+    () => service.departments(),
+    "Lấy danh sách phòng ban thành công!",
+  );
 }
 
 function addDepartment(req, res) {

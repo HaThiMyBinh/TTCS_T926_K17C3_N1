@@ -34,7 +34,11 @@ async function list(req, res) {
 async function listMine(req, res) {
   try {
     const data = await service.listForIntern(req.user);
-    return res.json({ success: true, message: "Lấy danh sách hợp đồng thành công!", data });
+    return res.json({
+      success: true,
+      message: "Lấy danh sách hợp đồng thành công!",
+      data,
+    });
   } catch (err) {
     return sendError(res, err);
   }
@@ -42,8 +46,15 @@ async function listMine(req, res) {
 
 async function confirmMine(req, res) {
   try {
-    const data = await service.confirmForIntern(req.user, req.params.contractId);
-    return res.json({ success: true, message: "Bạn đã xác nhận hợp đồng thành công!", data });
+    const data = await service.confirmForIntern(
+      req.user,
+      req.params.contractId,
+    );
+    return res.json({
+      success: true,
+      message: "Bạn đã xác nhận hợp đồng thành công!",
+      data,
+    });
   } catch (err) {
     return sendError(res, err);
   }
@@ -80,7 +91,10 @@ async function download(req, res) {
 
 async function downloadMine(req, res) {
   try {
-    const file = await service.getDownloadForIntern(req.user, req.params.contractId);
+    const file = await service.getDownloadForIntern(
+      req.user,
+      req.params.contractId,
+    );
     return sendContractFile(req, res, file);
   } catch (err) {
     return sendError(res, err);
@@ -97,14 +111,18 @@ function sendContractFile(req, res, file) {
       if (err.code === "ENOENT") {
         return sendError(
           res,
-          new HttpError(404, "File hợp đồng không còn trên máy chủ. Vui lòng liên hệ HR để được hỗ trợ!"),
+          new HttpError(
+            404,
+            "File hợp đồng không còn trên máy chủ. Vui lòng liên hệ HR để được hỗ trợ!",
+          ),
         );
       }
       sendError(res, new HttpError(500, "Lỗi khi truyền file về trình duyệt!"));
     }
   };
 
-  const canDisplayInline = req.query.disposition === "inline" && file.mimeType === "application/pdf";
+  const canDisplayInline =
+    req.query.disposition === "inline" && file.mimeType === "application/pdf";
   if (canDisplayInline) {
     const asciiName = file.originalName.replace(/[^ -~]|["\\]/g, "_");
     res.setHeader(
@@ -129,4 +147,13 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { list, listMine, upload, download, downloadMine, confirmMine, remove, sendError };
+module.exports = {
+  list,
+  listMine,
+  upload,
+  download,
+  downloadMine,
+  confirmMine,
+  remove,
+  sendError,
+};
