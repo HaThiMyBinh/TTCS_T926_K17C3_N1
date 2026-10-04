@@ -4,19 +4,17 @@ const { requireRole } = require("../auth");
 const { sendRouteError } = require("../errors");
 const { trimOrDefault } = require("../utils/request");
 const router = express.Router();
-router.get(
-  "/mentors/me/interns",
-  requireRole("Mentor"),
-  async (req, res) => {
-    try {
-      const students = await db.getStudentsForMentorEmail(req.user.email);
-      res.json(students);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Lỗi đọc danh sách thực tập sinh của mentor!" });
-    }
-  },
-);
+router.get("/mentors/me/interns", requireRole("Mentor"), async (req, res) => {
+  try {
+    const students = await db.getStudentsForMentorEmail(req.user.email);
+    res.json(students);
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json({ error: "Lỗi đọc danh sách thực tập sinh của mentor!" });
+  }
+});
 
 router.get(
   "/mentors",
@@ -108,5 +106,3 @@ router.delete("/mentors/:id", requireRole("Admin", "HR"), async (req, res) => {
 });
 
 module.exports = router;
-
-

@@ -117,7 +117,4 @@ router.get("/stats", checkPermission("MANAGE_USERS"), async (req, res) => {
   }
 });
 
-
 module.exports = router;
-
-

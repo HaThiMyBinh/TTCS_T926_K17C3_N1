@@ -2,7 +2,9 @@ const express = require("express");
 const db = require("../db");
 const { requireRole } = require("../auth");
 const { sendRouteError } = require("../errors");
-const { attachApplicationsToStudents } = require("../services/applications.service");
+const {
+  attachApplicationsToStudents,
+} = require("../services/applications.service");
 const { trimOrDefault } = require("../utils/request");
 const contractsService = require("../services/contracts.service");
 const router = express.Router();
@@ -12,9 +14,10 @@ const router = express.Router();
 async function handleGetInterns(req, res) {
   try {
     if (req.user.role === "Mentor") {
-      const students = req.query.unassigned === "true"
-        ? []
-        : await db.getStudentsForMentorEmail(req.user.email);
+      const students =
+        req.query.unassigned === "true"
+          ? []
+          : await db.getStudentsForMentorEmail(req.user.email);
       return res.json(students);
     }
 
@@ -24,7 +27,9 @@ async function handleGetInterns(req, res) {
     });
     // US10: chỉ HR nhận kèm hồ sơ ứng tuyển + tài liệu của từng thực tập sinh
     res.json(
-      req.user.role === "HR" ? await attachApplicationsToStudents(students) : students,
+      req.user.role === "HR"
+        ? await attachApplicationsToStudents(students)
+        : students,
     );
   } catch (err) {
     console.error(err);
@@ -32,11 +37,7 @@ async function handleGetInterns(req, res) {
   }
 }
 router.get("/interns", requireRole("Admin", "HR", "Mentor"), handleGetInterns);
-router.get(
-  "/students",
-  requireRole("Admin", "HR", "Mentor"),
-  handleGetInterns,
-);
+router.get("/students", requireRole("Admin", "HR", "Mentor"), handleGetInterns);
 
 // PUT /api/interns/:id/mentor — HR quản lý phân công mentor.
 router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
@@ -60,7 +61,9 @@ router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
       !Number.isSafeInteger(mentorId) ||
       mentorId < 1)
   ) {
-    return res.status(400).json({ error: "Mã mentor phải là số nguyên dương hoặc null!" });
+    return res
+      .status(400)
+      .json({ error: "Mã mentor phải là số nguyên dương hoặc null!" });
   }
 
   try {
@@ -71,7 +74,10 @@ router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
     if (result.outcome === "MENTOR_NOT_FOUND") {
       return res.status(404).json({ error: "Không tìm thấy mentor!" });
     }
-    return res.json({ message: "Cập nhật phân công mentor thành công!", student: result.student });
+    return res.json({
+      message: "Cập nhật phân công mentor thành công!",
+      student: result.student,
+    });
   } catch (err) {
     return sendRouteError(res, err, "Lỗi cập nhật phân công mentor!");
   }
@@ -196,7 +202,11 @@ async function handleUpdateIntern(req, res) {
       intern: updated,
     });
   } catch (err) {
-    return sendRouteError(res, err, "Lỗi server khi cập nhật hồ sơ thực tập sinh!");
+    return sendRouteError(
+      res,
+      err,
+      "Lỗi server khi cập nhật hồ sơ thực tập sinh!",
+    );
   }
 }
 router.put("/interns/:id", requireRole("Admin", "HR"), handleUpdateIntern);
@@ -238,5 +248,3 @@ function isDuplicateStudentEmail(students, email, excludeId = null) {
 }
 
 module.exports = router;
-
-
