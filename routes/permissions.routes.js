@@ -1,4 +1,5 @@
 const express = require("express");
+const db = require("../db");
 const { requireRole } = require("../auth");
 const {
   PERMISSIONS_FILE,
@@ -60,59 +61,44 @@ router.post("/permissions/update", requireRole("Admin"), (req, res) => {
   }
 });
 
-router.get("/reports", checkPermission("VIEW_REPORTS"), (req, res) => {
-  res.json({
-    message: "Dữ liệu báo cáo thống kê đào tạo mật!",
-    data: [
-      { month: "Tháng 1", interns: 12, completed: 10 },
-      { month: "Tháng 2", interns: 15, completed: 14 },
-      { month: "Tháng 3", interns: 20, completed: 18 },
-    ],
-  });
+// Tỷ lệ phần trăm làm tròn; null khi chưa có mẫu số để tránh hiển thị 0% gây hiểu nhầm.
+function percent(part, whole) {
+  return whole > 0 ? Math.round((part / whole) * 100) : null;
+}
+
+router.get("/reports", checkPermission("VIEW_REPORTS"), async (req, res) => {
+  try {
+    const stats = await db.getOverviewStats();
+    const reviewed = stats.applications.approved + stats.applications.rejected;
+    res.json({
+      generatedAt: new Date().toISOString(),
+      ...stats,
+      rates: {
+        applicationApproval: percent(stats.applications.approved, reviewed),
+        contractConfirmation: percent(
+          stats.contracts.confirmed,
+          stats.contracts.total,
+        ),
+        internMentorAssigned: percent(
+          stats.interns.assigned,
+          stats.interns.total,
+        ),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi tải số liệu thống kê!" });
+  }
 });
 
+// Giao nhiệm vụ và nộp báo cáo công việc chưa có bảng dữ liệu/nghiệp vụ nên chưa được triển khai.
+// Endpoint chỉ giữ lại kiểm tra quyền và trả danh sách rỗng, không trả dữ liệu mẫu.
 router.get("/tasks", checkPermission("ASSIGN_TASKS"), (req, res) => {
-  res.json({
-    message: "Danh sách nhiệm vụ đào tạo thực tập sinh",
-    tasks: [
-      {
-        id: 1,
-        title: "Tìm hiểu kiến trúc MVC",
-        deadline: "2026-10-01",
-        status: "In Progress",
-      },
-      {
-        id: 2,
-        title: "Xây dựng RESTful API",
-        deadline: "2026-10-05",
-        status: "Todo",
-      },
-    ],
-  });
+  res.json({ implemented: false, tasks: [] });
 });
 
 router.get("/submissions", checkPermission("SUBMIT_WORK"), (req, res) => {
-  res.json({
-    message: "Danh sách báo cáo công việc của thực tập sinh",
-    submissions: [
-      {
-        id: 101,
-        title: "Báo cáo tuần 1: Tổng quan dự án",
-        date: "2026-09-20",
-        status: "Đã nộp",
-      },
-    ],
-  });
-});
-
-router.get("/settings", checkPermission("SYSTEM_SETTINGS"), (req, res) => {
-  res.json({
-    message: "Cài đặt tham số hệ thống nội bộ",
-    settings: { allowPublicRegistration: true, maxInternPerMentor: 5 },
-  });
+  res.json({ implemented: false, submissions: [] });
 });
 
 module.exports = router;
-
-
-

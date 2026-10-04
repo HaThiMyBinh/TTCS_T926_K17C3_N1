@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS `internship_contracts` (
     `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `confirmation_status` ENUM('PENDING', 'CONFIRMED') NOT NULL DEFAULT 'PENDING',
+    `program_id` BIGINT NULL,
     `confirmed_at` DATETIME NULL,
     `confirmed_by` BIGINT NULL,
     INDEX `idx_contract_intern` (`intern_id`),
@@ -176,6 +177,28 @@ CREATE TABLE IF NOT EXISTS `internship_programs` (
   CONSTRAINT `fk_program_department` FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_program_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL,
   INDEX `idx_program_department_status` (`department_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE `internship_contracts`
+  ADD CONSTRAINT `fk_contract_program` FOREIGN KEY (`program_id`) REFERENCES `internship_programs`(`id`) ON DELETE SET NULL;
+
+-- 12. BẢNG LỊCH THỰC TẬP CÁ NHÂN & KẾ HOẠCH ĐÀO TẠO (INTERN_SCHEDULES)
+CREATE TABLE IF NOT EXISTS `intern_schedules` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `intern_id` BIGINT NOT NULL,
+  `phase_order` INT NOT NULL DEFAULT 1,
+  `title` VARCHAR(255) NOT NULL,
+  `start_date` DATE NULL,
+  `end_date` DATE NULL,
+  `duration_weeks` VARCHAR(50) NULL,
+  `description` TEXT NULL,
+  `expected_results` TEXT NULL,
+  `status` ENUM('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_schedule_intern_phase` (`intern_id`, `phase_order`),
+  INDEX `idx_schedule_intern` (`intern_id`),
+  CONSTRAINT `fk_schedule_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ==============================================================================

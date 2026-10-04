@@ -80,16 +80,24 @@ async function listApplications(requester) {
 // Thực tập sinh chưa có hồ sơ ứng tuyển -> application: null, documents: [].
 async function attachApplicationsToStudents(students) {
   const emailOf = (s) => String(s.email || "").toLowerCase();
-  const apps = await db.findApplicationsByEmails([...new Set(students.map(emailOf).filter(Boolean))]);
+  const apps = await db.findApplicationsByEmails([
+    ...new Set(students.map(emailOf).filter(Boolean)),
+  ]);
   const appByEmail = new Map(apps.map((a) => [emailOf(a), toDto(a)]));
-  const docsByApp = await loadDocumentsByApplication([...appByEmail.values()].map((a) => a.id));
+  const docsByApp = await loadDocumentsByApplication(
+    [...appByEmail.values()].map((a) => a.id),
+  );
 
   return students.map((s) => {
     const app = appByEmail.get(emailOf(s));
     return {
       ...s,
       application: app
-        ? { id: app.id, status: app.status, rejection_reason: app.rejection_reason }
+        ? {
+            id: app.id,
+            status: app.status,
+            rejection_reason: app.rejection_reason,
+          }
         : null,
       documents: app ? docsByApp.get(app.id) || [] : [],
     };
@@ -158,7 +166,10 @@ async function changeStatus(
         reviewer,
       });
     } catch (emitErr) {
-      console.error("[APPLICATIONS] Lỗi khi phát sự kiện application.reviewed:", emitErr);
+      console.error(
+        "[APPLICATIONS] Lỗi khi phát sự kiện application.reviewed:",
+        emitErr,
+      );
     }
 
     return {
@@ -172,7 +183,10 @@ async function changeStatus(
 
   // Không có dòng nào đổi: xác định lý do (404 / 409 / 400 do tài liệu bị xóa lúc đang duyệt)
   await assertCanReview(id, requireDocs);
-  throw new HttpError(409, "Hồ sơ vừa được xử lý ở nơi khác, vui lòng tải lại danh sách!");
+  throw new HttpError(
+    409,
+    "Hồ sơ vừa được xử lý ở nơi khác, vui lòng tải lại danh sách!",
+  );
 }
 
 // Ném 404 (không tồn tại), 409 (không còn 'Chờ duyệt') hoặc 400 (duyệt khi thiếu tài liệu)

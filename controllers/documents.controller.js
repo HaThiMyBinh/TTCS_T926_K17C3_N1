@@ -66,7 +66,10 @@ async function downloadDocument(req, res) {
 
     const onDone = (err) => {
       if (err && !res.headersSent) {
-        sendError(res, new HttpError(500, "Lỗi khi truyền file về trình duyệt!"));
+        sendError(
+          res,
+          new HttpError(500, "Lỗi khi truyền file về trình duyệt!"),
+        );
       }
     };
 
@@ -89,7 +92,11 @@ async function downloadDocument(req, res) {
 async function listApplicationDocuments(req, res) {
   try {
     const data = await service.listApplicationDocuments(req.params.id);
-    res.json({ success: true, message: "Lấy tài liệu hồ sơ thành công!", ...data });
+    res.json({
+      success: true,
+      message: "Lấy tài liệu hồ sơ thành công!",
+      ...data,
+    });
   } catch (err) {
     sendError(res, err);
   }

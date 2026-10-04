@@ -1,4 +1,6 @@
 // Nội dung email thông báo kết quả xét duyệt
+const { formatVietnamDateTime } = require("../../utils/date");
+
 function escapeHtml(value) {
   return String(value ?? "").replace(
     /[&<>"']/g,
@@ -285,7 +287,7 @@ function renderTestEmail() {
     </p>
 
     <p style="margin: 20px 0 0; color: #475569;">
-      Thời gian kiểm tra: <b>${new Date().toLocaleString("vi-VN")}</b><br/>
+      Thời gian kiểm tra: <b>${formatVietnamDateTime()}</b><br/>
       Hệ thống: <b>${escapeHtml(BRAND_NAME)}</b>
     </p>
   `;
@@ -296,7 +298,7 @@ function renderTestEmail() {
     "Đây là email thử nghiệm từ Hệ thống Quản lý Thực tập sinh.",
     "Nếu bạn nhận được email này, cấu hình SMTP của bạn đã hoạt động hoàn toàn chính xác!",
     "",
-    `Thời gian kiểm tra: ${new Date().toLocaleString("vi-VN")}`,
+    `Thời gian kiểm tra: ${formatVietnamDateTime()}`,
   ].join("\n");
 
   return {

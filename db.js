@@ -4,7 +4,10 @@ const fs = require("fs");
 const path = require("path");
 const { hashPassword } = require("./auth");
 const fileStorage = require("./services/fileStorage");
-const { resolveUniqueMentorId } = require("./services/mentorAssignment.service");
+const {
+  resolveUniqueMentorId,
+} = require("./services/mentorAssignment.service");
+const { VIETNAM_UTC_OFFSET } = require("./utils/date");
 
 const CONFIG_FILE = path.join(__dirname, "db_config.json");
 
@@ -66,7 +69,9 @@ function getPool() {
 }
 
 async function seedDepartmentsFromMentors(targetPool = requireDb()) {
-  const [departmentCount] = await targetPool.query("SELECT COUNT(*) AS total FROM departments");
+  const [departmentCount] = await targetPool.query(
+    "SELECT COUNT(*) AS total FROM departments",
+  );
   if (Number(departmentCount[0].total) > 0) return false;
   await targetPool.query(`INSERT IGNORE INTO departments (name)
     SELECT DISTINCT TRIM(department) FROM mentors
@@ -111,9 +116,9 @@ const DEFAULT_INTERN_UNIVERSITY = "Chưa cập nhật";
 const DEFAULT_INTERN_STATUS = "Đang thực tập";
 // Tài khoản Intern đang là ứng viên chờ duyệt / bị từ chối chưa phải thực tập sinh chính thức
 const NON_INTERN_ACCOUNT_STATUSES = ["PENDING", "LOCKED"];
-const NON_INTERN_ACCOUNT_STATUSES_SQL = NON_INTERN_ACCOUNT_STATUSES
-  .map((status) => `'${status}'`)
-  .join(", ");
+const NON_INTERN_ACCOUNT_STATUSES_SQL = NON_INTERN_ACCOUNT_STATUSES.map(
+  (status) => `'${status}'`,
+).join(", ");
 // Mật khẩu mặc định của tài khoản được tạo tự động từ hồ sơ mentor / thực tập sinh
 const DEFAULT_ACCOUNT_PASSWORD = "password123";
 
@@ -216,6 +221,50 @@ async function ensureIndex(table, indexName, columnName) {
   );
 }
 
+async function ensureUniqueScheduleIndex() {
+  const [indexes] = await pool.query(
+    `SELECT INDEX_NAME AS indexName, NON_UNIQUE AS nonUnique,
+            GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS columnsList
+     FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'intern_schedules'
+     GROUP BY INDEX_NAME, NON_UNIQUE`,
+    [config.database],
+  );
+  const matchesColumns = (index) =>
+    Number(index.nonUnique) === 0 &&
+    index.columnsList === "intern_id,phase_order";
+  const correct = indexes.some(
+    (index) =>
+      index.indexName === "uq_schedule_intern_phase" && matchesColumns(index),
+  );
+  if (correct) return;
+  // Keep the lowest ID for each pair before adding the unique key.
+  await pool.query(`DELETE newer FROM intern_schedules newer
+    JOIN intern_schedules older ON older.intern_id = newer.intern_id
+      AND older.phase_order = newer.phase_order AND older.id < newer.id`);
+  const named = indexes.find(
+    (index) => index.indexName === "uq_schedule_intern_phase",
+  );
+  if (named)
+    await pool.query(
+      "ALTER TABLE intern_schedules DROP INDEX uq_schedule_intern_phase",
+    );
+  const existingUnique = indexes.find(
+    (index) =>
+      index.indexName !== "uq_schedule_intern_phase" && matchesColumns(index),
+  );
+  if (existingUnique) {
+    const oldName = String(existingUnique.indexName).replace(/`/g, "``");
+    await pool.query(
+      `ALTER TABLE intern_schedules RENAME INDEX \`${oldName}\` TO uq_schedule_intern_phase`,
+    );
+    return;
+  }
+  await pool.query(
+    "ALTER TABLE intern_schedules ADD UNIQUE KEY uq_schedule_intern_phase (intern_id, phase_order)",
+  );
+}
+
 // Khởi tạo kết nối MySQL, tạo bảng & seed dữ liệu mặc định nếu chưa có
 async function initDatabase() {
   // Repeated initialization replaces the previous pool instead of leaking it.
@@ -243,9 +292,14 @@ async function initDatabase() {
     password: config.password,
     database: config.database,
     dateStrings: ["DATE"],
+    // Cố định múi giờ Việt Nam cho cả phía Node (chuyển đổi Date) và phiên MySQL (NOW(), TIMESTAMP).
+    timezone: VIETNAM_UTC_OFFSET,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+  });
+  pool.on("connection", (connection) => {
+    connection.query(`SET time_zone = '${VIETNAM_UTC_OFFSET}'`);
   });
 
   // Tạo các bảng đúng theo thiết kế quan hệ trong schema.sql
@@ -396,6 +450,7 @@ async function initDatabase() {
       \`id\` BIGINT AUTO_INCREMENT PRIMARY KEY,
       \`intern_id\` BIGINT NOT NULL, \`title\` VARCHAR(255) NULL,
       \`start_date\` DATE NULL, \`end_date\` DATE NULL, \`note\` TEXT NULL,
+      \`program_id\` BIGINT NULL,
       \`original_name\` VARCHAR(255) NOT NULL, \`stored_name\` VARCHAR(255) NOT NULL,
       \`mime_type\` VARCHAR(100) NOT NULL, \`size_bytes\` BIGINT NOT NULL,
       \`uploaded_by\` BIGINT NULL, \`uploaded_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -418,7 +473,11 @@ async function initDatabase() {
   );
   await ensureColumn("internship_contracts", "confirmed_at", "DATETIME NULL");
   await ensureColumn("internship_contracts", "confirmed_by", "BIGINT NULL");
-  await ensureIndex("internship_contracts", "idx_contract_confirmed_by", "confirmed_by");
+  await ensureIndex(
+    "internship_contracts",
+    "idx_contract_confirmed_by",
+    "confirmed_by",
+  );
   await ensureForeignKey(
     "internship_contracts",
     "fk_contract_confirmed_by",
@@ -449,6 +508,33 @@ async function initDatabase() {
     CONSTRAINT fk_program_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_program_department_status (department_id, status)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+  await ensureColumn("internship_contracts", "program_id", "BIGINT NULL");
+  await ensureForeignKey(
+    "internship_contracts",
+    "fk_contract_program",
+    "FOREIGN KEY (\`program_id\`) REFERENCES internship_programs(id) ON DELETE SET NULL",
+  );
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS intern_schedules (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    intern_id BIGINT NOT NULL,
+    phase_order INT NOT NULL DEFAULT 1,
+    title VARCHAR(255) NOT NULL,
+    start_date DATE NULL,
+    end_date DATE NULL,
+    duration_weeks VARCHAR(50) NULL,
+    description TEXT NULL,
+    expected_results TEXT NULL,
+    status ENUM('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_schedule_intern_phase (intern_id, phase_order),
+    INDEX idx_schedule_intern (intern_id),
+    CONSTRAINT fk_schedule_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await ensureUniqueScheduleIndex();
+
   await seedDepartmentsFromMentors(pool);
 
   // Seed dữ liệu mặc định: roles, permissions, role_permissions
@@ -625,8 +711,13 @@ async function deleteUser(id) {
          WHERE LOWER(i.email) = LOWER(?) FOR UPDATE`,
         [user.email],
       );
-      if (rows.some((contract) => contract.confirmationStatus === "CONFIRMED")) {
-        throw new ConflictError("Không thể xóa tài khoản Intern vì hồ sơ có hợp đồng đã được xác nhận!", 409);
+      if (
+        rows.some((contract) => contract.confirmationStatus === "CONFIRMED")
+      ) {
+        throw new ConflictError(
+          "Không thể xóa tài khoản Intern vì hồ sơ có hợp đồng đã được xác nhận!",
+          409,
+        );
       }
       contracts = rows;
       await conn.query(
@@ -742,7 +833,15 @@ async function reviewApplicationAtomic({
        WHERE id = ? AND status = 'Chờ duyệt'
          AND (? = 0 OR (SELECT COUNT(DISTINCT doc_type) FROM application_documents
                         WHERE application_id = ?) >= ?)`,
-      [newStatus, rejectionReason, reviewerId, id, requiredDocs, id, requiredDocs],
+      [
+        newStatus,
+        rejectionReason,
+        reviewerId,
+        id,
+        requiredDocs,
+        id,
+        requiredDocs,
+      ],
     );
     if (result.affectedRows === 0) return null;
 
@@ -927,9 +1026,10 @@ async function updateMentor(
 async function deleteMentor(id) {
   const mentorRoleId = await getRoleId("Mentor");
   await withTransaction(async (conn) => {
-    const [rows] = await conn.query("SELECT email FROM mentors WHERE id = ? FOR UPDATE", [
-      id,
-    ]);
+    const [rows] = await conn.query(
+      "SELECT email FROM mentors WHERE id = ? FOR UPDATE",
+      [id],
+    );
     await conn.query(
       "UPDATE intern_profiles SET mentor_id = NULL, mentor_name = '' WHERE mentor_id = ?",
       [id],
@@ -1004,7 +1104,10 @@ async function syncMentorsWithAccounts() {
   );
 }
 
-async function getAllStudents({ includeContractCount = false, unassigned = false } = {}) {
+async function getAllStudents({
+  includeContractCount = false,
+  unassigned = false,
+} = {}) {
   const db = requireDb();
   const whereSql = unassigned ? "WHERE mentor_id IS NULL" : "";
   const [rows] = await db.query(
@@ -1206,8 +1309,13 @@ async function deleteStudent(id) {
        FROM internship_contracts WHERE intern_id = ? FOR UPDATE`,
       [id],
     );
-    if (contracts.some((contract) => contract.confirmationStatus === "CONFIRMED")) {
-      throw new ConflictError("Không thể xóa hồ sơ thực tập sinh vì có hợp đồng đã được xác nhận!", 409);
+    if (
+      contracts.some((contract) => contract.confirmationStatus === "CONFIRMED")
+    ) {
+      throw new ConflictError(
+        "Không thể xóa hồ sơ thực tập sinh vì có hợp đồng đã được xác nhận!",
+        409,
+      );
     }
     const [rows] = await conn.query(
       "SELECT email FROM intern_profiles WHERE id = ?",
@@ -1577,7 +1685,7 @@ async function deleteDocumentIfPending({ applicationId, docId }) {
 // --- HỢP ĐỒNG THỰC TẬP SINH ---
 const CONTRACT_COLUMNS =
   "id, intern_id AS internId, title, start_date AS startDate, " +
-  "end_date AS endDate, note, original_name AS originalName, " +
+  "end_date AS endDate, note, program_id AS programId, original_name AS originalName, " +
   "stored_name AS storedName, mime_type AS mimeType, " +
   "size_bytes AS sizeBytes, uploaded_by AS uploadedBy, " +
   "uploaded_at AS uploadedAt, updated_at AS updatedAt, " +
@@ -1586,7 +1694,10 @@ const CONTRACT_COLUMNS =
 
 async function findInternProfileById(id) {
   const [rows] = await requireDb().query(
-    "SELECT id FROM intern_profiles WHERE id = ? LIMIT 1",
+    `SELECT id, student_code AS studentCode, full_name AS fullName, email,
+            phone, university, major, mentor_name AS mentorName, mentor_id AS mentorId,
+            status, created_at AS createdAt
+     FROM intern_profiles WHERE id = ? LIMIT 1`,
     [id],
   );
   return rows[0] || null;
@@ -1594,9 +1705,138 @@ async function findInternProfileById(id) {
 
 async function findInternProfileByEmail(email) {
   const [rows] = await requireDb().query(
-    `SELECT id, email FROM intern_profiles
+    `SELECT id, student_code AS studentCode, full_name AS fullName, email,
+            phone, university, major, mentor_name AS mentorName, mentor_id AS mentorId,
+            status, created_at AS createdAt
+     FROM intern_profiles
      WHERE LOWER(email) = LOWER(?) LIMIT 1`,
     [email],
+  );
+  return rows[0] || null;
+}
+
+async function findMentorById(id) {
+  if (!id) return null;
+  const [rows] = await requireDb().query(
+    `SELECT id, full_name AS fullName, email, phone, department, specialization, created_at AS createdAt
+     FROM mentors WHERE id = ? LIMIT 1`,
+    [id],
+  );
+  return rows[0] || null;
+}
+
+async function findMentorByEmail(email) {
+  if (!email) return null;
+  const [rows] = await requireDb().query(
+    `SELECT id, full_name AS fullName, email, phone, department, specialization
+     FROM mentors WHERE LOWER(email) = LOWER(?) LIMIT 1`,
+    [email],
+  );
+  return rows[0] || null;
+}
+
+async function listScheduleMilestones(internId) {
+  const [rows] = await requireDb().query(
+    `SELECT id, intern_id AS internId, phase_order AS phaseOrder, title,
+            start_date AS startDate, end_date AS endDate, duration_weeks AS durationWeeks,
+            description, expected_results AS expectedResults, status,
+            created_at AS createdAt, updated_at AS updatedAt
+     FROM intern_schedules
+     WHERE intern_id = ?
+     ORDER BY phase_order ASC, start_date ASC, id ASC`,
+    [internId],
+  );
+  return rows;
+}
+
+async function insertScheduleMilestone(internId, milestone) {
+  const [result] = await requireDb().query(
+    `INSERT INTO intern_schedules (intern_id, phase_order, title, start_date, end_date, duration_weeks, description, expected_results, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      internId,
+      milestone.phase_order || 1,
+      milestone.title,
+      milestone.start_date || null,
+      milestone.end_date || null,
+      milestone.duration_weeks || null,
+      milestone.description || null,
+      milestone.expected_results || null,
+      milestone.status || "NOT_STARTED",
+    ],
+  );
+  return result.insertId;
+}
+
+async function insertScheduleMilestonesAtomic(internId, milestones) {
+  return withTransaction(async (conn) => {
+    const ids = [];
+    for (const milestone of milestones) {
+      const [result] = await conn.query(
+        `INSERT INTO intern_schedules (intern_id, phase_order, title, start_date, end_date, duration_weeks, description, expected_results, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          internId,
+          milestone.phase_order,
+          milestone.title,
+          milestone.start_date || null,
+          milestone.end_date || null,
+          milestone.duration_weeks || null,
+          milestone.description || null,
+          milestone.expected_results || null,
+          milestone.status || "NOT_STARTED",
+        ],
+      );
+      ids.push(result.insertId);
+    }
+    return ids;
+  });
+}
+
+async function updateScheduleMilestone(internId, milestoneId, milestone) {
+  const [result] = await requireDb().query(
+    `UPDATE intern_schedules
+     SET phase_order = COALESCE(?, phase_order),
+         title = COALESCE(?, title),
+         start_date = COALESCE(?, start_date),
+         end_date = COALESCE(?, end_date),
+         duration_weeks = COALESCE(?, duration_weeks),
+         description = COALESCE(?, description),
+         expected_results = COALESCE(?, expected_results),
+         status = COALESCE(?, status)
+     WHERE id = ? AND intern_id = ?`,
+    [
+      milestone.phase_order,
+      milestone.title,
+      milestone.start_date,
+      milestone.end_date,
+      milestone.duration_weeks,
+      milestone.description,
+      milestone.expected_results,
+      milestone.status,
+      milestoneId,
+      internId,
+    ],
+  );
+  return result.affectedRows > 0;
+}
+
+async function deleteScheduleMilestone(internId, milestoneId) {
+  const [result] = await requireDb().query(
+    `DELETE FROM intern_schedules WHERE id = ? AND intern_id = ?`,
+    [milestoneId, internId],
+  );
+  return result.affectedRows > 0;
+}
+
+async function findMilestoneById(milestoneId) {
+  const [rows] = await requireDb().query(
+    `SELECT id, intern_id AS internId, phase_order AS phaseOrder, title,
+            start_date AS startDate, end_date AS endDate, duration_weeks AS durationWeeks,
+            description, expected_results AS expectedResults, status,
+            created_at AS createdAt, updated_at AS updatedAt
+     FROM intern_schedules WHERE id = ? LIMIT 1`,
+    [milestoneId],
   );
   return rows[0] || null;
 }
@@ -1614,15 +1854,16 @@ async function insertContract(contract) {
   return withTransaction(async (conn) => {
     const [result] = await conn.query(
       `INSERT INTO internship_contracts
-         (intern_id, title, start_date, end_date, note, original_name,
+         (intern_id, title, start_date, end_date, note, program_id, original_name,
           stored_name, mime_type, size_bytes, uploaded_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         contract.internId,
         contract.title,
         contract.startDate,
         contract.endDate,
         contract.note,
+        contract.programId || null,
         contract.originalName,
         contract.storedName,
         contract.mimeType,
@@ -1735,9 +1976,15 @@ async function insertDepartment({ name, description }) {
 
 async function deleteDepartment(id) {
   return withTransaction(async (conn) => {
-    const [rows] = await conn.query("SELECT id FROM departments WHERE id = ? FOR UPDATE", [id]);
+    const [rows] = await conn.query(
+      "SELECT id FROM departments WHERE id = ? FOR UPDATE",
+      [id],
+    );
     if (!rows.length) return "NOT_FOUND";
-    const [programs] = await conn.query("SELECT id FROM internship_programs WHERE department_id = ? LIMIT 1", [id]);
+    const [programs] = await conn.query(
+      "SELECT id FROM internship_programs WHERE department_id = ? LIMIT 1",
+      [id],
+    );
     if (programs.length) return "IN_USE";
     await conn.query("DELETE FROM departments WHERE id = ?", [id]);
     return "DELETED";
@@ -1889,12 +2136,53 @@ async function saveProgramAtomic(value, { id = null, createdBy = null } = {}) {
 }
 async function deleteProgram(id) {
   return withTransaction(async (conn) => {
-    const [rows] = await conn.query("SELECT status FROM internship_programs WHERE id = ? FOR UPDATE", [id]);
+    const [rows] = await conn.query(
+      "SELECT status FROM internship_programs WHERE id = ? FOR UPDATE",
+      [id],
+    );
     if (!rows.length) return "NOT_FOUND";
     if (rows[0].status === "ONGOING") return "ONGOING";
     await conn.query("DELETE FROM internship_programs WHERE id = ?", [id]);
     return "DELETED";
   });
+}
+
+// Số liệu tổng quan cho tab Báo cáo & Thống kê: toàn bộ lấy từ dữ liệu thật trong DB.
+async function getOverviewStats() {
+  const db = requireDb();
+  const [[applications]] = await db.query(
+    `SELECT COUNT(*) AS total,
+            COALESCE(SUM(status = 'Chờ duyệt'), 0) AS pending,
+            COALESCE(SUM(status = 'Đã duyệt'), 0) AS approved,
+            COALESCE(SUM(status = 'Từ chối'), 0) AS rejected
+       FROM candidate_profiles`,
+  );
+  const [[interns]] = await db.query(
+    `SELECT COUNT(*) AS total,
+            COALESCE(SUM(mentor_id IS NOT NULL), 0) AS assigned
+       FROM intern_profiles`,
+  );
+  const [[contracts]] = await db.query(
+    `SELECT COUNT(*) AS total,
+            COALESCE(SUM(confirmation_status = 'CONFIRMED'), 0) AS confirmed
+       FROM internship_contracts`,
+  );
+  return {
+    applications: {
+      total: Number(applications.total),
+      pending: Number(applications.pending),
+      approved: Number(applications.approved),
+      rejected: Number(applications.rejected),
+    },
+    interns: {
+      total: Number(interns.total),
+      assigned: Number(interns.assigned),
+    },
+    contracts: {
+      total: Number(contracts.total),
+      confirmed: Number(contracts.confirmed),
+    },
+  };
 }
 
 module.exports = {
@@ -1951,4 +2239,13 @@ module.exports = {
   findProgramById,
   saveProgramAtomic,
   deleteProgram,
+  findMentorById,
+  findMentorByEmail,
+  listScheduleMilestones,
+  insertScheduleMilestone,
+  insertScheduleMilestonesAtomic,
+  updateScheduleMilestone,
+  deleteScheduleMilestone,
+  findMilestoneById,
+  getOverviewStats,
 };
