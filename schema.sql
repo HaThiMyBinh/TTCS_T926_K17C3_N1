@@ -85,8 +85,11 @@ CREATE TABLE IF NOT EXISTS `intern_profiles` (
     `university` VARCHAR(150) NULL,
     `major` VARCHAR(100) NULL,
     `mentor_name` VARCHAR(100) NULL,
+    `mentor_id` BIGINT NULL,
     `status` VARCHAR(50) DEFAULT 'Đang thực tập',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_intern_mentor_id` FOREIGN KEY (`mentor_id`) REFERENCES `mentors`(`id`) ON DELETE SET NULL,
+    INDEX `idx_intern_mentor_id` (`mentor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 8. BẢNG EMAIL_LOGS (Nhật ký gửi email thông báo kết quả xét duyệt )

@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { hashPassword } = require("./auth");
 const fileStorage = require("./services/fileStorage");
+const { resolveUniqueMentorId } = require("./services/mentorAssignment.service");
 
 const CONFIG_FILE = path.join(__dirname, "db_config.json");
 
@@ -71,6 +72,26 @@ async function seedDepartmentsFromMentors(targetPool = requireDb()) {
     SELECT DISTINCT TRIM(department) FROM mentors
     WHERE department IS NOT NULL AND TRIM(department) <> ''`);
   return true;
+}
+
+async function backfillInternMentorIds(targetPool = requireDb()) {
+  const [result] = await targetPool.query(`
+    UPDATE intern_profiles ip
+    JOIN (
+      SELECT ip_old.id, MIN(m.id) AS mentor_id
+      FROM intern_profiles ip_old
+      JOIN mentors m
+        ON LOWER(TRIM(m.full_name)) = LOWER(TRIM(ip_old.mentor_name))
+      WHERE ip_old.mentor_id IS NULL
+        AND ip_old.mentor_name IS NOT NULL
+        AND TRIM(ip_old.mentor_name) <> ''
+      GROUP BY ip_old.id
+      HAVING COUNT(DISTINCT m.id) = 1
+    ) resolved ON resolved.id = ip.id
+    SET ip.mentor_id = resolved.mentor_id
+    WHERE ip.mentor_id IS NULL
+  `);
+  return result.affectedRows;
 }
 
 async function closePool() {
@@ -311,10 +332,22 @@ async function initDatabase() {
       \`university\` VARCHAR(150) NULL,
       \`major\` VARCHAR(100) NULL,
       \`mentor_name\` VARCHAR(100) NULL,
+      \`mentor_id\` BIGINT NULL,
       \`status\` VARCHAR(50) DEFAULT 'Đang thực tập',
-      \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT \`fk_intern_mentor_id\` FOREIGN KEY (\`mentor_id\`) REFERENCES \`mentors\`(\`id\`) ON DELETE SET NULL,
+      INDEX \`idx_intern_mentor_id\` (\`mentor_id\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+
+  await ensureColumn("intern_profiles", "mentor_id", "BIGINT NULL");
+  await ensureIndex("intern_profiles", "idx_intern_mentor_id", "mentor_id");
+  await ensureForeignKey(
+    "intern_profiles",
+    "fk_intern_mentor_id",
+    "FOREIGN KEY (\`mentor_id\`) REFERENCES \`mentors\`(\`id\`) ON DELETE SET NULL",
+  );
+  await backfillInternMentorIds(pool);
 
   // cột phục vụ duyệt / từ chối hồ sơ
   await ensureColumn("candidate_profiles", "rejection_reason", "TEXT NULL");
@@ -845,7 +878,7 @@ async function updateMentor(
 ) {
   return withTransaction(async (conn) => {
     const [oldRows] = await conn.query(
-      "SELECT email FROM mentors WHERE id = ?",
+      "SELECT email FROM mentors WHERE id = ? FOR UPDATE",
       [id],
     );
     if (oldRows.length === 0) return null;
@@ -875,6 +908,10 @@ async function updateMentor(
       email,
       phone,
     });
+    await conn.query(
+      "UPDATE intern_profiles SET mentor_name = ? WHERE mentor_id = ?",
+      [fullName, id],
+    );
 
     const [rows] = await conn.query(
       `SELECT id, full_name AS fullName, email, phone, department, specialization,
@@ -890,9 +927,13 @@ async function updateMentor(
 async function deleteMentor(id) {
   const mentorRoleId = await getRoleId("Mentor");
   await withTransaction(async (conn) => {
-    const [rows] = await conn.query("SELECT email FROM mentors WHERE id = ?", [
+    const [rows] = await conn.query("SELECT email FROM mentors WHERE id = ? FOR UPDATE", [
       id,
     ]);
+    await conn.query(
+      "UPDATE intern_profiles SET mentor_id = NULL, mentor_name = '' WHERE mentor_id = ?",
+      [id],
+    );
     await conn.query("DELETE FROM mentors WHERE id = ?", [id]);
     if (rows.length > 0) {
       await conn.query(
@@ -963,15 +1004,69 @@ async function syncMentorsWithAccounts() {
   );
 }
 
-async function getAllStudents({ includeContractCount = false } = {}) {
+async function getAllStudents({ includeContractCount = false, unassigned = false } = {}) {
   const db = requireDb();
+  const whereSql = unassigned ? "WHERE mentor_id IS NULL" : "";
   const [rows] = await db.query(
     `SELECT id, student_code AS studentCode, full_name AS fullName, email, phone,
-            university, major, mentor_name AS mentorName, status, created_at AS createdAt
+            university, major, mentor_name AS mentorName, mentor_id AS mentorId,
+            status, created_at AS createdAt
             ${includeContractCount ? `, (SELECT COUNT(*) FROM internship_contracts c WHERE c.intern_id = intern_profiles.id) AS contract_count` : ""}
-     FROM intern_profiles ORDER BY id DESC`,
+     FROM intern_profiles ${whereSql} ORDER BY id DESC`,
   );
   return rows;
+}
+
+async function getStudentsForMentorEmail(email) {
+  const [rows] = await requireDb().query(
+    `SELECT ip.id, ip.student_code AS studentCode, ip.full_name AS fullName,
+            ip.email, ip.phone, ip.university, ip.major,
+            ip.mentor_name AS mentorName, ip.mentor_id AS mentorId,
+            ip.status, ip.created_at AS createdAt
+     FROM intern_profiles ip
+     JOIN mentors m ON m.id = ip.mentor_id
+     WHERE LOWER(m.email) = LOWER(?)
+     ORDER BY ip.id DESC`,
+    [email],
+  );
+  return rows;
+}
+
+async function assignInternMentor(internId, mentorId) {
+  try {
+    return await withTransaction(async (conn) => {
+      let mentorName = "";
+      if (mentorId != null) {
+        const [mentorRows] = await conn.query(
+          "SELECT full_name FROM mentors WHERE id = ? FOR UPDATE",
+          [mentorId],
+        );
+        if (mentorRows.length === 0) return { outcome: "MENTOR_NOT_FOUND" };
+        mentorName = mentorRows[0].full_name;
+      }
+
+      // Khóa mentor rồi đến intern, cùng thứ tự với luồng xóa để tránh race/deadlock.
+      const [internRows] = await conn.query(
+        "SELECT id FROM intern_profiles WHERE id = ? FOR UPDATE",
+        [internId],
+      );
+      if (internRows.length === 0) return { outcome: "INTERN_NOT_FOUND" };
+
+      await conn.query(
+        "UPDATE intern_profiles SET mentor_id = ?, mentor_name = ? WHERE id = ?",
+        [mentorId, mentorName, internId],
+      );
+      return {
+        outcome: "UPDATED",
+        student: { id: internId, mentorId, mentorName },
+      };
+    });
+  } catch (err) {
+    if (mentorId != null && err.code === "ER_NO_REFERENCED_ROW_2") {
+      return { outcome: "MENTOR_NOT_FOUND" };
+    }
+    throw err;
+  }
 }
 
 // Tạo hồ sơ thực tập sinh, kèm tài khoản Intern tương ứng nếu chưa có
@@ -987,9 +1082,15 @@ async function insertStudent({
 }) {
   const finalStatus = status || DEFAULT_INTERN_STATUS;
 
-  const insertId = await withTransaction(async (conn) => {
+  const inserted = await withTransaction(async (conn) => {
+    const [mentorRows] = await conn.query(
+      `SELECT id, full_name AS fullName FROM mentors
+       WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(?)) LIMIT 2`,
+      [mentorName || ""],
+    );
+    const mentorId = resolveUniqueMentorId(mentorName, mentorRows);
     const [result] = await conn.query(
-      "INSERT INTO intern_profiles (student_code, full_name, email, phone, university, major, mentor_name, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO intern_profiles (student_code, full_name, email, phone, university, major, mentor_name, mentor_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         studentCode || "",
         fullName,
@@ -998,6 +1099,7 @@ async function insertStudent({
         university || "",
         major || "",
         mentorName || "",
+        mentorId,
         finalStatus,
       ],
     );
@@ -1007,11 +1109,11 @@ async function insertStudent({
       email,
       phone,
     });
-    return result.insertId;
+    return { id: result.insertId, mentorId };
   });
 
   return {
-    id: insertId,
+    id: inserted.id,
     studentCode: studentCode || "",
     fullName,
     email,
@@ -1019,6 +1121,7 @@ async function insertStudent({
     university: university || "",
     major: major || "",
     mentorName: mentorName || "",
+    mentorId: inserted.mentorId,
     status: finalStatus,
     createdAt: nowISO(),
   };
@@ -1047,6 +1150,16 @@ async function updateStudent(
     if (existingRows.length === 0) return null;
     const existing = existingRows[0];
 
+    let mentorId = existing.mentor_id;
+    if (mentorName != null && mentorName !== existing.mentor_name) {
+      const [mentorRows] = await conn.query(
+        `SELECT id, full_name AS fullName FROM mentors
+         WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(?)) LIMIT 2`,
+        [mentorName || ""],
+      );
+      mentorId = resolveUniqueMentorId(mentorName, mentorRows);
+    }
+
     const merged = {
       studentCode: studentCode ?? existing.student_code,
       fullName: fullName ?? existing.full_name,
@@ -1059,7 +1172,7 @@ async function updateStudent(
     };
 
     await conn.query(
-      "UPDATE intern_profiles SET student_code = ?, full_name = ?, email = ?, phone = ?, university = ?, major = ?, mentor_name = ?, status = ? WHERE id = ?",
+      "UPDATE intern_profiles SET student_code = ?, full_name = ?, email = ?, phone = ?, university = ?, major = ?, mentor_name = ?, mentor_id = ?, status = ? WHERE id = ?",
       [
         merged.studentCode,
         merged.fullName,
@@ -1068,6 +1181,7 @@ async function updateStudent(
         merged.university,
         merged.major,
         merged.mentorName,
+        mentorId,
         merged.status,
         id,
       ],
@@ -1079,7 +1193,7 @@ async function updateStudent(
       phone: merged.phone,
     });
 
-    return { id: Number(id), ...merged };
+    return { id: Number(id), ...merged, mentorId };
   });
 }
 
@@ -1787,6 +1901,7 @@ module.exports = {
   initDatabase,
   getPool,
   seedDepartmentsFromMentors,
+  backfillInternMentorIds,
   closePool,
   findUserByEmail,
   findUserForLogin,
@@ -1803,6 +1918,8 @@ module.exports = {
   updateMentor,
   deleteMentor,
   getAllStudents,
+  getStudentsForMentorEmail,
+  assignInternMentor,
   insertStudent,
   updateStudent,
   deleteStudent,
