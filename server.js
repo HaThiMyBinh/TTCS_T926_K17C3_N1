@@ -93,6 +93,13 @@ async function start() {
     console.error("[DEMO] Không nạp được dữ liệu demo:", err.message);
   }
 
+  // Bản demo cũ có thể chỉ lưu mentor_name; sau khi nạp, nối tên duy nhất sang mentor_id.
+  try {
+    await db.backfillInternMentorIds();
+  } catch (err) {
+    console.error("[DATABASE] Không thể đồng bộ mentor_id cho dữ liệu demo:", err.message);
+  }
+
   // Gói demo cũ không có departments; nạp lại danh mục từ mentors nếu đang trống.
   try {
     await db.seedDepartmentsFromMentors();
