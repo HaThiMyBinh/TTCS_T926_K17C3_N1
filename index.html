@@ -2865,111 +2865,6 @@
           </div>
         </div>
       </div>
-      <!-- LỊCH THỰC TẬP CÁ NHÂN CỦA THỰC TẬP SINH -->
-      <div id="tab-my-schedule" class="tab-pane" style="display: none">
-        <!-- Banner tổng quan & hành động -->
-        <div class="card mb-4" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; border: none; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                <span style="font-size: 20px; font-weight: 700; color: #fff;" id="scheduleInternName">—</span>
-                <span id="scheduleStatusBadge" class="badge" style="font-size: 12px; padding: 4px 10px; border-radius: 999px;">—</span>
-              </div>
-              <div style="color: #94a3b8; font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 16px;">
-                <span><i class="fa-solid fa-id-card text-primary" style="margin-right: 6px;"></i>MSSV: <b id="scheduleStudentCode" style="color: #f1f5f9;">—</b></span>
-                <span><i class="fa-solid fa-building-columns text-primary" style="margin-right: 6px;"></i>Trường: <b id="scheduleUniversity" style="color: #f1f5f9;">—</b></span>
-                <span><i class="fa-solid fa-graduation-cap text-primary" style="margin-right: 6px;"></i>Chuyên ngành: <b id="scheduleMajor" style="color: #f1f5f9;">—</b></span>
-              </div>
-            </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <button class="btn btn-sm btn-outline-light" onclick="printSchedule()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;">
-                <i class="fa-solid fa-print"></i> In lịch trình
-              </button>
-              <button class="btn btn-sm btn-primary" onclick="loadMySchedule()">
-                <i class="fa-solid fa-rotate"></i> Làm mới
-              </button>
-            </div>
-          </div>
-
-          <!-- Progress bar & metrics -->
-          <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span style="font-size: 13.5px; font-weight: 600; color: #cbd5e1;">Tiến độ thời gian thực tập: <span id="scheduleProgressPercentText" style="color: #38bdf8;">0%</span></span>
-              <span id="scheduleTimeStateLabel" style="font-size: 12.5px; color: #94a3b8;">—</span>
-            </div>
-            <div style="background: rgba(255,255,255,0.15); height: 10px; border-radius: 999px; overflow: hidden; width: 100%;">
-              <div id="scheduleProgressBar" style="background: linear-gradient(90deg, #38bdf8, #2563eb); height: 100%; width: 0%; border-radius: 999px; transition: width 0.6s ease;"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-top: 6px;">
-              <span>Bắt đầu: <b id="scheduleDateStart" style="color: #e2e8f0;">—</b></span>
-              <span id="scheduleDaysStats">—</span>
-              <span>Kết thúc: <b id="scheduleDateEnd" style="color: #e2e8f0;">—</b></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3 Cards: Mentor, Kế hoạch/Chương trình, Hợp đồng -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
-          <!-- Card Mentor -->
-          <div class="card" style="margin: 0;">
-            <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 12px 16px;">
-              <h4 style="margin: 0; font-size: 14.5px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-chalkboard-user text-primary"></i> Người hướng dẫn (Mentor)
-              </h4>
-            </div>
-            <div class="card-body" id="scheduleMentorBox" style="padding: 16px; font-size: 13.5px;">
-              <p style="color: #94a3b8; margin: 0;">Đang tải thông tin mentor...</p>
-            </div>
-          </div>
-
-          <!-- Card Chương trình & Phòng ban -->
-          <div class="card" style="margin: 0;">
-            <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 12px 16px;">
-              <h4 style="margin: 0; font-size: 14.5px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-sitemap text-primary"></i> Phòng ban & Chương trình
-              </h4>
-            </div>
-            <div class="card-body" id="scheduleProgramBox" style="padding: 16px; font-size: 13.5px;">
-              <p style="color: #94a3b8; margin: 0;">Đang tải chương trình...</p>
-            </div>
-          </div>
-
-          <!-- Card Hợp đồng thực tập -->
-          <div class="card" style="margin: 0;">
-            <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 12px 16px;">
-              <h4 style="margin: 0; font-size: 14.5px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-file-contract text-primary"></i> Hợp đồng thực tập
-              </h4>
-            </div>
-            <div class="card-body" id="scheduleContractBox" style="padding: 16px; font-size: 13.5px;">
-              <p style="color: #94a3b8; margin: 0;">Đang tải hợp đồng...</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Danh sách Lộ trình các giai đoạn (Milestones Timeline) -->
-        <div class="card">
-          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-            <div>
-              <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-timeline text-primary"></i> Kế hoạch & Lộ trình thực tập chi tiết
-              </h3>
-              <p style="margin: 4px 0 0 0; font-size: 12.5px; color: #64748b;">Theo dõi các giai đoạn công việc, nhiệm vụ và kết quả dự kiến đạt được</p>
-            </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <select id="scheduleFilterStatus" class="form-control" style="font-size: 13px; padding: 6px 12px; width: auto;" onchange="filterScheduleMilestones()">
-                <option value="ALL">Tất cả giai đoạn</option>
-                <option value="IN_PROGRESS">Đang diễn ra</option>
-                <option value="NOT_STARTED">Sắp diễn ra</option>
-                <option value="COMPLETED">Đã hoàn thành</option>
-              </select>
-            </div>
-          </div>
-          <div class="card-body" id="scheduleMilestonesList" style="padding: 20px;">
-            <p style="text-align: center; color: #94a3b8; padding: 24px;">Đang tải lịch thực tập cá nhân...</p>
-          </div>
-        </div>
-      </div>
       <!-- QUẢN LÝ HỢP ĐỒNG THỰC TẬP (HR) -->
       <div id="tab-programs" class="tab-pane" style="display:none">
         <div class="section-header"><h2>Chương trình thực tập</h2><p>Kế hoạch thực tập theo phòng ban</p></div>
@@ -3323,9 +3218,6 @@
         if (tabId === "tab-my-contracts") {
           return role === "Intern";
         }
-        if (tabId === "tab-my-schedule") {
-          return role === "Intern";
-        }
         if (tabId === "tab-candidates") {
           return role === "HR" || role === "Admin";
         }
@@ -3360,9 +3252,9 @@
 
         let allowedCount = 0;
 
-        // Thêm các tab dành cho vai trò Intern lên đầu menu
+        // US9: Thêm tab "Hồ sơ của tôi" cho vai trò Intern lên đầu menu
         if (currentRole === "Intern") {
-          allowedCount += 3;
+          allowedCount += 2;
           const isProfileActive = currentTab === "tab-my-profile";
           const liProfile = document.createElement("li");
           liProfile.className = "nav-item";
@@ -3383,16 +3275,6 @@
           </a>
         `;
           menuEl.appendChild(liMyContracts);
-
-          const liMySchedule = document.createElement("li");
-          liMySchedule.className = "nav-item";
-          liMySchedule.innerHTML = `
-          <a class="nav-link ${currentTab === "tab-my-schedule" ? "active" : ""}" onclick="switchTab('tab-my-schedule')">
-            <i class="fa-solid fa-calendar-days"></i>
-            <span>Lịch thực tập cá nhân</span>
-          </a>
-        `;
-          menuEl.appendChild(liMySchedule);
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -3551,11 +3433,6 @@
             document.getElementById("pageSubtitle").innerText =
               "Xem và xác nhận hợp đồng thực tập do HR gửi";
             loadMyContracts();
-          } else if (tabId === "tab-my-schedule") {
-            document.getElementById("pageTitle").innerText = "Lịch Thực Tập Cá Nhân";
-            document.getElementById("pageSubtitle").innerText =
-              "Xem kế hoạch, tiến độ và lộ trình các giai đoạn thực tập cá nhân";
-            loadMySchedule();
           } else if (tabId === "tab-candidates") {
             document.getElementById("pageTitle").innerText =
               "Hồ Sơ Ứng Tuyển Online";
@@ -5584,251 +5461,6 @@
         } catch (err) {
           showToast(err.message || "Không tải được hợp đồng!", "error");
         }
-      }
-
-      // =========================================================================
-      // LỊCH THỰC TẬP CÁ NHÂN (INTERNSHIP SCHEDULE)
-      // =========================================================================
-      let myScheduleData = null;
-
-      async function loadMySchedule() {
-        if (currentRole !== "Intern") return;
-        const list = document.getElementById("scheduleMilestonesList");
-        list.innerHTML = `<p style="text-align:center;color:#94a3b8;padding:24px;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải lịch thực tập cá nhân...</p>`;
-        try {
-          const response = await fetch(`${API_BASE}/me/schedule`, { headers: authHeaders() });
-          if (response.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
-          const body = await response.json();
-          if (!response.ok || !body.success) throw new Error(body.message || "Không tải được lịch thực tập.");
-          myScheduleData = body.data;
-          renderScheduleData(myScheduleData);
-        } catch (err) {
-          list.innerHTML = `<div style="text-align:center;padding:24px;color:#ef4444;"><i class="fa-solid fa-circle-exclamation" style="font-size:24px;margin-bottom:8px;"></i><p>${escapeHtml(err.message || "Lỗi tải lịch thực tập cá nhân.")}</p><button class="btn btn-sm btn-primary" onclick="loadMySchedule()">Thử lại</button></div>`;
-        }
-      }
-
-      function renderScheduleData(data) {
-        if (!data) return;
-        const intern = data.intern || {};
-        const mentor = data.mentor;
-        const contract = data.contract;
-        const program = data.program;
-        const summary = data.timeline_summary || {};
-        const milestones = data.milestones || [];
-
-        // 1. Thông tin sinh viên
-        document.getElementById("scheduleInternName").innerText = intern.full_name || "Thực tập sinh";
-        document.getElementById("scheduleStudentCode").innerText = intern.student_code || "Chưa cấp";
-        document.getElementById("scheduleUniversity").innerText = intern.university || "Chưa cập nhật";
-        document.getElementById("scheduleMajor").innerText = intern.major || "Chưa cập nhật";
-
-        const statusBadge = document.getElementById("scheduleStatusBadge");
-        statusBadge.innerText = intern.status || "Đang thực tập";
-        statusBadge.className = `badge ${intern.status === "Hoàn thành" ? "badge-success" : "badge-active"}`;
-
-        // 2. Timeline Progress
-        const percent = summary.progress_percent != null ? summary.progress_percent : 0;
-        document.getElementById("scheduleProgressPercentText").innerText = `${percent}%`;
-        document.getElementById("scheduleProgressBar").style.width = `${percent}%`;
-
-        document.getElementById("scheduleDateStart").innerText = formatDateOnly(summary.start_date) || "Chưa đặt lịch";
-        document.getElementById("scheduleDateEnd").innerText = formatDateOnly(summary.end_date) || "Chưa đặt lịch";
-
-        let timeStateBadgeClass = "badge-pending";
-        if (summary.time_state === "RUNNING") timeStateBadgeClass = "badge-active";
-        else if (summary.time_state === "ENDED") timeStateBadgeClass = "badge-success";
-
-        document.getElementById("scheduleTimeStateLabel").innerHTML = `
-          <span class="badge ${timeStateBadgeClass}" style="font-size: 11.5px; padding: 3px 8px;">
-            ${escapeHtml(summary.time_state_text || "Chưa đặt lịch")}
-          </span>
-        `;
-
-        if (summary.duration_days) {
-          document.getElementById("scheduleDaysStats").innerHTML = `
-            <span>Tổng: <b>${summary.duration_days}</b> ngày · Đã qua: <b>${summary.days_elapsed}</b> ngày · Còn lại: <b style="color:#38bdf8;">${summary.days_remaining}</b> ngày</span>
-          `;
-        } else {
-          document.getElementById("scheduleDaysStats").innerText = "";
-        }
-
-        // 3. Card Mentor
-        const mentorBox = document.getElementById("scheduleMentorBox");
-        if (mentor) {
-          mentorBox.innerHTML = `
-            <div style="font-weight: 600; font-size: 14.5px; color: #0f172a; margin-bottom: 6px;">
-              ${escapeHtml(mentor.full_name)}
-            </div>
-            <div style="color: #64748b; font-size: 13px; line-height: 1.6;">
-              <div><i class="fa-solid fa-building text-primary" style="width: 18px;"></i> Phòng ban: <b>${escapeHtml(mentor.department || "Chưa gán")}</b></div>
-              <div><i class="fa-solid fa-envelope text-primary" style="width: 18px;"></i> Email: <a href="mailto:${escapeHtml(mentor.email)}" style="color: #2563eb;">${escapeHtml(mentor.email)}</a></div>
-              <div><i class="fa-solid fa-phone text-primary" style="width: 18px;"></i> SĐT: <b>${escapeHtml(mentor.phone || "Chưa cập nhật")}</b></div>
-              ${mentor.specialization ? `<div><i class="fa-solid fa-star text-primary" style="width: 18px;"></i> Chuyên môn: <b>${escapeHtml(mentor.specialization)}</b></div>` : ""}
-            </div>
-          `;
-        } else {
-          mentorBox.innerHTML = `
-            <div style="text-align: center; color: #94a3b8; padding: 12px 0;">
-              <i class="fa-solid fa-user-slash" style="font-size: 24px; margin-bottom: 6px; display: block;"></i>
-              Chưa được phân công mentor hướng dẫn.<br><small>Vui lòng liên hệ bộ phận HR để được hỗ trợ.</small>
-            </div>
-          `;
-        }
-
-        // 4. Card Chương trình
-        const programBox = document.getElementById("scheduleProgramBox");
-        if (program) {
-          programBox.innerHTML = `
-            <div style="font-weight: 600; font-size: 14.5px; color: #0f172a; margin-bottom: 6px;">
-              ${escapeHtml(program.name)}
-            </div>
-            <div style="color: #64748b; font-size: 13px; line-height: 1.6;">
-              <div><i class="fa-solid fa-sitemap text-primary" style="width: 18px;"></i> Phòng ban: <b>${escapeHtml(program.department_name || mentor?.department || "Chung")}</b></div>
-              <div><i class="fa-solid fa-calendar text-primary" style="width: 18px;"></i> Thời gian: <b>${escapeHtml(formatDateOnly(program.start_date) || "—")}</b> – <b>${escapeHtml(formatDateOnly(program.end_date) || "—")}</b></div>
-              ${program.description ? `<div style="margin-top: 6px; font-size: 12.5px; color: #475569; background: #f1f5f9; padding: 6px 10px; border-radius: 6px;">${escapeHtml(program.description)}</div>` : ""}
-            </div>
-          `;
-        } else {
-          programBox.innerHTML = `
-            <div style="color: #64748b; font-size: 13px; line-height: 1.6;">
-              <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">Kế hoạch thực tập theo phòng ban</div>
-              <div><i class="fa-solid fa-building text-primary" style="width: 18px;"></i> Phòng ban: <b>${escapeHtml(mentor?.department || "Công nghệ thông tin")}</b></div>
-              <div style="margin-top: 6px; font-size: 12px; color: #94a3b8;">Thực tập sinh tham gia theo lộ trình đào tạo chuyên môn của phòng ban.</div>
-            </div>
-          `;
-        }
-
-        // 5. Card Hợp đồng
-        const contractBox = document.getElementById("scheduleContractBox");
-        if (contract) {
-          const isConfirmed = contract.confirmation_status === "CONFIRMED";
-          contractBox.innerHTML = `
-            <div style="font-weight: 600; font-size: 14.5px; color: #0f172a; margin-bottom: 6px;">
-              ${escapeHtml(contract.title || "Hợp đồng thực tập sinh")}
-            </div>
-            <div style="color: #64748b; font-size: 13px; line-height: 1.6;">
-              <div><i class="fa-solid fa-calendar-days text-primary" style="width: 18px;"></i> Kỳ thực tập: <b>${escapeHtml(formatDateOnly(contract.start_date) || "—")}</b> – <b>${escapeHtml(formatDateOnly(contract.end_date) || "—")}</b></div>
-              <div style="margin-top: 4px;">
-                <span class="badge ${isConfirmed ? "badge-active" : "badge-pending"}">${isConfirmed ? "Đã xác nhận" : "Chờ xác nhận"}</span>
-              </div>
-              ${contract.note ? `<div style="margin-top: 6px; font-size: 12px; color: #475569;">Ghi chú: ${escapeHtml(contract.note)}</div>` : ""}
-            </div>
-          `;
-        } else {
-          contractBox.innerHTML = `
-            <div style="text-align: center; color: #94a3b8; padding: 12px 0;">
-              <i class="fa-solid fa-file-circle-question" style="font-size: 24px; margin-bottom: 6px; display: block;"></i>
-              Chưa có hồ sơ hợp đồng chính thức.<br><small>Kỳ thực tập tính theo kế hoạch chương trình đào tạo.</small>
-            </div>
-          `;
-        }
-
-        // 6. Milestones List
-        renderMilestonesList(milestones);
-      }
-
-      function renderMilestonesList(milestones) {
-        const list = document.getElementById("scheduleMilestonesList");
-        const filterEl = document.getElementById("scheduleFilterStatus");
-        const filterVal = filterEl ? filterEl.value : "ALL";
-
-        const filtered = (milestones || []).filter((m) => {
-          if (filterVal === "ALL") return true;
-          return m.status === filterVal;
-        });
-
-        if (filtered.length === 0) {
-          list.innerHTML = `
-            <div style="text-align: center; color: #94a3b8; padding: 32px;">
-              <i class="fa-solid fa-calendar-xmark" style="font-size: 28px; margin-bottom: 8px; display: block;"></i>
-              Không có giai đoạn nào phù hợp với bộ lọc đã chọn.
-            </div>
-          `;
-          return;
-        }
-
-        list.innerHTML = `
-          <div class="timeline-container" style="position: relative; padding-left: 28px; border-left: 2px solid #e2e8f0; margin-left: 12px;">
-            ${filtered.map((m) => {
-              let statusBadge = "";
-              let dotColor = "#94a3b8";
-              let cardBg = "#ffffff";
-              let borderColor = "#e2e8f0";
-
-              if (m.status === "COMPLETED") {
-                statusBadge = '<span class="badge" style="background: #10b981; color: white;"><i class="fa-solid fa-check" style="margin-right: 4px;"></i> Đã hoàn thành</span>';
-                dotColor = "#10b981";
-                borderColor = "#a7f3d0";
-              } else if (m.status === "IN_PROGRESS") {
-                statusBadge = '<span class="badge" style="background: #2563eb; color: white;"><i class="fa-solid fa-spinner fa-spin" style="margin-right: 4px;"></i> Đang diễn ra</span>';
-                dotColor = "#2563eb";
-                borderColor = "#93c5fd";
-                cardBg = "#f8faff";
-              } else {
-                statusBadge = '<span class="badge" style="background: #e2e8f0; color: #475569;"><i class="fa-solid fa-clock" style="margin-right: 4px;"></i> Sắp diễn ra</span>';
-                dotColor = "#94a3b8";
-              }
-
-              const timeSpan = (m.start_date || m.end_date)
-                ? `${formatDateOnly(m.start_date) || "—"} đến ${formatDateOnly(m.end_date) || "—"}`
-                : "Chưa đặt lịch ngày cụ thể";
-
-              return `
-                <div class="timeline-item" style="position: relative; margin-bottom: 24px;">
-                  <!-- Timeline dot -->
-                  <div style="position: absolute; left: -36px; top: 14px; width: 16px; height: 16px; border-radius: 50%; background: ${dotColor}; border: 3px solid #fff; box-shadow: 0 0 0 2px ${dotColor};"></div>
-
-                  <!-- Milestone Card -->
-                  <div class="card" style="margin: 0; background: ${cardBg}; border: 1px solid ${borderColor}; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                    <div style="padding: 16px 20px;">
-                      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;">
-                        <div>
-                          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                            <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px;">
-                              Giai đoạn ${escapeHtml(m.phase_order)}
-                            </span>
-                            ${m.duration_weeks ? `<span style="font-size: 11.5px; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px;"><i class="fa-regular fa-clock" style="margin-right: 4px;"></i>${escapeHtml(m.duration_weeks)}</span>` : ""}
-                          </div>
-                          <h4 style="margin: 8px 0 4px 0; font-size: 15px; font-weight: 700; color: #0f172a;">
-                            ${escapeHtml(m.title)}
-                          </h4>
-                          <div style="color: #64748b; font-size: 12.5px;">
-                            <i class="fa-regular fa-calendar" style="margin-right: 5px;"></i>
-                            <b>${escapeHtml(timeSpan)}</b>
-                          </div>
-                        </div>
-                        <div>
-                          ${statusBadge}
-                        </div>
-                      </div>
-
-                      ${m.description ? `
-                        <div style="color: #334155; font-size: 13.5px; line-height: 1.6; margin-top: 10px; background: rgba(248,250,252,0.8); padding: 10px 14px; border-radius: 6px; border-left: 3px solid #cbd5e1;">
-                          <b>Nội dung kế hoạch:</b> ${escapeHtml(m.description)}
-                        </div>
-                      ` : ""}
-
-                      ${m.expected_results ? `
-                        <div style="color: #047857; font-size: 13px; line-height: 1.5; margin-top: 8px; background: #ecfdf5; padding: 8px 14px; border-radius: 6px;">
-                          <i class="fa-solid fa-flag-checkered" style="margin-right: 6px;"></i><b>Kết quả dự kiến:</b> ${escapeHtml(m.expected_results)}
-                        </div>
-                      ` : ""}
-                    </div>
-                  </div>
-                </div>
-              `;
-            }).join("")}
-          </div>
-        `;
-      }
-
-      function filterScheduleMilestones() {
-        if (!myScheduleData) return;
-        renderMilestonesList(myScheduleData.milestones || []);
-      }
-
-      function printSchedule() {
-        window.print();
       }
 
       let contractsInternId = null;
