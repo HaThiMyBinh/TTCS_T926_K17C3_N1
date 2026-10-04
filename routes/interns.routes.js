@@ -11,8 +11,16 @@ const router = express.Router();
 // GET /api/interns & GET /api/students
 async function handleGetInterns(req, res) {
   try {
+    if (req.user.role === "Mentor") {
+      const students = req.query.unassigned === "true"
+        ? []
+        : await db.getStudentsForMentorEmail(req.user.email);
+      return res.json(students);
+    }
+
     const students = await db.getAllStudents({
       includeContractCount: req.user.role === "HR",
+      unassigned: req.query.unassigned === "true",
     });
     // US10: chỉ HR nhận kèm hồ sơ ứng tuyển + tài liệu của từng thực tập sinh
     res.json(
@@ -29,6 +37,45 @@ router.get(
   requireRole("Admin", "HR", "Mentor"),
   handleGetInterns,
 );
+
+// PUT /api/interns/:id/mentor — HR quản lý phân công mentor.
+router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
+  const rawId = req.params.id;
+  if (!/^[1-9]\d*$/.test(rawId) || !Number.isSafeInteger(Number(rawId))) {
+    return res.status(400).json({ error: "Mã thực tập sinh không hợp lệ!" });
+  }
+  if (
+    req.body == null ||
+    typeof req.body !== "object" ||
+    Array.isArray(req.body) ||
+    !Object.prototype.hasOwnProperty.call(req.body, "mentor_id")
+  ) {
+    return res.status(400).json({ error: "Vui lòng gửi mentor_id hợp lệ!" });
+  }
+
+  const mentorId = req.body.mentor_id;
+  if (
+    mentorId !== null &&
+    (typeof mentorId !== "number" ||
+      !Number.isSafeInteger(mentorId) ||
+      mentorId < 1)
+  ) {
+    return res.status(400).json({ error: "Mã mentor phải là số nguyên dương hoặc null!" });
+  }
+
+  try {
+    const result = await db.assignInternMentor(Number(rawId), mentorId);
+    if (result.outcome === "INTERN_NOT_FOUND") {
+      return res.status(404).json({ error: "Không tìm thấy thực tập sinh!" });
+    }
+    if (result.outcome === "MENTOR_NOT_FOUND") {
+      return res.status(404).json({ error: "Không tìm thấy mentor!" });
+    }
+    return res.json({ message: "Cập nhật phân công mentor thành công!", student: result.student });
+  } catch (err) {
+    return sendRouteError(res, err, "Lỗi cập nhật phân công mentor!");
+  }
+});
 
 // POST /api/interns & POST /api/students
 async function handleCreateIntern(req, res) {
