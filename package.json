@@ -20,11 +20,16 @@
     "test:review-unit": "node tests/test_review_unit.js",
     "test:review-api": "node tests/test_review_documents_api.js",
     "test:cleanup": "node tests/cleanup_test_data.js",
+    "test:contracts-unit": "node tests/test_contracts_unit.js",
+    "test:contracts-api": "node tests/test_contracts_api.js",
+    "test:contract-confirm-unit": "node tests/test_contract_confirmation_unit.js",
+    "test:contract-confirm-api": "node tests/test_contract_confirm_api.js",
+    "test:programs-unit": "node tests/test_programs_unit.js",
+    "test:programs-api": "node tests/test_programs_api.js",
+    "test:programs-safety": "node tests/test_programs_safety.js",
     "test": "node tests/run_all.js",
     "test:unit": "node tests/run_all.js --unit",
-    "test:manual-server": "npm run test:login && npm run test:create-account && npm run test:rbac && npm run test:register && npm run test:interns && npm run test:mentors && npm run test:applications && npm run test:documents-api && npm run test:contracts-api && npm run test:review-api && npm run test:email-api",
-    "test:contracts-unit": "node tests/test_contracts_unit.js",
-    "test:contracts-api": "node tests/test_contracts_api.js"
+    "test:manual-server": "npm run test:login && npm run test:create-account && npm run test:rbac && npm run test:register && npm run test:interns && npm run test:mentors && npm run test:applications && npm run test:documents-api && npm run test:contracts-api && npm run test:contract-confirm-api && npm run test:review-api && npm run test:email-api && npm run test:programs-unit && npm run test:programs-api && npm run test:programs-safety"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
