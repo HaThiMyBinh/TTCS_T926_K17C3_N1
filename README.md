@@ -1,21 +1,5 @@
 # HƯỚNG DẪN KHỞI ĐỘNG VÀ BÁO CÁO TOÀN DIỆN HỆ THỐNG
 
-## Chương trình thực tập theo phòng ban
-
-HR có thể tạo, sửa, lọc và xóa chương trình từ mục **Chương trình thực tập**.
-Admin chỉ xem; các vai trò Mentor và Intern không có mục này. API nằm dưới
-`/api/departments` và `/api/programs`. Hai bảng mới `departments` và
-`internship_programs` được tạo idempotent khi khởi động. Nếu `departments` đang
-trống, hệ thống chỉ đọc tên phòng ban khác rỗng từ `mentors.department` để khởi
-tạo danh mục. Không cần thay đổi cột `mentors.department`.
-
-Kiểm tra nhanh: `npm run test:programs-unit` chạy độc lập; `npm test` chạy cả
-bộ. Các bài API và bảo vệ dữ liệu cần MySQL hoạt động và `backend/db_config.json`
-được cấu hình chính xác. Bài API chạy độc lập bằng `npm run test:programs-api`,
-bài idempotency bằng `npm run test:programs-safety`.
-Tên chương trình được xem là trùng trong cùng phòng ban nếu các khoảng ngày
-chồng lấn; khoảng ngày bỏ trống được xem là không giới hạn ở đầu hoặc cuối.
-
 ## 0. BẮT ĐẦU TỪ FILE NÉN (.ZIP) — CÁC BƯỚC CHẠY LẦN ĐẦU
 
 Làm theo đúng thứ tự dưới đây nếu bạn vừa nhận được file `.zip` của dự án và
@@ -77,29 +61,7 @@ chưa từng chạy thử lần nào:
 - File dữ liệu mẫu ban đầu (chỉ cần cho import thủ công, backend tự seed lúc
   khởi động): `seed_data.sql`
 
-### Tạo ZIP bàn giao kèm database và file đã tải lên
-
-Để người nhận có thể mở lại các file đã tải lên, hãy tạo gói portable trước khi
-gửi thay vì dùng ZIP mã nguồn thông thường. Mở PowerShell tại thư mục gốc và chạy:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\backend\scripts\create_portable_zip.ps1
-```
-
-Script dùng cấu hình MySQL từ `backend/db_config.json` (hoặc các biến môi trường
-`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`), xuất database, rồi
-đóng gói cùng toàn bộ `backend/uploads/`. Cần có `mysqldump` trong `PATH`.
-ZIP được tạo ở thư mục cha của project. File trong ZIP là bản sao chụp tại thời
-điểm đóng gói nên vẫn còn trong ZIP nếu file trên server bị xóa về sau. Chạy lại
-script để cập nhật gói sau khi thêm/sửa dữ liệu hoặc tải file mới.
-
-Người nhận giải nén, import `database/user_management.sql`, cấu hình MySQL riêng
-trong `backend/db_config.json` theo `backend/db_config.example.json`, rồi chạy
-`run.bat`. ZIP chứa cả database và hồ sơ upload, nên chỉ gửi qua kênh phù hợp.
-
----
-
-## GỬI EMAIL THÔNG BÁO KẾT QUẢ XÉT DUYỆT
+### GỬI EMAIL THÔNG BÁO KẾT QUẢ XÉT DUYỆT
 
 Khi HR **duyệt** hoặc **từ chối** hồ sơ, hệ thống gửi email thật tới ứng viên (từ chối kèm lý do).
 Việc gửi chạy **nền** qua hàng đợi trong bộ nhớ (EventEmitter), nên HR nhận phản hồi ngay và lỗi mail
@@ -126,7 +88,7 @@ Sau khi duyệt/từ chối, giao diện tự theo dõi và hiện thông báo k
 
 ---
 
-## KHỞI ĐỘNG HỆ THỐNG
+# KHỞI ĐỘNG HỆ THỐNG
 
 - **Chạy nhanh:** Nhấp đúp chuột vào file **`run.bat`** tại thư mục gốc. Hệ thống sẽ tự động bật backend server (cổng 5000) và mở trình duyệt tại `http://localhost:5000/login.html`.
   - `run.bat` giờ **kiểm tra thật** server đã khởi động thành công (gọi `GET /api/health` tối đa 20 lần, cách nhau 1 giây) trước khi báo "THÀNH CÔNG" và mở trình duyệt - trước đây chỉ chờ cố định 3 giây rồi báo thành công vô điều kiện, kể cả khi server đã crash (ví dụ do thiếu thư viện, sai mật khẩu MySQL, hoặc cổng 5000 đang bị chiếm). Nếu sau 20 giây vẫn chưa lên được, script sẽ báo lỗi rõ ràng và yêu cầu bạn xem cửa sổ "Backend Server" để đọc thông báo lỗi thật từ Node.js.
@@ -174,23 +136,12 @@ npm run test:cleanup
 
 **Test:** `cd backend && npm test` (cần MySQL đang chạy; backend được tự bật). Chỉ chạy test không cần DB: `npm run test:unit`.
 
-## BACKEND SOURCE STRUCTURE
+Kiểm thử toàn bộ: `cd backend && npm test -- --unit`, sau đó `cd backend && npm test` (cần MySQL đang chạy cho phần API).
 
-Backend routing and middleware are organized by responsibility:
+### Múi giờ, báo cáo và định dạng code
 
-- `backend/server.js` configures Express, middleware order, router mounting, and server startup.
-- `backend/routes/` contains route modules for authentication, users, permissions, mentors, interns, applications, and email.
-- `backend/middleware/` contains API JWT authentication and permission checks.
-- `backend/controllers/` and `backend/services/` hold the existing application, document, and email handlers and business logic.
-- `backend/utils/` contains shared request helpers.
-
-The frontend files and existing API paths are unchanged by this refactor.
-
-
-## Hợp đồng thực tập
-
-HR có thể quản lý hợp đồng trong tab **Hồ sơ thực tập sinh**. API gồm `POST/GET /api/interns/:id/contracts`, `GET /api/interns/:id/contracts/:contractId/download` và `DELETE /api/interns/:id/contracts/:contractId`. Chấp nhận PDF/DOC/DOCX tối đa 5MB; metadata `title`, `start_date`, `end_date`, `note` là tùy chọn.
-
-Thực tập sinh đăng nhập có thể xem hợp đồng gắn với hồ sơ cùng email, tải file và xác nhận hợp đồng đang chờ trong tab **Hợp đồng của tôi**. Các API dành riêng cho vai trò Intern là `GET /api/me/contracts`, `GET /api/me/contracts/:contractId/download` và `POST /api/me/contracts/:contractId/confirm`. Xác nhận được lưu trạng thái `CONFIRMED`, thời điểm và tài khoản xác nhận. HR không thể xóa hợp đồng đã xác nhận; hệ thống cũng từ chối xóa hồ sơ hoặc tài khoản Intern đang giữ hợp đồng đã xác nhận để tránh mất giấy tờ và file.
-
-Các trạng thái và index được khai báo trong `schema.sql` và `CREATE TABLE` của `db.js`; khi khởi động, `initDatabase()` bổ sung cột còn thiếu và đổi tên index FK tự sinh sang `idx_contract_confirmed_by` (hoặc tạo index nếu chưa có) để database cũ đồng bộ với database mới. Hợp đồng cũ được đặt ở trạng thái `PENDING`. Chạy kiểm thử bằng `cd backend && npm run test:unit` hoặc `SKIP_DEMO=1 npm test`; hai suite xác nhận hợp đồng là `test_contract_confirmation_unit.js` và `test_contract_confirm_api.js`.
+- **Múi giờ Việt Nam:** mọi nghiệp vụ "hôm nay" (lịch thực tập, chương trình) dùng `backend/utils/date.js` (`Asia/Ho_Chi_Minh`), không phụ thuộc múi giờ máy chủ. Pool MySQL cố định `+07:00` nên `NOW()` và `TIMESTAMP` cũng theo giờ Việt Nam; frontend hiển thị ngày giờ theo cùng múi giờ. Unit test: `npm run test:date-unit`.
+- **Báo cáo & Thống kê:** `GET /api/reports` (quyền `VIEW_REPORTS`) trả số liệu thật từ DB: số hồ sơ theo trạng thái, thực tập sinh đã có mentor, hợp đồng đã xác nhận và các tỷ lệ tương ứng (`null` khi chưa có dữ liệu để tính).
+- **Chưa triển khai:** Giao nhiệm vụ (`/api/tasks`) và Nộp báo cáo công việc (`/api/submissions`) chỉ kiểm tra quyền và trả danh sách rỗng (`implemented: false`); giao diện hiển thị thông báo chưa triển khai thay vì dữ liệu mẫu.
+- **Thông báo giao diện:** dùng toast thay cho `alert()`; thông báo khi buộc đăng xuất (phiên hết hạn) hiển thị trên trang đăng nhập.
+- **Định dạng:** dự án dùng Prettier (`.prettierrc.json`) và `.editorconfig` (thụt 2 dấu cách, LF).
