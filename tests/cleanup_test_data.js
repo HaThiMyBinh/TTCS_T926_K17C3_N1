@@ -18,6 +18,7 @@ const TEST_EMAIL_PREFIXES = [
   "auto_hr_", // test_create_account.js
   "auto_mentor_", // test_create_account.js
   "trung_email_", // test_create_account.js
+  "program_test_", // test_programs_api.js — chỉ bản ghi có tiền tố này
 ];
 
 (async () => {
