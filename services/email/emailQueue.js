@@ -37,11 +37,17 @@ class EmailQueue extends EventEmitter {
       subject: built.subject,
     });
 
-    this._process(logId, { to: application.email, name: application.name }, built, 0).catch(
-      (err) => {
-        console.error(`[EMAIL] Lỗi không mong muốn khi xử lý log #${logId}:`, err);
-      },
-    );
+    this._process(
+      logId,
+      { to: application.email, name: application.name },
+      built,
+      0,
+    ).catch((err) => {
+      console.error(
+        `[EMAIL] Lỗi không mong muốn khi xử lý log #${logId}:`,
+        err,
+      );
+    });
 
     return logId;
   }
@@ -73,7 +79,10 @@ class EmailQueue extends EventEmitter {
     for (const row of rows) {
       const { recipient, built } = await this._rebuildJob(row);
       this._process(row.id, recipient, built, row.attempts).catch((err) => {
-        console.error(`[EMAIL] Lỗi khi nạp lại log #${row.id} lúc khởi động:`, err);
+        console.error(
+          `[EMAIL] Lỗi khi nạp lại log #${row.id} lúc khởi động:`,
+          err,
+        );
       });
     }
     return rows.length;
@@ -120,7 +129,10 @@ class EmailQueue extends EventEmitter {
       row.emailType === "APPROVED"
         ? templates.renderApprovedEmail(payload)
         : templates.renderRejectedEmail(payload);
-    return { recipient: { to: row.recipientEmail, name: row.recipientName }, built };
+    return {
+      recipient: { to: row.recipientEmail, name: row.recipientName },
+      built,
+    };
   }
 
   // Xử lý 1 lượt gửi và hẹn giờ retry nếu cần. priorAttempts: số lần đã thử trước đó.
@@ -187,7 +199,10 @@ class EmailQueue extends EventEmitter {
       const timer = setTimeout(() => {
         this.timers.delete(logId);
         this._process(logId, recipient, built, attemptNumber).catch((e) => {
-          console.error(`[EMAIL] Lỗi không mong muốn khi thử lại log #${logId}:`, e);
+          console.error(
+            `[EMAIL] Lỗi không mong muốn khi thử lại log #${logId}:`,
+            e,
+          );
         });
       }, delay);
       // unref: timer retry không giữ tiến trình Node sống

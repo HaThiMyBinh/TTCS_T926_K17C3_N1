@@ -34,7 +34,10 @@ const TEMPORARY_ERROR_CODES = new Set([
 function classifyError(err) {
   if (!err) return "TEMPORARY";
   // Lỗi tự tạo trong code (ví dụ "chưa cấu hình SMTP") có thể gắn sẵn classification
-  if (err.classification === "PERMANENT" || err.classification === "TEMPORARY") {
+  if (
+    err.classification === "PERMANENT" ||
+    err.classification === "TEMPORARY"
+  ) {
     return err.classification;
   }
 

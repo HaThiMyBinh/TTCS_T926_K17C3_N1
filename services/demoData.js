@@ -9,6 +9,7 @@
 const fs = require("fs");
 const path = require("path");
 const fileStorage = require("./fileStorage");
+const { VIETNAM_TIME_ZONE } = require("../utils/date");
 
 const DEMO_DIR = path.resolve(__dirname, "..", "..", "demo");
 const SNAPSHOT_FILE = path.join(DEMO_DIR, "demo_data.json");
@@ -24,26 +25,40 @@ const TABLES = [
   "application_documents",
   "internship_contracts",
   "internship_programs",
+  "intern_schedules",
 ];
 const FILE_TABLES = ["application_documents", "internship_contracts"];
 const DATE_ONLY_COLUMNS = new Set(["start_date", "end_date"]);
 const COLUMN_NAME_REGEX = /^[A-Za-z0-9_]+$/;
 
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
+const vietnamPartsFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: VIETNAM_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
 
-// Date (giờ local của pool mysql2) -> chuỗi MySQL, tránh định dạng ISO có "T...Z"
+// Date -> chuỗi MySQL theo giờ Việt Nam (khớp múi giờ của pool), tránh định dạng ISO có "T...Z"
 function serializeValue(column, value) {
   if (!(value instanceof Date)) return value;
-  const date = `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+  const f = Object.fromEntries(
+    vietnamPartsFormatter
+      .formatToParts(value)
+      .map(({ type, value: v }) => [type, v]),
+  );
+  const date = `${f.year}-${f.month}-${f.day}`;
   if (DATE_ONLY_COLUMNS.has(column)) return date;
-  return `${date} ${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
+  return `${date} ${f.hour}:${f.minute}:${f.second}`;
 }
 
 function serializeRow(row) {
   const out = {};
-  for (const [col, val] of Object.entries(row)) out[col] = serializeValue(col, val);
+  for (const [col, val] of Object.entries(row))
+    out[col] = serializeValue(col, val);
   return out;
 }
 
@@ -98,7 +113,12 @@ async function exportDemo(pool) {
   fs.writeFileSync(SNAPSHOT_FILE, JSON.stringify(snapshot, null, 2), "utf8");
 
   const counts = Object.fromEntries(TABLES.map((t) => [t, tables[t].length]));
-  return { exportedAt: snapshot.exportedAt, counts, copiedFiles: copied, missingFiles: missing };
+  return {
+    exportedAt: snapshot.exportedAt,
+    counts,
+    copiedFiles: copied,
+    missingFiles: missing,
+  };
 }
 
 // ---------- NẠP (máy người nhận, tự chạy lúc khởi động) ----------
@@ -109,7 +129,9 @@ function copyDemoFiles(tables) {
       const dest = fileStorage.resolveStoredPath(storedName); // kiểm tra UUID hợp lệ
       const src = path.join(DEMO_UPLOADS_DIR, path.basename(dest));
       if (!fs.existsSync(src)) {
-        console.warn(`[DEMO] Thiếu file ${storedName} trong demo/uploads, bỏ qua.`);
+        console.warn(
+          `[DEMO] Thiếu file ${storedName} trong demo/uploads, bỏ qua.`,
+        );
         continue;
       }
       if (!fs.existsSync(dest)) {
@@ -117,7 +139,9 @@ function copyDemoFiles(tables) {
         copied++;
       }
     } catch (err) {
-      console.warn(`[DEMO] Bỏ qua file không hợp lệ '${storedName}': ${err.message}`);
+      console.warn(
+        `[DEMO] Bỏ qua file không hợp lệ '${storedName}': ${err.message}`,
+      );
     }
   }
   return copied;
@@ -182,7 +206,9 @@ async function loadDemoIfNeeded(pool) {
       ]);
     }
 
-    await conn.query("INSERT INTO demo_import_log (snapshot_id) VALUES (?)", [snapshotId]);
+    await conn.query("INSERT INTO demo_import_log (snapshot_id) VALUES (?)", [
+      snapshotId,
+    ]);
     await conn.commit();
   } catch (err) {
     try {
@@ -200,8 +226,12 @@ async function loadDemoIfNeeded(pool) {
     conn.release();
   }
 
-  const summary = TABLES.map((t) => `${t}=${(tables[t] || []).length}`).join(", ");
-  console.log(`[DEMO] Đã nạp dữ liệu demo (${summary}); copy ${copiedFiles} file vào uploads/.`);
+  const summary = TABLES.map((t) => `${t}=${(tables[t] || []).length}`).join(
+    ", ",
+  );
+  console.log(
+    `[DEMO] Đã nạp dữ liệu demo (${summary}); copy ${copiedFiles} file vào uploads/.`,
+  );
   return true;
 }
 

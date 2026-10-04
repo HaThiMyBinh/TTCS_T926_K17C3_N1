@@ -66,7 +66,10 @@ async function getInternApplication(user) {
     app = await db.createCandidateProfileForUser(user.id);
   }
   if (!app) {
-    throw new HttpError(404, "Không tìm thấy hồ sơ ứng tuyển liên kết với tài khoản này!");
+    throw new HttpError(
+      404,
+      "Không tìm thấy hồ sơ ứng tuyển liên kết với tài khoản này!",
+    );
   }
   return app;
 }
@@ -81,7 +84,9 @@ function buildLockReason(app) {
 // GET /me/documents
 async function listMyDocuments(user) {
   const app = await getInternApplication(user);
-  const documents = (await db.findDocumentsByApplicationId(app.id)).map(toDocDto);
+  const documents = (await db.findDocumentsByApplicationId(app.id)).map(
+    toDocDto,
+  );
   const isLocked = app.status === STATUS_REJECTED;
 
   return {
@@ -102,7 +107,10 @@ async function listMyDocuments(user) {
 // POST /me/documents - tải lên mới hoặc thay thế (UNIQUE application_id + doc_type)
 async function uploadDocument(user, { file, docType }) {
   if (!file || !file.buffer) {
-    throw new HttpError(400, "Vui lòng đính kèm file tài liệu (trường 'file')!");
+    throw new HttpError(
+      400,
+      "Vui lòng đính kèm file tài liệu (trường 'file')!",
+    );
   }
   if (!docType || !ALLOWED_DOC_TYPES.includes(docType)) {
     throw new HttpError(
@@ -121,7 +129,10 @@ async function uploadDocument(user, { file, docType }) {
   // Kiểm tra nhanh để khỏi ghi đĩa vô ích; kiểm tra chính thức nằm trong transaction
   const app = await getInternApplication(user);
   if (app.status === STATUS_REJECTED) {
-    throw new HttpError(409, lockedMessage(app.status, "tải lên hoặc chỉnh sửa tài liệu"));
+    throw new HttpError(
+      409,
+      lockedMessage(app.status, "tải lên hoặc chỉnh sửa tài liệu"),
+    );
   }
 
   const storedName = storage.saveBuffer(file.buffer);
@@ -140,16 +151,25 @@ async function uploadDocument(user, { file, docType }) {
   } catch (dbErr) {
     storage.removeFile(storedName);
     console.error("[DOCUMENTS] Lỗi khi lưu tài liệu vào database:", dbErr);
-    throw new HttpError(500, "Lỗi khi lưu thông tin tài liệu vào cơ sở dữ liệu!");
+    throw new HttpError(
+      500,
+      "Lỗi khi lưu thông tin tài liệu vào cơ sở dữ liệu!",
+    );
   }
 
   if (result.outcome === "LOCKED") {
     storage.removeFile(storedName);
-    throw new HttpError(409, lockedMessage(result.status, "tải lên hoặc chỉnh sửa tài liệu"));
+    throw new HttpError(
+      409,
+      lockedMessage(result.status, "tải lên hoặc chỉnh sửa tài liệu"),
+    );
   }
   if (result.outcome !== "SAVED") {
     storage.removeFile(storedName);
-    throw new HttpError(404, "Không tìm thấy hồ sơ ứng tuyển liên kết với tài khoản này!");
+    throw new HttpError(
+      404,
+      "Không tìm thấy hồ sơ ứng tuyển liên kết với tài khoản này!",
+    );
   }
 
   // Upload đè: xóa file cũ sau khi DB đã commit
@@ -165,7 +185,10 @@ async function uploadDocument(user, { file, docType }) {
 }
 
 // GET /:id/documents/:docId/download - chủ hồ sơ (Intern) hoặc HR
-async function downloadDocument(user, { applicationId: rawAppId, docId: rawDocId }) {
+async function downloadDocument(
+  user,
+  { applicationId: rawAppId, docId: rawDocId },
+) {
   if (!user) throw new HttpError(401, "Chưa xác thực người dùng!");
   if (user.role !== "HR" && user.role !== "Intern") {
     throw new HttpError(
@@ -183,7 +206,8 @@ async function downloadDocument(user, { applicationId: rawAppId, docId: rawDocId
   if (user.role === "Intern") {
     const isOwner =
       (app.userId && Number(app.userId) === Number(user.id)) ||
-      (app.email && app.email.toLowerCase() === String(user.email).toLowerCase());
+      (app.email &&
+        app.email.toLowerCase() === String(user.email).toLowerCase());
     if (!isOwner) {
       throw new HttpError(
         403,
@@ -215,7 +239,9 @@ async function listApplicationDocuments(rawAppId) {
   const applicationId = parseId(rawAppId, "Mã hồ sơ không hợp lệ!");
   const app = await db.findApplicationById(applicationId);
   if (!app) throw new HttpError(404, "Không tìm thấy hồ sơ ứng viên!");
-  const documents = (await db.findDocumentsByApplicationId(applicationId)).map(toDocDto);
+  const documents = (await db.findDocumentsByApplicationId(applicationId)).map(
+    toDocDto,
+  );
   return {
     application: { id: Number(app.id), name: app.name, email: app.email },
     documents,
@@ -228,7 +254,10 @@ async function deleteMyDocument(user, rawDocId) {
   const docId = parseId(rawDocId, "Mã tài liệu không hợp lệ!");
   const app = await getInternApplication(user);
 
-  const result = await db.deleteDocumentIfPending({ applicationId: app.id, docId });
+  const result = await db.deleteDocumentIfPending({
+    applicationId: app.id,
+    docId,
+  });
 
   if (result.outcome === "LOCKED") {
     throw new HttpError(409, lockedMessage(result.status, "xóa tài liệu"));

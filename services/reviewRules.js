@@ -5,7 +5,9 @@ const REVIEWABLE_TARGETS = ["APPROVED", "REJECTED"];
 // documents: mảng có doc_type (hoặc docType). Trả về { uploaded, required, missing, isComplete }
 function countRequiredDocs(documents) {
   const types = new Set(
-    (Array.isArray(documents) ? documents : []).map((d) => d && (d.doc_type ?? d.docType)),
+    (Array.isArray(documents) ? documents : []).map(
+      (d) => d && (d.doc_type ?? d.docType),
+    ),
   );
   const missing = REQUIRED_DOC_TYPES.filter((t) => !types.has(t));
   return {
@@ -35,7 +37,11 @@ function validateReviewConditions({ status, documents }) {
     };
   }
   if (status === "APPROVED" && !countRequiredDocs(documents).isComplete) {
-    return { valid: false, httpStatus: 400, message: missingDocsMessage(documents) };
+    return {
+      valid: false,
+      httpStatus: 400,
+      message: missingDocsMessage(documents),
+    };
   }
   return { valid: true };
 }

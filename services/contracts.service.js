@@ -1,10 +1,7 @@
 // Nghiệp vụ quản lý hợp đồng của thực tập sinh chính thức.
 const db = require("../db");
 const { HttpError } = require("../errors");
-const {
-  validateFileBuffer,
-  sanitizeFileName,
-} = require("./documentValidator");
+const { validateFileBuffer, sanitizeFileName } = require("./documentValidator");
 const storage = require("./fileStorage");
 
 const MAX_TITLE_LENGTH = 255;
@@ -26,6 +23,7 @@ function toDto(row) {
     start_date: row.startDate,
     end_date: row.endDate,
     note: row.note,
+    program_id: row.programId == null ? null : Number(row.programId),
     original_name: sanitizeFileName(row.originalName),
     mime_type: row.mimeType,
     size_bytes: Number(row.sizeBytes),
@@ -53,7 +51,10 @@ function isValidDate(value) {
 function normalizeTextField(value, fieldName, maxLength) {
   const normalized = String(value || "").trim();
   if (Array.from(normalized).length > maxLength) {
-    throw new HttpError(400, `${fieldName} không được vượt quá ${maxLength} ký tự!`);
+    throw new HttpError(
+      400,
+      `${fieldName} không được vượt quá ${maxLength} ký tự!`,
+    );
   }
   return normalized || null;
 }
@@ -73,10 +74,7 @@ function validateDates(startDate, endDate) {
     throw new HttpError(400, "Ngày kết thúc không hợp lệ!");
   }
   if (startDate && endDate && endDate < startDate) {
-    throw new HttpError(
-      400,
-      "Ngày kết thúc phải bằng hoặc sau ngày bắt đầu!",
-    );
+    throw new HttpError(400, "Ngày kết thúc phải bằng hoặc sau ngày bắt đầu!");
   }
 }
 
@@ -91,7 +89,7 @@ async function list(rawInternId) {
 
 async function upload(rawInternId, user, metadata) {
   const internId = parseId(rawInternId, "Mã thực tập sinh");
-  const { file, title, start_date, end_date, note } = metadata;
+  const { file, title, start_date, end_date, note, program_id } = metadata;
 
   if (!file?.buffer) {
     throw new HttpError(
@@ -119,6 +117,7 @@ async function upload(rawInternId, user, metadata) {
       startDate: start_date || null,
       endDate: end_date || null,
       note: textFields.note,
+      programId: program_id ? parseId(program_id, "Mã chương trình") : null,
       originalName: fileMetadata.cleanName,
       storedName,
       mimeType: fileMetadata.mimeType,
@@ -136,7 +135,11 @@ async function upload(rawInternId, user, metadata) {
   }
 }
 
-async function getDownloadForInternId(internId, contractId, missingFileMessage) {
+async function getDownloadForInternId(
+  internId,
+  contractId,
+  missingFileMessage,
+) {
   const contract = await db.findContractById(internId, contractId);
   if (!contract) {
     throw new HttpError(404, "Không tìm thấy hợp đồng của thực tập sinh!");
@@ -165,9 +168,11 @@ async function getDownload(rawInternId, rawContractId) {
 }
 
 async function findInternForUser(user) {
-  if (!user?.email) throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
+  if (!user?.email)
+    throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
   const intern = await db.findInternProfileByEmail(user.email);
-  if (!intern) throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
+  if (!intern)
+    throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
   return intern;
 }
 
@@ -210,7 +215,10 @@ async function remove(rawInternId, rawContractId) {
     throw new HttpError(404, "Không tìm thấy hợp đồng của thực tập sinh!");
   }
   if (result.outcome === "CONFIRMED") {
-    throw new HttpError(409, "Không thể xóa hợp đồng đã được thực tập sinh xác nhận!");
+    throw new HttpError(
+      409,
+      "Không thể xóa hợp đồng đã được thực tập sinh xác nhận!",
+    );
   }
 
   storage.removeFile(result.storedName);

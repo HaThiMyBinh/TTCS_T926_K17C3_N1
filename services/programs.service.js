@@ -1,5 +1,6 @@
 const db = require("../db");
 const { HttpError } = require("../errors");
+const { getVietnamToday } = require("../utils/date");
 
 const STATUSES = ["DRAFT", "OPEN", "ONGOING", "CLOSED"];
 const MAX_CAPACITY = 2147483647;
@@ -9,17 +10,6 @@ const TIME_STATES = ["UPCOMING", "RUNNING", "ENDED", "UNSCHEDULED"];
 function dateOrdinal(value) {
   if (!validDate(value) || value == null || value === "") return null;
   return Math.floor(Date.parse(`${value}T00:00:00Z`) / 86400000);
-}
-
-function getVietnamToday(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
-  const fields = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
-  return `${fields.year}-${fields.month}-${fields.day}`;
 }
 
 function calculateProgramTime(startDate, endDate, today) {
@@ -34,7 +24,8 @@ function calculateProgramTime(startDate, endDate, today) {
   const start = dateOrdinal(startDate);
   const end = dateOrdinal(endDate);
   const current = dateOrdinal(today);
-  if (current == null) throw new TypeError("Hôm nay phải là ngày hợp lệ YYYY-MM-DD");
+  if (current == null)
+    throw new TypeError("Hôm nay phải là ngày hợp lệ YYYY-MM-DD");
   const durationDays = end - start + 1;
   let timeState = "RUNNING";
 
@@ -71,7 +62,9 @@ function validDate(value) {
   }
 
   const date = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  return (
+    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+  );
 }
 
 function validateProgram(input = {}) {
@@ -98,14 +91,17 @@ function validateProgram(input = {}) {
     throw new HttpError(400, "Mô tả không được vượt quá 2000 ký tự!");
   }
 
-  const startDate = input.start_date == null || input.start_date === ""
-    ? null
-    : input.start_date;
-  const endDate = input.end_date == null || input.end_date === ""
-    ? null
-    : input.end_date;
+  const startDate =
+    input.start_date == null || input.start_date === ""
+      ? null
+      : input.start_date;
+  const endDate =
+    input.end_date == null || input.end_date === "" ? null : input.end_date;
   if (!validDate(startDate) || !validDate(endDate)) {
-    throw new HttpError(400, "Ngày phải đúng định dạng YYYY-MM-DD và là ngày có thật!");
+    throw new HttpError(
+      400,
+      "Ngày phải đúng định dạng YYYY-MM-DD và là ngày có thật!",
+    );
   }
   if (startDate && endDate && endDate < startDate) {
     throw new HttpError(400, "Ngày kết thúc không được trước ngày bắt đầu!");
@@ -122,12 +118,16 @@ function validateProgram(input = {}) {
     throw new HttpError(400, "Số lượng phải là số nguyên từ 1 trở lên!");
   }
 
-  const status = input.status == null || input.status === "" ? "DRAFT" : input.status;
+  const status =
+    input.status == null || input.status === "" ? "DRAFT" : input.status;
   if (!STATUSES.includes(status)) {
     throw new HttpError(400, "Trạng thái chương trình không hợp lệ!");
   }
   if ((status === "OPEN" || status === "ONGOING") && (!startDate || !endDate)) {
-    throw new HttpError(400, "Chương trình OPEN hoặc ONGOING phải có đủ ngày bắt đầu và kết thúc!");
+    throw new HttpError(
+      400,
+      "Chương trình OPEN hoặc ONGOING phải có đủ ngày bắt đầu và kết thúc!",
+    );
   }
   if (startDate && endDate) {
     const durationDays = dateOrdinal(endDate) - dateOrdinal(startDate) + 1;
@@ -209,9 +209,13 @@ async function addDepartment(input = {}) {
 
 async function removeDepartment(rawId) {
   const result = await db.deleteDepartment(parseId(rawId));
-  if (result === "NOT_FOUND") throw new HttpError(404, "Không tìm thấy phòng ban!");
+  if (result === "NOT_FOUND")
+    throw new HttpError(404, "Không tìm thấy phòng ban!");
   if (result === "IN_USE") {
-    throw new HttpError(409, "Không thể xóa phòng ban đã có chương trình thực tập!");
+    throw new HttpError(
+      409,
+      "Không thể xóa phòng ban đã có chương trình thực tập!",
+    );
   }
 }
 
@@ -234,7 +238,9 @@ async function list(query = {}) {
   }
 
   const today = getVietnamToday();
-  const programs = (await db.listPrograms(filters)).map((row) => toDto(row, today));
+  const programs = (await db.listPrograms(filters)).map((row) =>
+    toDto(row, today),
+  );
   return filters.timeState
     ? programs.filter((program) => program.time_state === filters.timeState)
     : programs;
@@ -248,10 +254,16 @@ async function get(rawId) {
 
 function throwSaveError(outcome) {
   if (outcome === "DUPLICATE") {
-    throw new HttpError(409, "Chương trình trùng tên trong phòng ban và khoảng ngày này!");
+    throw new HttpError(
+      409,
+      "Chương trình trùng tên trong phòng ban và khoảng ngày này!",
+    );
   }
   if (outcome === "LOCK_TIMEOUT") {
-    throw new HttpError(409, "Chương trình đang được cập nhật, vui lòng thử lại!");
+    throw new HttpError(
+      409,
+      "Chương trình đang được cập nhật, vui lòng thử lại!",
+    );
   }
   if (outcome === "NOT_FOUND") {
     throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
@@ -264,7 +276,9 @@ async function create(input, user) {
     throw new HttpError(404, "Phòng ban không tồn tại!");
   }
 
-  const result = await db.saveProgramAtomic(values, { createdBy: user?.id || null });
+  const result = await db.saveProgramAtomic(values, {
+    createdBy: user?.id || null,
+  });
   throwSaveError(result.outcome);
   return get(result.id);
 }
