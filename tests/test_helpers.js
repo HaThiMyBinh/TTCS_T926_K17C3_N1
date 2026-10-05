@@ -3,7 +3,9 @@ const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
 
-const BASE_URL = process.env.TEST_BASE_URL || `http://127.0.0.1:${process.env.TEST_PORT || 5000}/api`;
+const BASE_URL =
+  process.env.TEST_BASE_URL ||
+  `http://127.0.0.1:${process.env.TEST_PORT || 5000}/api`;
 
 // Tài khoản mẫu do db.js seed (mật khẩu password123)
 const DEMO_ACCOUNTS = {
@@ -59,7 +61,11 @@ async function cleanupTestData(emails) {
         if (d.stored_name) {
           const f = path.join(uploadsDir, d.stored_name);
           if (fs.existsSync(f)) {
-            try { fs.unlinkSync(f); } catch { /* best-effort cleanup */ }
+            try {
+              fs.unlinkSync(f);
+            } catch {
+              /* best-effort cleanup */
+            }
           }
         }
       }
@@ -91,7 +97,9 @@ async function cleanupTestData(emails) {
           // Best-effort cleanup.
         }
       }
-    } catch { /* bảng hợp đồng có thể chưa tồn tại */ }
+    } catch {
+      /* bảng hợp đồng có thể chưa tồn tại */
+    }
 
     // users xóa cuối vì các bảng kia tham chiếu tới nó
     for (const table of [
@@ -121,9 +129,15 @@ async function cleanupByPattern(prefixes) {
   try {
     let total = 0;
     for (const prefix of list.filter((p) => p.startsWith("program_test_"))) {
-      const [programs] = await conn.query("DELETE FROM internship_programs WHERE LEFT(LOWER(name), CHAR_LENGTH(?)) = LOWER(?)", [prefix, prefix]);
+      const [programs] = await conn.query(
+        "DELETE FROM internship_programs WHERE LEFT(LOWER(name), CHAR_LENGTH(?)) = LOWER(?)",
+        [prefix, prefix],
+      );
       total += programs.affectedRows;
-      const [departments] = await conn.query("DELETE FROM departments WHERE LEFT(LOWER(name), CHAR_LENGTH(?)) = LOWER(?) AND NOT EXISTS (SELECT 1 FROM internship_programs p WHERE p.department_id = departments.id)", [prefix, prefix]);
+      const [departments] = await conn.query(
+        "DELETE FROM departments WHERE LEFT(LOWER(name), CHAR_LENGTH(?)) = LOWER(?) AND NOT EXISTS (SELECT 1 FROM internship_programs p WHERE p.department_id = departments.id)",
+        [prefix, prefix],
+      );
       total += departments.affectedRows;
     }
     for (const prefix of list) {
@@ -147,7 +161,11 @@ async function cleanupByPattern(prefixes) {
           if (d.stored_name) {
             const f = path.join(uploadsDir, d.stored_name);
             if (fs.existsSync(f)) {
-              try { fs.unlinkSync(f); } catch { /* best-effort cleanup */ }
+              try {
+                fs.unlinkSync(f);
+              } catch {
+                /* best-effort cleanup */
+              }
             }
           }
         }
@@ -159,7 +177,9 @@ async function cleanupByPattern(prefixes) {
         );
         total += docResult.affectedRows;
       }
-    } catch { /* best-effort cleanup */ }
+    } catch {
+      /* best-effort cleanup */
+    }
 
     try {
       for (const prefix of list) {
@@ -180,7 +200,9 @@ async function cleanupByPattern(prefixes) {
           }
         }
       }
-    } catch { /* bảng hợp đồng có thể chưa tồn tại */ }
+    } catch {
+      /* bảng hợp đồng có thể chưa tồn tại */
+    }
 
     for (const table of [
       "candidate_profiles",
@@ -202,13 +224,15 @@ async function cleanupByPattern(prefixes) {
   }
 }
 
-
 // Gắn đủ CV + Đơn xin thực tập (bản ghi giả, không có file thật) để test duyệt hồ sơ (US10 yêu cầu 2/2).
 // Dữ liệu tự bị xóa theo hồ sơ khi cleanupTestData / ON DELETE CASCADE.
 async function seedFullDocuments(applicationId) {
   const conn = await mysql.createConnection(readDbConfig());
   try {
-    for (const [type, name] of [["CV", "cv_test.pdf"], ["APPLICATION_LETTER", "don_test.pdf"]]) {
+    for (const [type, name] of [
+      ["CV", "cv_test.pdf"],
+      ["APPLICATION_LETTER", "don_test.pdf"],
+    ]) {
       await conn.query(
         `INSERT INTO application_documents
            (application_id, doc_type, original_name, stored_name, mime_type, size_bytes)

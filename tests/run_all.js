@@ -8,22 +8,46 @@ const path = require("path");
 
 const BACKEND_DIR = path.join(__dirname, "..");
 const TEST_PORT = Number(process.env.TEST_PORT) || 5000;
-const TEST_BASE_URL = process.env.TEST_BASE_URL || `http://127.0.0.1:${TEST_PORT}/api`;
+const TEST_BASE_URL =
+  process.env.TEST_BASE_URL || `http://127.0.0.1:${TEST_PORT}/api`;
 const HEALTH_URL = `${TEST_BASE_URL}/health`;
 const SERVER_START_TIMEOUT_MS = 60000;
-const TEST_SUITE_TIMEOUT_MS = Number(process.env.TEST_SUITE_TIMEOUT_MS) || 120000;
+const TEST_SUITE_TIMEOUT_MS =
+  Number(process.env.TEST_SUITE_TIMEOUT_MS) || 120000;
 const INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
 
 // needsServer: cần MySQL và backend
 const SUITES = [
   { name: "email-unit", file: "test_email_unit.js", needsServer: false },
   { name: "upload-unit", file: "test_upload_unit.js", needsServer: false },
-  { name: "contracts-unit", file: "test_contracts_unit.js", needsServer: false },
-  { name: "contract-confirm-unit", file: "test_contract_confirmation_unit.js", needsServer: false },
+  {
+    name: "contracts-unit",
+    file: "test_contracts_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "contract-confirm-unit",
+    file: "test_contract_confirmation_unit.js",
+    needsServer: false,
+  },
   { name: "review-unit", file: "test_review_unit.js", needsServer: false },
   { name: "programs-unit", file: "test_programs_unit.js", needsServer: false },
-  { name: "program-dates-unit", file: "test_program_dates_unit.js", needsServer: false },
-  { name: "mentor-assignment-unit", file: "test_mentor_assignment_unit.js", needsServer: false },
+  { name: "date-unit", file: "test_date_unit.js", needsServer: false },
+  {
+    name: "program-dates-unit",
+    file: "test_program_dates_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "mentor-assignment-unit",
+    file: "test_mentor_assignment_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "intern-schedule-unit",
+    file: "test_intern_schedule_unit.js",
+    needsServer: false,
+  },
   { name: "login", file: "test_login.js", needsServer: true },
   { name: "create-account", file: "test_create_account.js", needsServer: true },
   { name: "rbac", file: "test_rbac.js", needsServer: true },
@@ -33,18 +57,45 @@ const SUITES = [
   { name: "applications", file: "test_applications.js", needsServer: true },
   { name: "documents-api", file: "test_documents_api.js", needsServer: true },
   { name: "contracts-api", file: "test_contracts_api.js", needsServer: true },
-  { name: "contract-confirm-api", file: "test_contract_confirm_api.js", needsServer: true },
-  { name: "review-documents-api", file: "test_review_documents_api.js", needsServer: true },
+  {
+    name: "contract-confirm-api",
+    file: "test_contract_confirm_api.js",
+    needsServer: true,
+  },
+  {
+    name: "review-documents-api",
+    file: "test_review_documents_api.js",
+    needsServer: true,
+  },
   { name: "email-api", file: "test_email_api.js", needsServer: true },
   { name: "programs-api", file: "test_programs_api.js", needsServer: true },
-  { name: "programs-safety", file: "test_programs_safety.js", needsServer: true },
-  { name: "program-dates-api", file: "test_program_dates_api.js", needsServer: true },
-  { name: "mentor-assignment-api", file: "test_mentor_assignment_api.js", needsServer: true },
+  {
+    name: "programs-safety",
+    file: "test_programs_safety.js",
+    needsServer: true,
+  },
+  {
+    name: "program-dates-api",
+    file: "test_program_dates_api.js",
+    needsServer: true,
+  },
+  {
+    name: "mentor-assignment-api",
+    file: "test_mentor_assignment_api.js",
+    needsServer: true,
+  },
+  {
+    name: "intern-schedule-api",
+    file: "test_intern_schedule_api.js",
+    needsServer: true,
+  },
 ];
 
 const args = process.argv.slice(2);
 const unitOnly = args.includes("--unit");
-const onlyFilters = args.flatMap((a, i) => (a === "--only" && args[i + 1] ? [args[i + 1]] : []));
+const onlyFilters = args.flatMap((a, i) =>
+  a === "--only" && args[i + 1] ? [args[i + 1]] : [],
+);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const line = (c = "=") => c.repeat(60);
@@ -89,7 +140,11 @@ function runNode(file, extraArgs = [], timeoutMs = TEST_SUITE_TIMEOUT_MS) {
     let finished = false;
     const timer = setTimeout(() => {
       console.error(
-        " Test " + path.basename(file) + " vượt quá " + Math.round(timeoutMs / 1000) + " giây; dừng tiến trình.",
+        " Test " +
+          path.basename(file) +
+          " vượt quá " +
+          Math.round(timeoutMs / 1000) +
+          " giây; dừng tiến trình.",
       );
       child.kill();
       finish({ code: 124, timedOut: true, ms: Date.now() - started });
@@ -112,7 +167,8 @@ function runNode(file, extraArgs = [], timeoutMs = TEST_SUITE_TIMEOUT_MS) {
 }
 
 function ensureDependencies() {
-  if (fs.existsSync(path.join(BACKEND_DIR, "node_modules"))) return Promise.resolve(true);
+  if (fs.existsSync(path.join(BACKEND_DIR, "node_modules")))
+    return Promise.resolve(true);
   console.log(" Chưa có node_modules -> tự chạy `npm install`...\n");
   return new Promise((resolve) => {
     let finished = false;
@@ -168,9 +224,13 @@ async function startBackend() {
   let tail = "";
   try {
     tail = fs.readFileSync(logPath, "utf-8").split("\n").slice(-15).join("\n");
-  } catch { /* best-effort cleanup */ }
+  } catch {
+    /* best-effort cleanup */
+  }
   throw new Error(
-    (exited ? "Backend bị dừng ngay khi khởi động." : `Backend không phản hồi sau ${SERVER_START_TIMEOUT_MS / 1000}s.`) +
+    (exited
+      ? "Backend bị dừng ngay khi khởi động."
+      : `Backend không phản hồi sau ${SERVER_START_TIMEOUT_MS / 1000}s.`) +
       `\n--- log backend (${logPath}) ---\n${tail}`,
   );
 }
@@ -182,7 +242,8 @@ async function main() {
 
   let suites = SUITES;
   if (unitOnly) suites = suites.filter((s) => !s.needsServer);
-  if (onlyFilters.length) suites = suites.filter((s) => onlyFilters.some((f) => s.name.includes(f)));
+  if (onlyFilters.length)
+    suites = suites.filter((s) => onlyFilters.some((f) => s.name.includes(f)));
   if (suites.length === 0) {
     console.error(" Không có bộ test nào khớp bộ lọc.");
     process.exit(1);
@@ -214,13 +275,17 @@ async function main() {
     infraError = await checkMysql();
     if (!infraError) {
       if (await isServerUp()) {
-        console.log(` Backend đã chạy sẵn ở cổng ${TEST_PORT} -> dùng luôn (sẽ không tắt khi xong).\n`);
+        console.log(
+          ` Backend đã chạy sẵn ở cổng ${TEST_PORT} -> dùng luôn (sẽ không tắt khi xong).\n`,
+        );
       } else {
         console.log(` Đang tự bật backend ở cổng ${TEST_PORT}...`);
         try {
           const started = await startBackend();
           serverChild = started.child;
-          console.log(` Backend đã sẵn sàng (log: ${path.relative(BACKEND_DIR, started.logPath)}).\n`);
+          console.log(
+            ` Backend đã sẵn sàng (log: ${path.relative(BACKEND_DIR, started.logPath)}).\n`,
+          );
         } catch (e) {
           infraError = e.message;
         }
@@ -236,8 +301,15 @@ async function main() {
     console.log(line("-"));
     console.log(` >>> ${suite.name}  (${suite.file})`);
     console.log(line("-"));
-    const { code, ms, timedOut } = await runNode(path.join("tests", suite.file));
-    results.push({ ...suite, status: code === 0 ? "PASS" : "FAIL", timedOut, ms });
+    const { code, ms, timedOut } = await runNode(
+      path.join("tests", suite.file),
+    );
+    results.push({
+      ...suite,
+      status: code === 0 ? "PASS" : "FAIL",
+      timedOut,
+      ms,
+    });
   }
 
   // Dọn dữ liệu test còn sót
@@ -254,7 +326,12 @@ async function main() {
   console.log(" TỔNG KẾT");
   console.log(line());
   for (const r of results) {
-    const mark = r.status === "PASS" ? "[PASS]" : r.status === "FAIL" ? "[FAIL]" : "[SKIP]";
+    const mark =
+      r.status === "PASS"
+        ? "[PASS]"
+        : r.status === "FAIL"
+          ? "[FAIL]"
+          : "[SKIP]";
     const duration = r.status === "SKIP" ? "" : (r.ms / 1000).toFixed(1) + "s";
     const timeoutLabel = r.timedOut ? " (timeout)" : "";
     console.log(` ${mark} ${r.name.padEnd(22)} ${duration}${timeoutLabel}`);
@@ -267,7 +344,9 @@ async function main() {
   const failed = results.filter((r) => r.status === "FAIL").length;
   const skipped = results.filter((r) => r.status === "SKIP").length;
   const passed = results.filter((r) => r.status === "PASS").length;
-  console.log(`\n ${passed} PASS / ${failed} FAIL / ${skipped} SKIP (tổng ${results.length} bộ test)`);
+  console.log(
+    `\n ${passed} PASS / ${failed} FAIL / ${skipped} SKIP (tổng ${results.length} bộ test)`,
+  );
   console.log(line() + "\n");
 
   process.exit(failed > 0 || skipped > 0 ? 1 : 0);

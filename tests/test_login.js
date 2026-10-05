@@ -28,10 +28,15 @@ async function runAutoLoginTests() {
       typeof data.token === "string" &&
       data.token.length > 0
     ) {
-      console.log(" [PASS] TC_01: Đăng nhập thành công tài khoản Admin & nhận được JWT (Mã 200 OK)");
+      console.log(
+        " [PASS] TC_01: Đăng nhập thành công tài khoản Admin & nhận được JWT (Mã 200 OK)",
+      );
       passCount++;
     } else {
-      console.log(" [FAIL] TC_01: Đăng nhập Admin thất bại hoặc thiếu token: " + JSON.stringify(data));
+      console.log(
+        " [FAIL] TC_01: Đăng nhập Admin thất bại hoặc thiếu token: " +
+          JSON.stringify(data),
+      );
     }
   } catch (e) {
     console.log(" [FAIL] TC_01: Lỗi kết nối API: " + e.message);
@@ -49,7 +54,9 @@ async function runAutoLoginTests() {
     });
     const data = await res.json();
     if (res.status === 200 && data.user && data.user.role === "HR") {
-      console.log(" [PASS] TC_02: Đăng nhập thành công tài khoản HR (Mã 200 OK)");
+      console.log(
+        " [PASS] TC_02: Đăng nhập thành công tài khoản HR (Mã 200 OK)",
+      );
       passCount++;
     } else {
       console.log(" [FAIL] TC_02: Đăng nhập HR thất bại");
@@ -69,7 +76,9 @@ async function runAutoLoginTests() {
       }),
     });
     if (res.status === 401) {
-      console.log(" [PASS] TC_03: Chặn chính xác khi nhập sai mật khẩu (Báo lỗi 401)");
+      console.log(
+        " [PASS] TC_03: Chặn chính xác khi nhập sai mật khẩu (Báo lỗi 401)",
+      );
       passCount++;
     } else {
       console.log(" [FAIL] TC_03: Hệ thống không chặn mật khẩu sai");
@@ -89,7 +98,9 @@ async function runAutoLoginTests() {
       }),
     });
     if (res.status === 401) {
-      console.log(" [PASS] TC_04: Bắt chính xác lỗi tài khoản không tồn tại (Mã 401)");
+      console.log(
+        " [PASS] TC_04: Bắt chính xác lỗi tài khoản không tồn tại (Mã 401)",
+      );
       passCount++;
     } else {
       console.log(" [FAIL] TC_04: Không bắt được tài khoản không tồn tại");
@@ -109,7 +120,9 @@ async function runAutoLoginTests() {
       }),
     });
     if (res.status === 400) {
-      console.log(" [PASS] TC_05: Chặn thành công khi để trống thông tin (Mã 400)");
+      console.log(
+        " [PASS] TC_05: Chặn thành công khi để trống thông tin (Mã 400)",
+      );
       passCount++;
     } else {
       console.log(" [FAIL] TC_05: Không chặn dữ liệu rỗng");
@@ -119,7 +132,9 @@ async function runAutoLoginTests() {
   }
 
   console.log("\n");
-  console.log(` KẾT QUẢ TEST ĐĂNG NHẬP: ${passCount}/${totalCount} TEST CASES PASS`);
+  console.log(
+    ` KẾT QUẢ TEST ĐĂNG NHẬP: ${passCount}/${totalCount} TEST CASES PASS`,
+  );
   console.log("====================================================\n");
 
   // Trả mã thoát khác 0 khi có test FAIL để `npm test` / CI nhận biết được

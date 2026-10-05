@@ -4,8 +4,12 @@ const {
   MAX_FILE_SIZE,
 } = require("../services/documentValidator");
 const { HttpError } = require("../errors");
-const { sendError: sendContractError } = require("../controllers/contracts.controller");
-const { sendError: sendDocumentError } = require("../controllers/documents.controller");
+const {
+  sendError: sendContractError,
+} = require("../controllers/contracts.controller");
+const {
+  sendError: sendDocumentError,
+} = require("../controllers/documents.controller");
 const {
   parseId,
   validateDates,
@@ -28,7 +32,10 @@ function check(name, assertion) {
 }
 
 function expectHttpError(action, status) {
-  assert.throws(action, (err) => err instanceof HttpError && err.status === status);
+  assert.throws(
+    action,
+    (err) => err instanceof HttpError && err.status === status,
+  );
 }
 
 const validFiles = {
@@ -94,10 +101,7 @@ check("ID không hợp lệ trả HTTP 400", () => {
 });
 
 check("Từ chối ngày kết thúc trước ngày bắt đầu", () => {
-  expectHttpError(
-    () => validateDates("2026-05-01", "2026-04-30"),
-    400,
-  );
+  expectHttpError(() => validateDates("2026-05-01", "2026-04-30"), 400);
 });
 
 check("Từ chối ngày lịch không tồn tại", () => {
@@ -109,7 +113,10 @@ check("Từ chối title vượt quá 255 ký tự", () => {
 });
 
 check("Từ chối note vượt quá 1000 ký tự", () => {
-  expectHttpError(() => validateContractText("Hợp đồng", "N".repeat(1001)), 400);
+  expectHttpError(
+    () => validateContractText("Hợp đồng", "N".repeat(1001)),
+    400,
+  );
 });
 
 check("Cho phép title và note đúng giới hạn", () => {
@@ -136,13 +143,19 @@ check("500 không trả message nội bộ trong response", () => {
     sendContractError(response, new Error("SQL secret details"));
     assert.equal(response.statusCode, 500);
     assert.equal(responseBody.error, "Lỗi server, vui lòng thử lại sau!");
-    assert.equal(JSON.stringify(responseBody).includes("SQL secret details"), false);
+    assert.equal(
+      JSON.stringify(responseBody).includes("SQL secret details"),
+      false,
+    );
 
     responseBody = null;
     sendDocumentError(response, new Error("Document DB secret"));
     assert.equal(response.statusCode, 500);
     assert.equal(responseBody.error, "Lỗi server, vui lòng thử lại sau!");
-    assert.equal(JSON.stringify(responseBody).includes("Document DB secret"), false);
+    assert.equal(
+      JSON.stringify(responseBody).includes("Document DB secret"),
+      false,
+    );
   } finally {
     console.error = originalError;
   }

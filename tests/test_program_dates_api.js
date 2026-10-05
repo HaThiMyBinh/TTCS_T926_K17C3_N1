@@ -42,7 +42,10 @@ async function removeTestPrograms(departmentId, namePrefix) {
 async function testProgramDatesApi() {
   const departmentResponse = await request("/departments", "HR");
   assert.equal(departmentResponse.status, 200);
-  assert.ok(departmentResponse.body.data.length > 0, "Cần có ít nhất một phòng ban");
+  assert.ok(
+    departmentResponse.body.data.length > 0,
+    "Cần có ít nhất một phòng ban",
+  );
   const departmentId = departmentResponse.body.data[0].id;
   const namePrefix = `program_test_dates_${Date.now()}`;
   const today = service.getVietnamToday();
@@ -66,10 +69,19 @@ async function testProgramDatesApi() {
     assert.equal((await request("/programs", "HR", "POST", [])).status, 400);
 
     for (const role of ["Admin", "Mentor", "Intern"]) {
-      assert.equal((await request(`/programs/${id}`, role, "PUT", base)).status, 403);
+      assert.equal(
+        (await request(`/programs/${id}`, role, "PUT", base)).status,
+        403,
+      );
     }
-    assert.equal((await request(`/programs/${id}`, null, "PUT", base)).status, 401);
-    assert.equal((await request(`/programs/${id}`, "INVALID", "PUT", base)).status, 401);
+    assert.equal(
+      (await request(`/programs/${id}`, null, "PUT", base)).status,
+      401,
+    );
+    assert.equal(
+      (await request(`/programs/${id}`, "INVALID", "PUT", base)).status,
+      401,
+    );
 
     const runningFilter = await request("/programs?time_state=RUNNING", "HR");
     assert.equal(runningFilter.status, 200);
@@ -85,7 +97,12 @@ async function testProgramDatesApi() {
       { ...base, start_date: "2028-04-02", end_date: "2028-04-01" },
     ];
     for (const invalidUpdate of invalidUpdates) {
-      const result = await request(`/programs/${id}`, "HR", "PUT", invalidUpdate);
+      const result = await request(
+        `/programs/${id}`,
+        "HR",
+        "PUT",
+        invalidUpdate,
+      );
       assert.equal(result.status, 400);
       const unchanged = await request(`/programs/${id}`, "HR");
       assert.equal(unchanged.status, 200);
@@ -125,7 +142,10 @@ async function testProgramDatesApi() {
 }
 
 testProgramDatesApi().then(
-  () => console.log("PROGRAM DATES API: create/update, filters, RBAC, bad-body safety PASS"),
+  () =>
+    console.log(
+      "PROGRAM DATES API: create/update, filters, RBAC, bad-body safety PASS",
+    ),
   (err) => {
     console.error(err);
     process.exit(1);

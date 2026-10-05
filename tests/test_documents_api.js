@@ -191,7 +191,6 @@ async function runDocumentsApiTests() {
         docType: "APPLICATION_LETTER",
       });
 
-
       report(
         "TC_API_02",
         "Intern upload Đơn xin thực tập DOCX thành công -> tiến độ 2/2 'Đã đủ hồ sơ'",
@@ -738,4 +737,3 @@ if (require.main === module) {
 }
 
 module.exports = { runDocumentsApiTests };
-

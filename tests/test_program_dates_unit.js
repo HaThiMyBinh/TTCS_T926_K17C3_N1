@@ -33,7 +33,8 @@ expectBadProgram(
 );
 
 assert.equal(
-  validateProgram({ ...base, start_date: "2028-03-01", end_date: "2028-03-01" }).endDate,
+  validateProgram({ ...base, start_date: "2028-03-01", end_date: "2028-03-01" })
+    .endDate,
   "2028-03-01",
 );
 assert.equal(
@@ -58,14 +59,18 @@ assert.equal(validateProgram(base).startDate, null);
 assert.equal(validateProgram({ ...base, status: "CLOSED" }).endDate, null);
 
 const start = "2028-01-01";
-const maxEnd = new Date(Date.UTC(2028, 0, 1) + (MAX_PROGRAM_DURATION_DAYS - 1) * 86400000)
+const maxEnd = new Date(
+  Date.UTC(2028, 0, 1) + (MAX_PROGRAM_DURATION_DAYS - 1) * 86400000,
+)
   .toISOString()
   .slice(0, 10);
 assert.equal(
   validateProgram({ ...base, start_date: start, end_date: maxEnd }).endDate,
   maxEnd,
 );
-const tooLongEnd = new Date(Date.UTC(2028, 0, 1) + MAX_PROGRAM_DURATION_DAYS * 86400000)
+const tooLongEnd = new Date(
+  Date.UTC(2028, 0, 1) + MAX_PROGRAM_DURATION_DAYS * 86400000,
+)
   .toISOString()
   .slice(0, 10);
 expectBadProgram(
@@ -89,10 +94,11 @@ assert.deepEqual(
   calculateProgramTime("2028-06-02", "2028-06-03", "2028-06-04"),
   { time_state: "ENDED", duration_days: 2, days_remaining: 0 },
 );
-assert.deepEqual(
-  calculateProgramTime(null, null, "2028-06-02"),
-  { time_state: "UNSCHEDULED", duration_days: null, days_remaining: null },
-);
+assert.deepEqual(calculateProgramTime(null, null, "2028-06-02"), {
+  time_state: "UNSCHEDULED",
+  duration_days: null,
+  days_remaining: null,
+});
 assert.equal(
   calculateProgramTime("2024-02-28", "2024-02-29", "2024-02-28").duration_days,
   2,
@@ -118,4 +124,6 @@ assert.deepEqual(
   },
 );
 
-console.log("PROGRAM DATES UNIT: validation, duration, time-state boundaries, leap year PASS");
+console.log(
+  "PROGRAM DATES UNIT: validation, duration, time-state boundaries, leap year PASS",
+);

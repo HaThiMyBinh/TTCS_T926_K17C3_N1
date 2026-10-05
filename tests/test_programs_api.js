@@ -79,7 +79,10 @@ async function testProgramApi() {
       `/programs?department_id=${department.id}&status=DRAFT`,
       "HR",
     );
-    assert.equal(filtered.body.data.some((item) => item.id === programId), true);
+    assert.equal(
+      filtered.body.data.some((item) => item.id === programId),
+      true,
+    );
 
     const invalidInputs = [
       {},
@@ -140,17 +143,12 @@ async function testProgramApi() {
     );
 
     assert.equal((await call("/programs/not-an-id", "HR")).status, 400);
-    const updateResponse = await call(
-      `/programs/${programId}`,
-      "HR",
-      "PUT",
-      {
-        name: uniqueName,
-        department_id: department.id,
-        start_date: "2026-01-01",
-        end_date: "2026-03-01",
-      },
-    );
+    const updateResponse = await call(`/programs/${programId}`, "HR", "PUT", {
+      name: uniqueName,
+      department_id: department.id,
+      start_date: "2026-01-01",
+      end_date: "2026-03-01",
+    });
     assert.equal(updateResponse.status, 200);
 
     await call(`/programs/${programId}`, "HR", "PUT", {
@@ -158,7 +156,10 @@ async function testProgramApi() {
       department_id: department.id,
       status: "ONGOING",
     });
-    assert.equal((await call(`/programs/${programId}`, "HR", "DELETE")).status, 409);
+    assert.equal(
+      (await call(`/programs/${programId}`, "HR", "DELETE")).status,
+      409,
+    );
     assert.equal(
       (await call(`/departments/${department.id}`, "HR", "DELETE")).status,
       409,
@@ -169,7 +170,10 @@ async function testProgramApi() {
 }
 
 testProgramApi().then(
-  () => console.log("PROGRAM API: auth, CRUD, filters, validation, concurrency PASS"),
+  () =>
+    console.log(
+      "PROGRAM API: auth, CRUD, filters, validation, concurrency PASS",
+    ),
   (err) => {
     console.error(err);
     process.exit(1);

@@ -69,14 +69,18 @@ async function runAutoRBACTests() {
       updateResponse.ok && updatedReportResponse.status === 200,
     );
 
-    const selfUpdateResponse = await request("/permissions/update", internToken, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        role: "Intern",
-        permissions: ["SYSTEM_SETTINGS"],
-      }),
-    });
+    const selfUpdateResponse = await request(
+      "/permissions/update",
+      internToken,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "Intern",
+          permissions: ["SYSTEM_SETTINGS"],
+        }),
+      },
+    );
     check(
       "TC_05: Intern không tự thay đổi ma trận quyền",
       selfUpdateResponse.status === 403,
