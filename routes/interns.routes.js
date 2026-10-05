@@ -6,24 +6,27 @@ const {
   attachApplicationsToStudents,
 } = require("../services/applications.service");
 const { trimOrDefault } = require("../utils/request");
+const { normalizeInternFilters } = require("../utils/internFilters");
 const contractsService = require("../services/contracts.service");
 const router = express.Router();
 // --- QUẢN LÝ HỒ SƠ THỰC TẬP SINH (INTERNS / STUDENTS) ---
 
 // GET /api/interns & GET /api/students
 async function handleGetInterns(req, res) {
+  let filters;
+  try {
+    filters = normalizeInternFilters(req.query);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
   try {
     if (req.user.role === "Mentor") {
-      const students =
-        req.query.unassigned === "true"
-          ? []
-          : await db.getStudentsForMentorEmail(req.user.email);
-      return res.json(students);
+      return res.json(await db.getStudentsForMentorEmail(req.user.email, filters));
     }
 
     const students = await db.getAllStudents({
       includeContractCount: req.user.role === "HR",
-      unassigned: req.query.unassigned === "true",
+      filters,
     });
     // US10: chỉ HR nhận kèm hồ sơ ứng tuyển + tài liệu của từng thực tập sinh
     res.json(
@@ -36,6 +39,53 @@ async function handleGetInterns(req, res) {
     res.status(500).json({ error: "Lỗi đọc danh sách hồ sơ thực tập sinh!" });
   }
 }
+router.get(
+  "/interns/filter-options",
+  requireRole("Admin", "HR"),
+  async (req, res) => {
+    let university = "";
+    try {
+      if (Object.prototype.hasOwnProperty.call(req.query, "university")) {
+        university = normalizeInternFilters({
+          university: req.query.university,
+        }).university || "";
+      }
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    try {
+      return res.json(await db.getInternFilterOptions({ university }));
+    } catch (err) {
+      return sendRouteError(
+        res,
+        err,
+        "Lỗi tải danh sách bộ lọc thực tập sinh!",
+      );
+    }
+  },
+);
+router.get(
+  "/interns/count",
+  requireRole("Admin", "HR"),
+  async (req, res) => {
+    if (Object.keys(req.query).some((key) => key !== "unassigned")) {
+      return res.status(400).json({
+        error: "API đếm chỉ nhận tham số unassigned.",
+      });
+    }
+    let filters;
+    try {
+      filters = normalizeInternFilters(req.query);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    try {
+      return res.json({ count: await db.countInterns(filters) });
+    } catch (err) {
+      return sendRouteError(res, err, "Lỗi đếm hồ sơ thực tập sinh!");
+    }
+  },
+);
 router.get("/interns", requireRole("Admin", "HR", "Mentor"), handleGetInterns);
 router.get("/students", requireRole("Admin", "HR", "Mentor"), handleGetInterns);
 
