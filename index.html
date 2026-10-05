@@ -305,6 +305,11 @@
         color: var(--slate-600);
       }
 
+      /* Ẩn dòng phụ dưới tiêu đề trang ở mọi giao diện */
+      #pageSubtitle {
+        display: none;
+      }
+
       .header-actions {
         display: flex;
         align-items: center;
@@ -333,7 +338,7 @@
       .content-scroll {
         flex: 1;
         overflow-y: auto;
-        padding: 26px 32px 50px;
+        padding: 20px 40px 50px;
       }
 
       /* STATS CARDS */
@@ -583,6 +588,287 @@
         background: #fef9c3;
         color: #854d0e;
       }
+      .intern-schedule-calendar {
+        --schedule-line: #e2e8f0;
+        --schedule-muted: #64748b;
+        /* Thu nhỏ lịch và căn giữa, lề đều 4 phía */
+        width: 100%;
+        max-width: 760px;
+        margin: 0 auto;
+        box-sizing: border-box;
+      }
+      #myScheduleList {
+        padding: 32px 24px;
+      }
+      .schedule-calendar-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .schedule-calendar-toolbar h4 {
+        margin: 0;
+        text-transform: capitalize;
+        font-size: 17px;
+        color: #0f172a;
+      }
+      .schedule-calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        border-top: 1px solid var(--schedule-line);
+        border-left: 1px solid var(--schedule-line);
+      }
+      .schedule-weekday,
+      .schedule-day {
+        min-width: 0;
+        border-right: 1px solid var(--schedule-line);
+        border-bottom: 1px solid var(--schedule-line);
+      }
+      .schedule-weekday {
+        padding: 6px 4px;
+        text-align: center;
+        color: var(--schedule-muted);
+        font-size: 12px;
+        font-weight: 700;
+        background: #f8fafc;
+      }
+      .schedule-day {
+        min-height: 60px;
+        padding: 5px;
+        text-align: left;
+        vertical-align: top;
+        background: white;
+        color: #0f172a;
+        cursor: pointer;
+      }
+      .schedule-day:hover {
+        background: #f8fafc;
+      }
+      .schedule-day.is-outside {
+        color: #94a3b8;
+        background: #f8fafc;
+      }
+      .schedule-day.is-selected {
+        box-shadow: inset 0 0 0 2px #2563eb;
+      }
+      .schedule-day-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        font-size: 13px;
+      }
+      .schedule-day.is-today .schedule-day-number {
+        background: #1d4ed8;
+        color: white;
+      }
+      .schedule-day.is-today {
+        background: #eff6ff;
+      }
+      .schedule-day-events {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-top: 4px;
+      }
+      .schedule-day-event {
+        height: 5px;
+        border-radius: 5px;
+        background: #f59e0b;
+      }
+      .schedule-day-event.is-in-progress {
+        background: #2563eb;
+      }
+      .schedule-day-event.is-completed {
+        background: #16a34a;
+      }
+      .schedule-day-label {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 10px;
+        line-height: 1.3;
+        color: #334155;
+      }
+      .schedule-today-panel {
+        border: 1px solid #bfdbfe;
+        background: #eff6ff;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 16px;
+      }
+      .schedule-today-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .schedule-today-head h4 {
+        margin: 0;
+        font-size: 15px;
+        color: #1e3a8a;
+      }
+      .schedule-today-close {
+        margin-left: auto;
+        border: 0;
+        background: transparent;
+        color: #64748b;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .schedule-today-close:hover {
+        color: #0f172a;
+      }
+      .schedule-today-date {
+        color: #475569;
+        font-size: 13px;
+      }
+      .schedule-today-item {
+        background: white;
+        border: 1px solid #dbeafe;
+        border-left: 4px solid #f59e0b;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-top: 8px;
+      }
+      .schedule-today-item.is-in-progress {
+        border-left-color: #2563eb;
+      }
+      .schedule-today-item.is-completed {
+        border-left-color: #16a34a;
+      }
+      .schedule-today-item-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .schedule-today-meta {
+        color: #64748b;
+        font-size: 12.5px;
+        margin-top: 3px;
+      }
+      .schedule-today-progress {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 6px;
+        margin-top: 8px;
+        overflow: hidden;
+      }
+      .schedule-today-progress > span {
+        display: block;
+        height: 100%;
+        background: #2563eb;
+      }
+      .schedule-today-empty {
+        color: #475569;
+        font-size: 13.5px;
+        margin: 4px 0 0;
+      }
+      .schedule-view-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .schedule-view-toggle {
+        display: inline-flex;
+        border: 1px solid #1d4ed8;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .schedule-view-toggle button {
+        border: 0;
+        background: white;
+        color: #1d4ed8;
+        padding: 6px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .schedule-view-toggle button.active {
+        background: #1d4ed8;
+        color: white;
+      }
+      .schedule-day.is-week {
+        min-height: 220px;
+      }
+      .schedule-day.is-week .schedule-day-events {
+        gap: 4px;
+      }
+      .schedule-day.is-week .schedule-day-label {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .schedule-day-weekname {
+        display: none;
+        margin-left: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--schedule-muted);
+      }
+      .schedule-month-agenda {
+        margin-top: 18px;
+      }
+      .schedule-month-agenda h4 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+      .schedule-agenda-item {
+        border-top: 1px solid var(--schedule-line);
+        padding: 10px 2px;
+      }
+      .schedule-agenda-date {
+        color: var(--schedule-muted);
+        font-size: 13px;
+        margin-top: 3px;
+      }
+      .schedule-agenda-description {
+        margin: 6px 0 0;
+        color: #334155;
+        font-size: 13px;
+      }
+      @media (max-width: 640px) {
+        .schedule-day {
+          min-height: 54px;
+          padding: 3px;
+        }
+        .schedule-day-label {
+          display: none;
+        }
+        .schedule-weekday {
+          font-size: 11px;
+          padding: 6px 2px;
+        }
+        .schedule-calendar-grid.is-week {
+          grid-template-columns: 1fr;
+        }
+        .schedule-calendar-grid.is-week .schedule-weekday {
+          display: none;
+        }
+        .schedule-day.is-week {
+          min-height: 64px;
+        }
+        .schedule-day.is-week .schedule-day-label {
+          display: block;
+        }
+        .schedule-day.is-week .schedule-day-weekname {
+          display: inline;
+        }
+        .schedule-calendar-toolbar h4 {
+          font-size: 15px;
+        }
+      }
 
       /* ALERT TOAST */
       .alert-box {
@@ -702,6 +988,49 @@
         font-size: 12px;
         cursor: pointer;
       }
+      .feature-pending-note {
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        padding: 20px;
+        color: #475569;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .report-status {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 13px;
+        padding: 12px 0;
+      }
+      .report-status.is-error {
+        color: #ef4444;
+      }
+      .report-grid {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        gap: 16px;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        padding: 24px;
+        text-align: center;
+      }
+      .report-metric h2 {
+        color: #4f46e5;
+        font-size: 32px;
+        font-weight: 800;
+      }
+      .report-metric p {
+        color: #64748b;
+        font-size: 13px;
+      }
+      .report-metric small {
+        color: #94a3b8;
+        font-size: 12px;
+      }
+
       #toastContainer {
         position: fixed;
         top: 20px;
@@ -780,6 +1109,81 @@
         justify-content: flex-end;
         gap: 10px;
         margin-top: 16px;
+      }
+      .schedule-manager-box {
+        width: min(820px, 96vw);
+        max-width: 820px;
+        max-height: calc(100vh - 28px);
+        max-height: calc(100dvh - 28px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 16px 20px;
+      }
+      .schedule-manager-box h3 {
+        font-size: 16px;
+        margin: 0 0 8px;
+      }
+      #scheduleManagerMessage {
+        flex: 0 0 auto;
+        margin: 4px 0 8px !important;
+        font-size: 13px;
+      }
+      #scheduleMilestonesList {
+        flex: 0 1 auto;
+        max-height: 22vh;
+        min-height: 0;
+        overflow-y: auto;
+      }
+      .schedule-milestone-row {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 7px 0;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+      }
+      .schedule-milestone-row .action-group {
+        gap: 6px;
+      }
+      .schedule-manager-form {
+        min-height: 0;
+        overflow-y: auto;
+        padding: 8px 4px 0 0;
+      }
+      .schedule-manager-form .form-grid {
+        gap: 10px 14px;
+      }
+      .schedule-manager-form .form-group {
+        gap: 4px;
+      }
+      .schedule-manager-form .form-control {
+        padding: 7px 10px;
+        font-size: 13px;
+      }
+      .schedule-manager-box textarea {
+        min-height: 58px;
+        max-height: 100px;
+      }
+      .schedule-manager-form .modal-actions {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        padding: 10px 0 2px;
+        margin-top: 10px;
+      }
+      @media (max-width: 640px) {
+        .schedule-manager-box {
+          width: 96vw;
+          max-height: calc(100dvh - 16px);
+          padding: 12px;
+        }
+        .schedule-manager-form .form-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .schedule-manager-form .form-group[style*="grid-column"] {
+          grid-column: 1 / -1 !important;
+        }
       }
 
       /* 403 FORBIDDEN SCREEN */
@@ -1002,19 +1406,89 @@
       .btn-outline-danger:hover:not(:disabled) {
         background: #fee2e2;
       }
+      /* Thẻ tài liệu (CV, Đơn xin thực tập): đơn sắc, chỉ dùng màu chủ đạo */
+      .upload-card #cvFileIcon,
+      .upload-card #letterFileIcon,
+      .upload-card span[style*="#dc2626"] {
+        color: var(--primary) !important;
+      }
+      .upload-card .badge-active,
+      .upload-card .badge-pending {
+        background: var(--primary-light);
+        color: var(--primary);
+      }
+      .upload-card .btn-outline-primary,
+      .upload-card .btn-outline-warning,
+      .upload-card .btn-outline-danger {
+        background: transparent;
+        border: 1px solid var(--primary);
+        color: var(--primary);
+      }
+      .upload-card .btn-outline-primary:hover:not(:disabled),
+      .upload-card .btn-outline-warning:hover:not(:disabled),
+      .upload-card .btn-outline-danger:hover:not(:disabled) {
+        background: var(--primary-light);
+      }
       .btn:disabled {
         opacity: 0.55;
         cursor: not-allowed;
       }
-      .program-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:14px 0; }
-      .program-modal { max-width:620px; }
-      .program-error { color:#b91c1c; min-height:20px; margin:8px 0; }
-      .program-status { display:inline-block; border-radius:12px; padding:3px 9px; background:#e0e7ff; color:#3730a3; font-size:12px; }
-      .program-time-badge { display:inline-block; margin-left:6px; border-radius:12px; padding:3px 9px; background:#ecfeff; color:#155e75; font-size:12px; white-space:nowrap; }
-      .program-modal .modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
-      .program-modal .btn-close { border:0; background:transparent; color:#64748b; font-size:26px; line-height:1; cursor:pointer; }
-      .program-table-responsive { width:100%; overflow-x:auto; }
-      .program-modal label { display:block; margin:10px 0; }
+      .program-toolbar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 14px 0;
+      }
+      .program-modal {
+        max-width: 620px;
+      }
+      .program-error {
+        color: #b91c1c;
+        min-height: 20px;
+        margin: 8px 0;
+      }
+      .program-status {
+        display: inline-block;
+        border-radius: 12px;
+        padding: 3px 9px;
+        background: #e0e7ff;
+        color: #3730a3;
+        font-size: 12px;
+      }
+      .program-time-badge {
+        display: inline-block;
+        margin-left: 6px;
+        border-radius: 12px;
+        padding: 3px 9px;
+        background: #ecfeff;
+        color: #155e75;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .program-modal .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .program-modal .btn-close {
+        border: 0;
+        background: transparent;
+        color: #64748b;
+        font-size: 26px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .program-table-responsive {
+        width: 100%;
+        overflow-x: auto;
+      }
+      .program-modal label {
+        display: block;
+        margin: 10px 0;
+      }
     </style>
   </head>
   <body>
@@ -1645,11 +2119,30 @@
                 <i class="fa-solid fa-list-check text-primary"></i> Danh Sách Hồ
                 Sơ Thực Tập Sinh
               </h3>
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                <label id="studentUnassignedFilterWrap" style="display:none;font-size:13px">
-                  <input id="studentUnassignedFilter" type="checkbox" onchange="loadStudents()"> Chưa phân công
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  flex-wrap: wrap;
+                "
+              >
+                <label
+                  id="studentUnassignedFilterWrap"
+                  style="display: none; font-size: 13px"
+                >
+                  <input
+                    id="studentUnassignedFilter"
+                    type="checkbox"
+                    onchange="loadStudents()"
+                  />
+                  Chưa phân công
                 </label>
-                <span id="studentAssignmentMessage" role="status" style="font-size:12px"></span>
+                <span
+                  id="studentAssignmentMessage"
+                  role="status"
+                  style="font-size: 12px"
+                ></span>
                 <button class="btn btn-sm btn-primary" onclick="loadStudents()">
                   <i class="fa-solid fa-rotate"></i> Làm mới
                 </button>
@@ -1691,7 +2184,8 @@
           <div class="card" id="docMgmtCard" style="display: none">
             <div class="card-header">
               <h3>
-                <i class="fa-solid fa-folder-open text-primary"></i> Quản Lý Tài Liệu
+                <i class="fa-solid fa-folder-open text-primary"></i> Quản Lý Tài
+                Liệu
               </h3>
               <button class="btn btn-sm btn-primary" onclick="loadStudents()">
                 <i class="fa-solid fa-rotate"></i> Làm mới
@@ -1715,22 +2209,55 @@
           </div>
         </div>
 
-        <div id="tab-my-interns" class="tab-pane" style="display:none">
+        <div id="tab-my-interns" class="tab-pane" style="display: none">
           <div class="card">
             <div class="card-header">
-              <h3><i class="fa-solid fa-user-graduate text-primary"></i> Thực tập sinh của tôi</h3>
-              <button class="btn btn-sm btn-primary" onclick="loadMyAssignedInterns()"><i class="fa-solid fa-rotate"></i> Làm mới</button>
+              <h3>
+                <i class="fa-solid fa-user-graduate text-primary"></i> Thực tập
+                sinh của tôi
+              </h3>
+              <button
+                class="btn btn-sm btn-primary"
+                onclick="loadMyAssignedInterns()"
+              >
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
             </div>
-            <div class="card-body" style="padding:0">
-              <div class="table-container"><table>
-                <thead><tr><th>MSSV</th><th>Họ và tên</th><th>Email</th><th>Trường</th><th>Chuyên ngành</th><th>Trạng thái</th></tr></thead>
-                <tbody id="myAssignedInternsBody"><tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px">Đang tải danh sách...</td></tr></tbody>
-              </table></div>
+            <div class="card-body" style="padding: 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>MSSV</th>
+                      <th>Họ và tên</th>
+                      <th>Email</th>
+                      <th>Trường</th>
+                      <th>Chuyên ngành</th>
+                      <th>Trạng thái</th>
+                      <th>Lịch</th>
+                    </tr>
+                  </thead>
+                  <tbody id="myAssignedInternsBody">
+                    <tr>
+                      <td
+                        colspan="6"
+                        style="
+                          text-align: center;
+                          color: #94a3b8;
+                          padding: 24px;
+                        "
+                      >
+                        Đang tải danh sách...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- GIAO VIỆC & TASKS (MENTOR) -->
+        <!-- GIAO VIỆC & TASKS (MENTOR) - chưa triển khai -->
         <div id="tab-tasks" class="tab-pane" style="display: none">
           <div class="card">
             <div class="card-header">
@@ -1740,36 +2267,18 @@
               </h3>
             </div>
             <div class="card-body">
-              <p style="color: #64748b; font-size: 14px; margin-bottom: 16px">
-                Chức năng dành cho Mentor phân công công việc, đặt deadline và
-                theo dõi tiến độ đào tạo của thực tập sinh.
+              <p class="feature-pending-note">
+                <i class="fa-solid fa-circle-info"></i>
+                Chức năng giao nhiệm vụ và theo dõi tiến độ chưa được triển khai
+                nên chưa có dữ liệu nhiệm vụ. Mentor hiện có thể theo dõi thực
+                tập sinh được phân công và quản lý lịch thực tập ở mục
+                <b>Thực tập sinh của tôi</b>.
               </p>
-              <div
-                style="
-                  background: #f8fafc;
-                  border: 1px dashed #cbd5e1;
-                  border-radius: 8px;
-                  padding: 24px;
-                  text-align: center;
-                "
-              >
-                <i
-                  class="fa-solid fa-clipboard-check"
-                  style="font-size: 40px; color: #4f46e5; margin-bottom: 12px"
-                ></i>
-                <h4 style="color: #1e293b">Danh Sách Task Đang Giao</h4>
-                <p style="color: #64748b; font-size: 13px; margin-top: 6px">
-                  1. Tìm hiểu kiến trúc MVC & RESTful API (Hạn: 01/10/2026)
-                </p>
-                <p style="color: #64748b; font-size: 13px">
-                  2. Thiết kế bảng CSDL cho module User (Hạn: 05/10/2026)
-                </p>
-              </div>
             </div>
           </div>
         </div>
 
-        <!-- NỘP BÁO CÁO CÔNG VIỆC (INTERN) -->
+        <!-- NỘP BÁO CÁO CÔNG VIỆC (INTERN) - chưa triển khai -->
         <div id="tab-submissions" class="tab-pane" style="display: none">
           <div class="card">
             <div class="card-header">
@@ -1779,43 +2288,18 @@
               </h3>
             </div>
             <div class="card-body">
-              <p style="color: #64748b; font-size: 14px; margin-bottom: 16px">
-                Dành cho sinh viên thực tập báo cáo công việc hàng tuần và gửi
-                tài liệu dự án cho Mentor.
+              <p class="feature-pending-note">
+                <i class="fa-solid fa-circle-info"></i>
+                Chức năng nộp báo cáo công việc hàng tuần chưa được triển khai.
+                Hiện bạn có thể tải CV/đơn ứng tuyển ở mục
+                <b>Hồ sơ của tôi</b> và xem, xác nhận hợp đồng ở mục
+                <b>Hợp đồng của tôi</b>.
               </p>
-              <div
-                class="form-group"
-                style="max-width: 500px; margin-bottom: 14px"
-              >
-                <label>Tiêu đề báo cáo tuần:</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Ví dụ: Báo cáo kết quả Sprint 1"
-                />
-              </div>
-              <div
-                class="form-group"
-                style="max-width: 500px; margin-bottom: 14px"
-              >
-                <label>Link Github / Báo cáo tài liệu:</label>
-                <input
-                  type="url"
-                  class="form-control"
-                  placeholder="https://github.com/..."
-                />
-              </div>
-              <button
-                class="btn btn-primary"
-                onclick="alert('Đã nộp báo cáo thực tập thành công!')"
-              >
-                <i class="fa-solid fa-upload"></i> Gửi Báo Cáo
-              </button>
             </div>
           </div>
         </div>
 
-        <!-- BÁO CÁO & THỐNG KÊ (HR & ADMIN) -->
+        <!-- BÁO CÁO & THỐNG KÊ (HR & ADMIN) - số liệu thật từ GET /api/reports -->
         <div id="tab-reports" class="tab-pane" style="display: none">
           <div class="card">
             <div class="card-header">
@@ -1826,65 +2310,26 @@
             </div>
             <div class="card-body">
               <p style="color: #64748b; font-size: 14px; margin-bottom: 16px">
-                Báo cáo tiến độ đào tạo, tỷ lệ hoàn thành kỳ thực tập và số
-                lượng sinh viên đạt chuẩn nhận việc chính thức.
+                Số liệu tổng hợp trực tiếp từ hồ sơ ứng tuyển, thực tập sinh và
+                hợp đồng thực tập hiện có trong hệ thống.
               </p>
-              <div
-                style="
-                  background: #f8fafc;
-                  border: 1px dashed #cbd5e1;
-                  border-radius: 8px;
-                  padding: 24px;
-                "
-              >
-                <div
-                  style="
-                    display: flex;
-                    justify-content: space-around;
-                    text-align: center;
-                  "
-                >
-                  <div>
-                    <h2
-                      style="color: #4f46e5; font-size: 32px; font-weight: 800"
-                    >
-                      --
-                    </h2>
-                    <p style="color: #64748b; font-size: 13px">
-                      Tỷ lệ đạt chuẩn đánh giá
-                    </p>
-                  </div>
-                  <div>
-                    <h2
-                      style="color: #10b981; font-size: 32px; font-weight: 800"
-                    >
-                      --
-                    </h2>
-                    <p style="color: #64748b; font-size: 13px">
-                      Hoàn thành nộp đồ án
-                    </p>
-                  </div>
-                  <div>
-                    <h2
-                      style="color: #004ee0; font-size: 32px; font-weight: 800"
-                    >
-                      --
-                    </h2>
-                    <p style="color: #64748b; font-size: 13px">
-                      Đề xuất chuyển tuyển dụng
-                    </p>
-                  </div>
+              <div id="reportsStatus" class="report-status"></div>
+              <div id="reportsGrid" class="report-grid" style="display: none">
+                <div class="report-metric">
+                  <h2 id="reportApprovalRate">--</h2>
+                  <p>Tỷ lệ hồ sơ được duyệt</p>
+                  <small id="reportApprovalDetail"></small>
                 </div>
-                <p
-                  style="
-                    text-align: center;
-                    color: #94a3b8;
-                    font-size: 12.5px;
-                    margin-top: 14px;
-                  "
-                >
-                  Chưa có dữ liệu thống kê
-                </p>
+                <div class="report-metric">
+                  <h2 id="reportContractRate">--</h2>
+                  <p>Hợp đồng đã được xác nhận</p>
+                  <small id="reportContractDetail"></small>
+                </div>
+                <div class="report-metric">
+                  <h2 id="reportMentorRate">--</h2>
+                  <p>Thực tập sinh đã có mentor</p>
+                  <small id="reportMentorDetail"></small>
+                </div>
               </div>
             </div>
           </div>
@@ -2850,58 +3295,159 @@
             </div>
           </div>
         </div>
-      </div>
-      <!-- HỢP ĐỒNG CỦA THỰC TẬP SINH -->
-      <div id="tab-my-contracts" class="tab-pane" style="display: none">
-        <div class="card">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-file-contract text-primary"></i> Hợp đồng của tôi</h3>
-            <button class="btn btn-sm btn-primary" onclick="loadMyContracts()">
-              <i class="fa-solid fa-rotate"></i> Làm mới
-            </button>
-          </div>
-          <div class="card-body" id="myContractsList">
-            <p style="text-align:center;color:#94a3b8;padding:16px;">Đang tải danh sách hợp đồng...</p>
+        <!-- HỢP ĐỒNG CỦA THỰC TẬP SINH -->
+        <div id="tab-my-contracts" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-file-contract text-primary"></i> Hợp đồng
+                của tôi
+              </h3>
+              <button
+                class="btn btn-sm btn-primary"
+                onclick="loadMyContracts()"
+              >
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
+            </div>
+            <div class="card-body" id="myContractsList">
+              <p style="text-align: center; color: #94a3b8; padding: 16px">
+                Đang tải danh sách hợp đồng...
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-      <!-- QUẢN LÝ HỢP ĐỒNG THỰC TẬP (HR) -->
-      <div id="tab-programs" class="tab-pane" style="display:none">
-        <div class="section-header"><h2>Chương trình thực tập</h2><p>Kế hoạch thực tập theo phòng ban</p></div>
-        <div class="program-toolbar">
-          <select id="programFilterDepartment" class="form-control" onchange="programLoad()"><option value="">Tất cả phòng ban</option></select>
-          <select id="programFilterStatus" class="form-control" onchange="programLoad()"><option value="">Tất cả trạng thái</option><option>DRAFT</option><option>OPEN</option><option>ONGOING</option><option>CLOSED</option></select>
-          <select id="programFilterTimeState" class="form-control" onchange="programLoad()"><option value="">Mọi thời điểm</option><option value="UPCOMING">Sắp diễn ra</option><option value="RUNNING">Đang diễn ra</option><option value="ENDED">Đã kết thúc</option><option value="UNSCHEDULED">Chưa đặt lịch</option></select>
-          <button id="programAddButton" class="btn btn-primary" onclick="programOpenModal()">Thêm chương trình</button>
+        <div id="tab-my-schedule" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-calendar-days text-primary"></i> Lịch thực
+                tập của tôi
+              </h3>
+              <button class="btn btn-sm btn-primary" onclick="loadMySchedule()">
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
+            </div>
+            <div class="card-body" id="myScheduleList">
+              <p style="text-align: center; color: #94a3b8; padding: 16px">
+                Đang tải lịch thực tập...
+              </p>
+            </div>
+          </div>
         </div>
-        <div class="program-table-responsive"><table class="table"><thead><tr><th>Tên</th><th>Phòng ban</th><th>Thời gian</th><th>Số lượng</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="programRows"><tr><td colspan="6">Đang tải...</td></tr></tbody></table></div>
-      </div>
-      <div id="tab-contracts" class="tab-pane" style="display: none">
-        <div class="card">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-file-contract text-primary"></i> Hợp đồng thực tập sinh</h3>
-            <button class="btn btn-sm btn-primary" onclick="loadStudents()">
-              <i class="fa-solid fa-rotate"></i> Làm mới
+        <!-- QUẢN LÝ HỢP ĐỒNG THỰC TẬP (HR) -->
+        <div id="tab-programs" class="tab-pane" style="display: none">
+          <div class="section-header">
+            <h2>Chương trình thực tập</h2>
+            <p>Kế hoạch thực tập theo phòng ban</p>
+          </div>
+          <div class="program-toolbar">
+            <select
+              id="programFilterDepartment"
+              class="form-control"
+              onchange="programLoad()"
+            >
+              <option value="">Tất cả phòng ban</option>
+            </select>
+            <select
+              id="programFilterStatus"
+              class="form-control"
+              onchange="programLoad()"
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option>DRAFT</option>
+              <option>OPEN</option>
+              <option>ONGOING</option>
+              <option>CLOSED</option>
+            </select>
+            <select
+              id="programFilterTimeState"
+              class="form-control"
+              onchange="programLoad()"
+            >
+              <option value="">Mọi thời điểm</option>
+              <option value="UPCOMING">Sắp diễn ra</option>
+              <option value="RUNNING">Đang diễn ra</option>
+              <option value="ENDED">Đã kết thúc</option>
+              <option value="UNSCHEDULED">Chưa đặt lịch</option>
+            </select>
+            <button
+              id="programAddButton"
+              class="btn btn-primary"
+              onclick="programOpenModal()"
+            >
+              Thêm chương trình
             </button>
           </div>
-          <div class="card-body" style="padding: 0">
-            <div class="table-container">
-              <table>
-                <thead><tr><th>Thực tập sinh</th><th>Email</th><th>MSSV</th><th style="text-align:center">Chức năng</th></tr></thead>
-                <tbody id="contractManagementBody">
-                  <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px;">Đang tải danh sách thực tập sinh...</td></tr>
-                </tbody>
-              </table>
+          <div class="program-table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Tên</th>
+                  <th>Phòng ban</th>
+                  <th>Thời gian</th>
+                  <th>Số lượng</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="programRows">
+                <tr>
+                  <td colspan="6">Đang tải...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="tab-contracts" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-file-contract text-primary"></i> Hợp đồng
+                thực tập sinh
+              </h3>
+              <button class="btn btn-sm btn-primary" onclick="loadStudents()">
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
+            </div>
+            <div class="card-body" style="padding: 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Thực tập sinh</th>
+                      <th>Email</th>
+                      <th>MSSV</th>
+                      <th style="text-align: center">Chức năng</th>
+                    </tr>
+                  </thead>
+                  <tbody id="contractManagementBody">
+                    <tr>
+                      <td
+                        colspan="4"
+                        style="
+                          text-align: center;
+                          color: #94a3b8;
+                          padding: 24px;
+                        "
+                      >
+                        Đang tải danh sách thực tập sinh...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      <!-- /CONTENT SCROLL -->
     </main>
 
     <div
       id="contractsModal"
       class="modal-overlay"
-      onclick="if (event.target === this) closeContracts()"
+      onclick="if (event.target === this) closeContracts();"
       aria-hidden="true"
     >
       <div class="modal-box" style="max-width: 760px; width: 95%">
@@ -2909,6 +3455,13 @@
           <i class="fa-solid fa-file-contract"></i>
           Hợp đồng thực tập - <span id="contractsInternName"></span>
         </h3>
+        <button
+          class="btn btn-sm btn-outline-primary"
+          type="button"
+          onclick="createScheduleTemplate()"
+        >
+          <i class="fa-solid fa-calendar-plus"></i> Tạo kế hoạch từ mẫu
+        </button>
         <div id="contractsList" style="margin: 16px 0">
           Đang tải danh sách hợp đồng...
         </div>
@@ -2924,7 +3477,9 @@
               />
             </div>
             <div class="form-group">
-              <label for="contractFile">File hợp đồng (PDF, DOC, DOCX; tối đa 5MB) *</label>
+              <label for="contractFile"
+                >File hợp đồng (PDF, DOC, DOCX; tối đa 5MB) *</label
+              >
               <input
                 id="contractFile"
                 class="form-control"
@@ -2953,6 +3508,16 @@
               />
             </div>
             <div class="form-group" style="grid-column: 1 / -1">
+              <label for="contractProgramId">Chương trình thực tập</label>
+              <select
+                id="contractProgramId"
+                class="form-control"
+                name="program_id"
+              >
+                <option value="">Không liên kết chương trình</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1">
               <label for="contractNote">Ghi chú</label>
               <textarea
                 id="contractNote"
@@ -2962,7 +3527,10 @@
               ></textarea>
             </div>
           </div>
-          <div id="contractUploadProgress" style="display: none; margin: 10px 0">
+          <div
+            id="contractUploadProgress"
+            style="display: none; margin: 10px 0"
+          >
             <progress
               id="contractProgress"
               max="100"
@@ -2980,6 +3548,122 @@
               class="btn btn-secondary"
               type="button"
               onclick="closeContracts()"
+            >
+              Đóng
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div
+      id="scheduleManagerModal"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeScheduleManager();"
+      aria-hidden="true"
+    >
+      <div class="modal-box schedule-manager-box">
+        <h3>
+          <i class="fa-solid fa-calendar-days"></i> Lịch thực tập —
+          <span id="scheduleManagerInternName"></span>
+        </h3>
+        <button
+          class="btn btn-sm btn-outline-primary"
+          type="button"
+          onclick="createScheduleTemplate(scheduleManagerInternId)"
+        >
+          <i class="fa-solid fa-calendar-plus"></i> Tạo kế hoạch từ mẫu
+        </button>
+        <div
+          id="scheduleManagerMessage"
+          style="margin: 10px 0; color: #64748b"
+        ></div>
+        <div id="scheduleMilestonesList"></div>
+        <form
+          id="scheduleMilestoneForm"
+          class="schedule-manager-form"
+          onsubmit="saveScheduleMilestone(event)"
+        >
+          <input type="hidden" id="scheduleMilestoneId" />
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="schedulePhaseOrder">Thứ tự giai đoạn</label
+              ><input
+                id="schedulePhaseOrder"
+                class="form-control"
+                type="number"
+                min="1"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="scheduleTitle">Tên mốc</label
+              ><input
+                id="scheduleTitle"
+                class="form-control"
+                maxlength="255"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="scheduleStartDate">Ngày bắt đầu</label
+              ><input id="scheduleStartDate" class="form-control" type="date" />
+            </div>
+            <div class="form-group">
+              <label for="scheduleEndDate">Ngày kết thúc</label
+              ><input id="scheduleEndDate" class="form-control" type="date" />
+            </div>
+            <div class="form-group">
+              <label for="scheduleDuration">Thời lượng</label
+              ><input
+                id="scheduleDuration"
+                class="form-control"
+                maxlength="50"
+                placeholder="Ví dụ: 2 tuần"
+              />
+            </div>
+            <div class="form-group">
+              <label for="scheduleStatus">Trạng thái</label
+              ><select id="scheduleStatus" class="form-control">
+                <option value="NOT_STARTED">Chưa bắt đầu</option>
+                <option value="IN_PROGRESS">Đang thực hiện</option>
+                <option value="COMPLETED">Hoàn thành</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: 1/-1">
+              <label for="scheduleDescription">Mô tả</label
+              ><textarea
+                id="scheduleDescription"
+                class="form-control"
+                rows="2"
+              ></textarea>
+            </div>
+            <div class="form-group" style="grid-column: 1/-1">
+              <label for="scheduleExpectedResults">Kết quả dự kiến</label
+              ><textarea
+                id="scheduleExpectedResults"
+                class="form-control"
+                rows="2"
+              ></textarea>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button
+              id="scheduleSaveButton"
+              class="btn btn-primary"
+              type="submit"
+            >
+              Thêm mốc</button
+            ><button
+              class="btn btn-secondary"
+              type="button"
+              onclick="resetScheduleMilestoneForm()"
+            >
+              Làm mới</button
+            ><button
+              class="btn btn-secondary"
+              type="button"
+              onclick="closeScheduleManager()"
             >
               Đóng
             </button>
@@ -3037,15 +3721,88 @@
       </div>
     </div>
 
-    <div id="programModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)programCloseModal()">
-      <div class="modal-box program-modal"><div class="modal-header"><h3 id="programModalTitle">Thêm chương trình</h3><button class="btn-close" onclick="programCloseModal()">×</button></div>
-        <form id="programForm" onsubmit="programSave(event)"><input type="hidden" id="programId">
-          <label>Tên chương trình<input id="programName" class="form-control" maxlength="255" required></label>
-          <label>Phòng ban<div class="program-toolbar"><select id="programDepartment" class="form-control" required></select><button type="button" class="btn btn-outline-primary" onclick="programQuickDepartment()">Thêm phòng ban</button></div></label>
-          <label>Mô tả<textarea id="programDescription" class="form-control" maxlength="2000"></textarea></label>
-          <div class="program-toolbar"><label>Ngày bắt đầu<input id="programStartDate" class="form-control" type="date" onchange="programUpdateDateConstraints()"></label><label>Ngày kết thúc<input id="programEndDate" class="form-control" type="date"></label><label>Số lượng<input id="programCapacity" class="form-control" type="number" min="1"></label></div>
-          <label>Trạng thái<select id="programStatus" class="form-control"><option value="DRAFT">DRAFT</option><option value="OPEN">OPEN</option><option value="ONGOING">ONGOING</option><option value="CLOSED">CLOSED</option></select></label>
-          <div id="programError" class="program-error"></div><div class="modal-actions"><button type="button" class="btn btn-secondary" onclick="programCloseModal()">Hủy</button><button id="programSubmit" class="btn btn-primary">Lưu</button></div>
+    <div
+      id="programModal"
+      class="modal-overlay"
+      style="display: none"
+      onclick="if (event.target === this) programCloseModal();"
+    >
+      <div class="modal-box program-modal">
+        <div class="modal-header">
+          <h3 id="programModalTitle">Thêm chương trình</h3>
+          <button class="btn-close" onclick="programCloseModal()">×</button>
+        </div>
+        <form id="programForm" onsubmit="programSave(event)">
+          <input type="hidden" id="programId" />
+          <label
+            >Tên chương trình<input
+              id="programName"
+              class="form-control"
+              maxlength="255"
+              required
+          /></label>
+          <label
+            >Phòng ban
+            <div class="program-toolbar">
+              <select
+                id="programDepartment"
+                class="form-control"
+                required
+              ></select
+              ><button
+                type="button"
+                class="btn btn-outline-primary"
+                onclick="programQuickDepartment()"
+              >
+                Thêm phòng ban
+              </button>
+            </div></label
+          >
+          <label
+            >Mô tả<textarea
+              id="programDescription"
+              class="form-control"
+              maxlength="2000"
+            ></textarea>
+          </label>
+          <div class="program-toolbar">
+            <label
+              >Ngày bắt đầu<input
+                id="programStartDate"
+                class="form-control"
+                type="date"
+                onchange="programUpdateDateConstraints()" /></label
+            ><label
+              >Ngày kết thúc<input
+                id="programEndDate"
+                class="form-control"
+                type="date" /></label
+            ><label
+              >Số lượng<input
+                id="programCapacity"
+                class="form-control"
+                type="number"
+                min="1"
+            /></label>
+          </div>
+          <label
+            >Trạng thái<select id="programStatus" class="form-control">
+              <option value="DRAFT">DRAFT</option>
+              <option value="OPEN">OPEN</option>
+              <option value="ONGOING">ONGOING</option>
+              <option value="CLOSED">CLOSED</option>
+            </select></label
+          >
+          <div id="programError" class="program-error"></div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="programCloseModal()"
+            >
+              Hủy</button
+            ><button id="programSubmit" class="btn btn-primary">Lưu</button>
+          </div>
         </form>
       </div>
     </div>
@@ -3110,9 +3867,8 @@
       function forceLogout(message) {
         sessionStorage.removeItem("currentUser");
         sessionStorage.removeItem("authToken");
-        if (message) {
-          alert(message);
-        }
+        // Trang đăng nhập sẽ hiển thị thông báo này (toast sẽ mất khi chuyển trang).
+        if (message) sessionStorage.setItem("flashMessage", message);
         window.location.href = "login.html";
       }
 
@@ -3218,6 +3974,7 @@
         if (tabId === "tab-my-contracts") {
           return role === "Intern";
         }
+        if (tabId === "tab-my-schedule") return role === "Intern";
         if (tabId === "tab-candidates") {
           return role === "HR" || role === "Admin";
         }
@@ -3254,7 +4011,7 @@
 
         // US9: Thêm tab "Hồ sơ của tôi" cho vai trò Intern lên đầu menu
         if (currentRole === "Intern") {
-          allowedCount += 2;
+          allowedCount += 3;
           const isProfileActive = currentTab === "tab-my-profile";
           const liProfile = document.createElement("li");
           liProfile.className = "nav-item";
@@ -3275,6 +4032,11 @@
           </a>
         `;
           menuEl.appendChild(liMyContracts);
+
+          const liMySchedule = document.createElement("li");
+          liMySchedule.className = "nav-item";
+          liMySchedule.innerHTML = `<a class="nav-link ${currentTab === "tab-my-schedule" ? "active" : ""}" onclick="switchTab('tab-my-schedule')"><i class="fa-solid fa-calendar-days"></i><span>Lịch thực tập của tôi</span></a>`;
+          menuEl.appendChild(liMySchedule);
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -3388,6 +4150,7 @@
       // CHUYỂN TAB VÀ CHẶN TRUY CẬP TRÊN UI
       function switchTab(tabId) {
         currentTab = tabId;
+        document.querySelector(".content-scroll").scrollTop = 0;
         checkAccessAndRender(tabId);
         renderDynamicMenu();
       }
@@ -3421,8 +4184,8 @@
           const permDef = PERMISSIONS_DEF.find((p) => p.tabId === tabId);
           if (permDef) {
             document.getElementById("pageTitle").innerText = permDef.name;
-            document.getElementById("pageSubtitle").innerText =
-              `Phân hệ chức năng yêu cầu quyền: ${permDef.code}`;
+            document.getElementById("pageSubtitle").innerText = "";
+            if (tabId === "tab-reports") loadReports();
           } else if (tabId === "tab-my-profile") {
             document.getElementById("pageTitle").innerText = "Hồ Sơ Của Tôi";
             document.getElementById("pageSubtitle").innerText =
@@ -3433,6 +4196,12 @@
             document.getElementById("pageSubtitle").innerText =
               "Xem và xác nhận hợp đồng thực tập do HR gửi";
             loadMyContracts();
+          } else if (tabId === "tab-my-schedule") {
+            document.getElementById("pageTitle").innerText =
+              "Lịch thực tập của tôi";
+            document.getElementById("pageSubtitle").innerText =
+              "Kế hoạch và các mốc trong kỳ thực tập (US 10)";
+            loadMySchedule();
           } else if (tabId === "tab-candidates") {
             document.getElementById("pageTitle").innerText =
               "Hồ Sơ Ứng Tuyển Online";
@@ -3453,17 +4222,22 @@
             loadMentorsForSelect();
             loadStudents();
           } else if (tabId === "tab-my-interns") {
-            document.getElementById("pageTitle").innerText = "Thực tập sinh của tôi";
-            document.getElementById("pageSubtitle").innerText = "Danh sách thực tập sinh được HR phân công cho bạn";
+            document.getElementById("pageTitle").innerText =
+              "Thực tập sinh của tôi";
+            document.getElementById("pageSubtitle").innerText =
+              "Danh sách thực tập sinh được HR phân công cho bạn";
             loadMyAssignedInterns();
           } else if (tabId === "tab-contracts") {
-            document.getElementById("pageTitle").innerText = "Quản Lý Hợp Đồng Thực Tập";
+            document.getElementById("pageTitle").innerText =
+              "Quản Lý Hợp Đồng Thực Tập";
             document.getElementById("pageSubtitle").innerText =
               "HR tải lên, xem, tải xuống và xóa hợp đồng gắn với hồ sơ thực tập sinh";
             loadStudents();
           } else if (tabId === "tab-programs") {
-            document.getElementById("pageTitle").innerText = "Chương trình thực tập";
-            document.getElementById("pageSubtitle").innerText = "Tổ chức kế hoạch thực tập theo phòng ban";
+            document.getElementById("pageTitle").innerText =
+              "Chương trình thực tập";
+            document.getElementById("pageSubtitle").innerText =
+              "Tổ chức kế hoạch thực tập theo phòng ban";
             programLoad();
           } else if (tabId === "tab-email-config") {
             document.getElementById("pageTitle").innerText =
@@ -3478,6 +4252,55 @@
               "Theo dõi trạng thái gửi email thông báo xét duyệt & thử lại khi thất bại (US 8)";
             loadEmailLogs(1);
           }
+        }
+      }
+
+      // ---- Báo cáo & Thống kê: số liệu thật từ GET /api/reports ----
+      function formatReportRate(rate) {
+        return rate === null || rate === undefined ? "--" : `${rate}%`;
+      }
+
+      async function loadReports() {
+        const status = document.getElementById("reportsStatus");
+        const grid = document.getElementById("reportsGrid");
+        status.className = "report-status";
+        status.textContent = "Đang tải số liệu thống kê...";
+        grid.style.display = "none";
+        try {
+          const res = await fetch(`${API_BASE}/reports`, {
+            headers: authHeaders(),
+          });
+          if (res.status === 401) {
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
+          }
+          if (!res.ok) {
+            throw new Error(
+              await readErrorMessage(res, "Không tải được số liệu thống kê."),
+            );
+          }
+          const data = await res.json();
+          const { applications, interns, contracts, rates } = data;
+          const reviewed = applications.approved + applications.rejected;
+          document.getElementById("reportApprovalRate").textContent =
+            formatReportRate(rates.applicationApproval);
+          document.getElementById("reportApprovalDetail").textContent =
+            `${applications.approved}/${reviewed} hồ sơ đã xử lý (${applications.pending} đang chờ duyệt)`;
+          document.getElementById("reportContractRate").textContent =
+            formatReportRate(rates.contractConfirmation);
+          document.getElementById("reportContractDetail").textContent =
+            `${contracts.confirmed}/${contracts.total} hợp đồng`;
+          document.getElementById("reportMentorRate").textContent =
+            formatReportRate(rates.internMentorAssigned);
+          document.getElementById("reportMentorDetail").textContent =
+            `${interns.assigned}/${interns.total} thực tập sinh`;
+          status.textContent = "";
+          grid.style.display = "flex";
+        } catch (err) {
+          status.className = "report-status is-error";
+          status.textContent =
+            err.message || "Không tải được số liệu thống kê.";
         }
       }
 
@@ -3567,7 +4390,9 @@
             else if (u.role === "Mentor") roleBadge = "badge-mentor";
 
             const createdDate = u.createdAt
-              ? new Date(u.createdAt).toLocaleDateString("vi-VN")
+              ? new Date(u.createdAt).toLocaleDateString("vi-VN", {
+                  timeZone: VN_TIME_ZONE,
+                })
               : "N/A";
 
             return `
@@ -3645,11 +4470,15 @@
           });
           if (res.ok) {
             await loadUsers();
+            showToast("Đã xóa tài khoản.", "success");
           } else {
-            alert("Lỗi khi xóa tài khoản!");
+            showToast(
+              await readErrorMessage(res, "Lỗi khi xóa tài khoản!"),
+              "error",
+            );
           }
         } catch (err) {
-          alert("Không thể kết nối Backend!");
+          showToast("Không thể kết nối Backend!", "error");
         }
       }
 
@@ -3748,6 +4577,43 @@
         );
       }
 
+      // Mọi ngày/giờ hiển thị và "hôm nay" đều theo giờ Việt Nam, không phụ thuộc múi giờ trình duyệt.
+      const VN_TIME_ZONE = "Asia/Ho_Chi_Minh";
+      const vnPartsFormatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: VN_TIME_ZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+      });
+
+      function getVietnamParts(value = new Date()) {
+        return Object.fromEntries(
+          vnPartsFormatter
+            .formatToParts(value)
+            .map(({ type, value: part }) => [type, part]),
+        );
+      }
+
+      // Ngày hiện tại theo giờ Việt Nam, dạng YYYY-MM-DD.
+      function getVietnamToday() {
+        const p = getVietnamParts();
+        return `${p.year}-${p.month}-${p.day}`;
+      }
+
+      // Đọc thông điệp lỗi từ phản hồi API; dùng mặc định nếu body không phải JSON.
+      async function readErrorMessage(res, fallback) {
+        try {
+          const body = await res.json();
+          return body.error || body.message || fallback;
+        } catch (err) {
+          return fallback;
+        }
+      }
+
       function showToast(message, type = "success") {
         const box = document.getElementById("toastContainer");
         const el = document.createElement("div");
@@ -3762,7 +4628,8 @@
         el.innerHTML = `<i class="fa-solid ${icon}"></i><span></span>`;
         el.querySelector("span").textContent = message;
         box.appendChild(el);
-        setTimeout(() => el.remove(), 4000);
+        // Lỗi cần thời gian đọc lâu hơn thông báo thành công.
+        setTimeout(() => el.remove(), type === "error" ? 7000 : 4000);
       }
 
       // ---- state danh sách hồ sơ ----
@@ -3781,7 +4648,9 @@
       // Tiến độ tài liệu bắt buộc (CV + Đơn xin thực tập): x/2. Server vẫn là nơi quyết định cuối cùng.
       function getDocProgress(c) {
         const types = new Set((c.documents || []).map((d) => d.doc_type));
-        const uploaded = ["CV", "APPLICATION_LETTER"].filter((t) => types.has(t)).length;
+        const uploaded = ["CV", "APPLICATION_LETTER"].filter((t) =>
+          types.has(t),
+        ).length;
         return { uploaded, required: 2, complete: uploaded === 2 };
       }
 
@@ -3797,7 +4666,11 @@
 
         const labels = { CV: "CV", APPLICATION_LETTER: "Đơn xin thực tập" };
         const iconOf = (name) =>
-          /\.pdf$/i.test(name) ? "fa-file-pdf" : /\.docx?$/i.test(name) ? "fa-file-word" : "fa-file";
+          /\.pdf$/i.test(name)
+            ? "fa-file-pdf"
+            : /\.docx?$/i.test(name)
+              ? "fa-file-word"
+              : "fa-file";
         const iconButton = (cls, icon, label, d) => `
             <button type="button" class="${cls}" title="${label}"
               aria-label="${label} ${escapeHtml(d.original_name)}"
@@ -3827,12 +4700,15 @@
       document.addEventListener("click", (e) => {
         const btn =
           e.target.closest &&
-          e.target.closest(".doc-download-btn[data-doc-id], .doc-view-btn[data-doc-id]");
+          e.target.closest(
+            ".doc-download-btn[data-doc-id], .doc-view-btn[data-doc-id]",
+          );
         if (!btn) return;
         const appId = Number(btn.dataset.appId);
         const docId = Number(btn.dataset.docId);
         const name = btn.dataset.name || "document";
-        if (btn.classList.contains("doc-view-btn")) viewDocumentFile(appId, docId, name);
+        if (btn.classList.contains("doc-view-btn"))
+          viewDocumentFile(appId, docId, name);
         else downloadDocumentFile(appId, docId, name);
       });
 
@@ -3849,7 +4725,9 @@
           );
           if (res.status === 401) {
             if (tab) tab.close();
-            return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
           }
           if (!res.ok) {
             const err = await res.json().catch(() => ({}));
@@ -3858,10 +4736,15 @@
             return;
           }
           const blob = await res.blob();
-          const url = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+          const url = URL.createObjectURL(
+            new Blob([blob], { type: "application/pdf" }),
+          );
           if (!tab) {
             URL.revokeObjectURL(url);
-            showToast("Trình duyệt chặn cửa sổ mới, hãy cho phép popup hoặc dùng nút Tải!", "error");
+            showToast(
+              "Trình duyệt chặn cửa sổ mới, hãy cho phép popup hoặc dùng nút Tải!",
+              "error",
+            );
             return;
           }
           tab.location.href = url;
@@ -3996,7 +4879,9 @@
           }
           // PATCH không trả documents -> giữ lại danh sách file của dòng đó
           applicationsList = applicationsList.map((c) =>
-            c.id === body.data.id ? { ...body.data, documents: c.documents } : c,
+            c.id === body.data.id
+              ? { ...body.data, documents: c.documents }
+              : c,
           );
           // Đồng bộ dòng tương ứng ở mục Quản lý Tài liệu (đổi trạng thái -> ẩn nút Duyệt/Từ chối)
           studentsList = studentsList.map((s) =>
@@ -4028,14 +4913,19 @@
           const res = await fetch(`${API_BASE}/applications/${id}/documents`, {
             headers: authHeaders(),
           });
-          if (res.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          if (res.status === 401)
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
           const body = await res.json().catch(() => ({}));
           if (!res.ok || !body.success) return;
           applicationsList = applicationsList.map((c) =>
             c.id === id ? { ...c, documents: body.documents } : c,
           );
           studentsList = studentsList.map((s) =>
-            s.application && s.application.id === id ? { ...s, documents: body.documents } : s,
+            s.application && s.application.id === id
+              ? { ...s, documents: body.documents }
+              : s,
           );
           renderApplicationViews();
         } catch (err) {}
@@ -4052,7 +4942,9 @@
       function findApplicationView(id) {
         const c = applicationsList.find((x) => x.id === id);
         if (c) return { name: c.name, email: c.email };
-        const s = studentsList.find((x) => x.application && x.application.id === id);
+        const s = studentsList.find(
+          (x) => x.application && x.application.id === id,
+        );
         return s ? { name: s.fullName, email: s.email } : null;
       }
 
@@ -4273,11 +5165,15 @@
           });
           if (res.ok) {
             await loadMentors();
+            showToast("Đã xóa mentor.", "success");
           } else {
-            alert("Lỗi khi xóa mentor!");
+            showToast(
+              await readErrorMessage(res, "Lỗi khi xóa mentor!"),
+              "error",
+            );
           }
         } catch (err) {
-          alert("Không thể kết nối Backend!");
+          showToast("Không thể kết nối Backend!", "error");
         }
       }
 
@@ -4311,7 +5207,11 @@
                 <td><span class="doc-empty">Chưa nộp tài liệu</span></td>
                 <td>${dash}</td><td align="center">${dash}</td></tr>`;
             }
-            const view = { id: a.id, status: a.status, documents: s.documents || [] };
+            const view = {
+              id: a.id,
+              status: a.status,
+              documents: s.documents || [],
+            };
             const decision =
               a.status === "PENDING"
                 ? renderReviewActions(view)
@@ -4328,8 +5228,11 @@
 
       function renderStudents() {
         const tbody = document.getElementById("studentTableBody");
-        const filterWrap = document.getElementById("studentUnassignedFilterWrap");
-        if (filterWrap) filterWrap.style.display = currentRole === "HR" ? "" : "none";
+        const filterWrap = document.getElementById(
+          "studentUnassignedFilterWrap",
+        );
+        if (filterWrap)
+          filterWrap.style.display = currentRole === "HR" ? "" : "none";
         renderDocManagement();
         renderContractManagement();
 
@@ -4355,6 +5258,7 @@
               <td align="center">
                 <div class="action-group">
                   ${currentRole === "HR" ? `<button class="btn btn-sm btn-info" onclick="openContracts(${Number(s.id)}, ${escapeHtml(JSON.stringify(s.fullName))})" title="Hợp đồng"><i class="fa-solid fa-file-contract"></i></button>` : ""}
+                  ${["HR", "Mentor"].includes(currentRole) ? `<button class="btn btn-sm btn-outline-primary" onclick="openScheduleManager(${Number(s.id)}, ${escapeHtml(JSON.stringify(s.fullName))})" title="Quản lý lịch"><i class="fa-solid fa-calendar-days"></i></button>` : ""}
                   <button class="btn btn-sm btn-primary" onclick="editStudent(${s.id})" title="Chỉnh sửa">
                     <i class="fa-solid fa-pen"></i>
                   </button>
@@ -4377,9 +5281,10 @@
           tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px;">Chưa có hồ sơ thực tập sinh nào</td></tr>`;
           return;
         }
-        tbody.innerHTML = studentsList.map((s) => {
-          const contractCount = Number(s.contract_count) || 0;
-          return `
+        tbody.innerHTML = studentsList
+          .map((s) => {
+            const contractCount = Number(s.contract_count) || 0;
+            return `
           <tr>
             <td><b>${escapeHtml(s.fullName)}</b></td>
             <td>${escapeHtml(s.email)}</td>
@@ -4389,46 +5294,65 @@
                 <button class="btn btn-sm btn-info" onclick="openContracts(${Number(s.id)}, ${escapeHtml(JSON.stringify(s.fullName))})">
                   <i class="fa-solid fa-file-contract"></i> Hợp đồng
                 </button>
-                ${contractCount > 0 ? `<button class="btn btn-sm btn-outline-primary" onclick="openContracts(${Number(s.id)}, ${escapeHtml(JSON.stringify(s.fullName))}, true)" title="Xem hợp đồng">
+                ${
+                  contractCount > 0
+                    ? `<button class="btn btn-sm btn-outline-primary" onclick="openContracts(${Number(s.id)}, ${escapeHtml(JSON.stringify(s.fullName))}, true)" title="Xem hợp đồng">
                   <i class="fa-solid fa-eye"></i> Xem
-                </button>` : ""}
+                </button>`
+                    : ""
+                }
               </div>
             </td>
           </tr>`;
-        }).join("");
+          })
+          .join("");
       }
 
       async function loadStudents() {
         const tbody = document.getElementById("studentTableBody");
         try {
-          const unassigned = currentRole === "HR" && document.getElementById("studentUnassignedFilter")?.checked;
+          const unassigned =
+            currentRole === "HR" &&
+            document.getElementById("studentUnassignedFilter")?.checked;
           const query = unassigned ? "?unassigned=true" : "";
           const res = await fetch(`${API_BASE}/students${query}`, {
             headers: authHeaders(),
           });
           if (res.status === 401) {
-            return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
           }
           const data = await res.json();
           studentsList = Array.isArray(data) ? data : [];
           renderStudents();
         } catch (err) {
           tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #ef4444; padding: 24px;">Lỗi tải danh sách hồ sơ thực tập sinh!</td></tr>`;
-          const contractsBody = document.getElementById("contractManagementBody");
-          if (contractsBody) contractsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#ef4444;padding:24px;">Lỗi tải danh sách thực tập sinh. Vui lòng thử lại.</td></tr>`;
+          const contractsBody = document.getElementById(
+            "contractManagementBody",
+          );
+          if (contractsBody)
+            contractsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#ef4444;padding:24px;">Lỗi tải danh sách thực tập sinh. Vui lòng thử lại.</td></tr>`;
         }
       }
 
       function renderStudentMentorSelect(student) {
-        const currentId = student.mentorId == null ? "" : String(student.mentorId);
-        const options = mentorsList.map((mentor) => {
-          const id = String(mentor.id);
-          const department = mentor.department && mentor.department !== "Chưa cập nhật" ? ` — ${mentor.department}` : "";
-          return `<option value="${escapeHtml(id)}" ${id === currentId ? "selected" : ""}>${escapeHtml(mentor.fullName)}${escapeHtml(department)}</option>`;
-        }).join("");
-        const legacyName = !currentId && student.mentorName
-          ? `<small style="display:block;color:#92400e;margin-top:3px">Tên cũ chưa xác minh: ${escapeHtml(student.mentorName)}</small>`
-          : "";
+        const currentId =
+          student.mentorId == null ? "" : String(student.mentorId);
+        const options = mentorsList
+          .map((mentor) => {
+            const id = String(mentor.id);
+            const department =
+              mentor.department && mentor.department !== "Chưa cập nhật"
+                ? ` — ${mentor.department}`
+                : "";
+            return `<option value="${escapeHtml(id)}" ${id === currentId ? "selected" : ""}>${escapeHtml(mentor.fullName)}${escapeHtml(department)}</option>`;
+          })
+          .join("");
+        const legacyName =
+          !currentId && student.mentorName
+            ? `<small style="display:block;color:#92400e;margin-top:3px">Tên cũ chưa xác minh: ${escapeHtml(student.mentorName)}</small>`
+            : "";
         return `<select class="form-control" aria-label="Mentor của ${escapeHtml(student.fullName)}" data-current="${escapeHtml(currentId)}" onchange="assignStudentMentor(${Number(student.id)}, this)"><option value="">-- Chưa phân công --</option>${options}</select>${legacyName}`;
       }
 
@@ -4446,7 +5370,10 @@
             body: JSON.stringify({ mentor_id: mentorId }),
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.error || data.message || "Không thể cập nhật phân công.");
+          if (!res.ok)
+            throw new Error(
+              data.error || data.message || "Không thể cập nhật phân công.",
+            );
           message.textContent = data.message || "Đã cập nhật phân công mentor.";
           message.style.color = "#047857";
           await loadStudents();
@@ -4462,19 +5389,34 @@
       async function loadMyAssignedInterns() {
         const tbody = document.getElementById("myAssignedInternsBody");
         try {
-          const res = await fetch(`${API_BASE}/mentors/me/interns`, { headers: authHeaders() });
-          if (res.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          const res = await fetch(`${API_BASE}/mentors/me/interns`, {
+            headers: authHeaders(),
+          });
+          if (res.status === 401)
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
           const data = await res.json();
-          if (!res.ok) throw new Error(data.error || "Không thể tải thực tập sinh của bạn.");
+          if (!res.ok)
+            throw new Error(
+              data.error || "Không thể tải thực tập sinh của bạn.",
+            );
           const interns = Array.isArray(data) ? data : [];
-          tbody.innerHTML = interns.length ? interns.map((student) => `<tr>
+          tbody.innerHTML = interns.length
+            ? interns
+                .map(
+                  (student) => `<tr>
             <td>${escapeHtml(student.studentCode || "N/A")}</td>
             <td><b>${escapeHtml(student.fullName)}</b></td>
             <td>${escapeHtml(student.email)}</td>
             <td>${escapeHtml(student.university || "N/A")}</td>
             <td>${escapeHtml(student.major || "N/A")}</td>
             <td>${escapeHtml(student.status || "Đang thực tập")}</td>
-          </tr>`).join("") : `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px">Chưa có thực tập sinh được phân công</td></tr>`;
+            <td><button class="btn btn-sm btn-outline-primary" onclick="openScheduleManager(${Number(student.id)}, ${escapeHtml(JSON.stringify(student.fullName))})"><i class="fa-solid fa-calendar-days"></i> Quản lý mốc</button></td>
+          </tr>`,
+                )
+                .join("")
+            : `<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px">Chưa có thực tập sinh được phân công</td></tr>`;
         } catch (err) {
           tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#b91c1c;padding:24px">${escapeHtml(err.message || "Lỗi tải danh sách")}</td></tr>`;
         }
@@ -4573,11 +5515,15 @@
           });
           if (res.ok) {
             await loadStudents();
+            showToast("Đã xóa hồ sơ thực tập sinh.", "success");
           } else {
-            alert("Lỗi khi xóa hồ sơ!");
+            showToast(
+              await readErrorMessage(res, "Lỗi khi xóa hồ sơ!"),
+              "error",
+            );
           }
         } catch (err) {
-          alert("Không thể kết nối Backend!");
+          showToast("Không thể kết nối Backend!", "error");
         }
       }
 
@@ -4845,11 +5791,11 @@
 
             let timeOrError = "-";
             if (log.status === "SENT" && log.sentAt) {
-              timeOrError = `<span style="color: #16a34a; font-size: 12.5px;"><i class="fa-solid fa-clock"></i> ${new Date(log.sentAt).toLocaleString("vi-VN")}</span>`;
+              timeOrError = `<span style="color: #16a34a; font-size: 12.5px;"><i class="fa-solid fa-clock"></i> ${new Date(log.sentAt).toLocaleString("vi-VN", { timeZone: VN_TIME_ZONE })}</span>`;
             } else if (log.errorMessage) {
-              timeOrError = `<span class="log-err-msg" title="${escapeHtml(log.errorMessage)}" onclick="alert('Chi tiết lỗi:\\n' + ${escapeHtml(JSON.stringify(log.errorMessage))})"><i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(log.errorMessage)}</span>`;
+              timeOrError = `<span class="log-err-msg" title="${escapeHtml(log.errorMessage)}" data-error="${escapeHtml(log.errorMessage)}" onclick="showToast('Chi tiết lỗi: ' + this.dataset.error, 'error')"><i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(log.errorMessage)}</span>`;
             } else if (log.createdAt) {
-              timeOrError = `<span style="color: #64748b; font-size: 12.5px;">${new Date(log.createdAt).toLocaleString("vi-VN")}</span>`;
+              timeOrError = `<span style="color: #64748b; font-size: 12.5px;">${new Date(log.createdAt).toLocaleString("vi-VN", { timeZone: VN_TIME_ZONE })}</span>`;
             }
 
             const actionHtml = canRetry
@@ -4918,8 +5864,8 @@
         if (!dateStr) return "—";
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) return dateStr;
-        const pad = (n) => String(n).padStart(2, "0");
-        return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+        const p = getVietnamParts(d);
+        return `${p.hour}:${p.minute} ${p.day}/${p.month}/${p.year}`;
       }
 
       function formatDateOnly(dateValue) {
@@ -4928,7 +5874,8 @@
         if (match) return `${match[3]}/${match[2]}/${match[1]}`;
         const date = new Date(dateValue);
         if (Number.isNaN(date.getTime())) return String(dateValue);
-        return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+        const p = getVietnamParts(date);
+        return `${p.day}/${p.month}/${p.year}`;
       }
 
       async function loadMyDocuments() {
@@ -5336,8 +6283,456 @@
         }
       }
 
-
       // HỢP ĐỒNG CỦA THỰC TẬP SINH
+      let scheduleManagerInternId = null;
+      let scheduleManagerInternName = "";
+      let scheduleMilestones = [];
+
+      function openScheduleManager(internId, internName) {
+        scheduleManagerInternId = Number(internId);
+        scheduleManagerInternName = internName || "";
+        document.getElementById("scheduleManagerInternName").textContent =
+          scheduleManagerInternName;
+        document.getElementById("scheduleManagerModal").classList.add("open");
+        resetScheduleMilestoneForm();
+        loadScheduleMilestones();
+      }
+
+      function closeScheduleManager() {
+        document
+          .getElementById("scheduleManagerModal")
+          .classList.remove("open");
+      }
+
+      function resetScheduleMilestoneForm() {
+        document.getElementById("scheduleMilestoneForm").reset();
+        document.getElementById("scheduleMilestoneId").value = "";
+        document.getElementById("scheduleSaveButton").textContent = "Thêm mốc";
+      }
+
+      async function loadScheduleMilestones() {
+        const list = document.getElementById("scheduleMilestonesList");
+        const message = document.getElementById("scheduleManagerMessage");
+        list.innerHTML = `<p style="color:#94a3b8">Đang tải mốc lịch...</p>`;
+        message.textContent = "";
+        try {
+          const response = await fetch(
+            `${API_BASE}/interns/${scheduleManagerInternId}/schedule`,
+            { headers: authHeaders() },
+          );
+          if (response.status === 401)
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
+          const body = await response.json();
+          if (!response.ok || !body.success)
+            throw new Error(body.message || "Không tải được lịch.");
+          scheduleMilestones = Array.isArray(body.data?.milestones)
+            ? body.data.milestones
+            : [];
+          if (body.data?.schedule_sync_warning)
+            message.innerHTML = `<span style="color:#b45309">${escapeHtml(body.data.schedule_sync_warning)}</span>`;
+          renderScheduleMilestones();
+        } catch (err) {
+          list.innerHTML = `<p style="color:#b91c1c">${escapeHtml(err.message || "Không tải được lịch.")}</p>`;
+        }
+      }
+
+      function renderScheduleMilestones() {
+        const list = document.getElementById("scheduleMilestonesList");
+        if (!scheduleMilestones.length) {
+          list.innerHTML = `<p style="color:#64748b;padding:10px 0">Chưa có mốc. Có thể tạo mốc bên dưới hoặc dùng nút “Tạo kế hoạch từ mẫu” sau khi có hợp đồng đã xác nhận.</p>`;
+          return;
+        }
+        list.innerHTML = scheduleMilestones
+          .map(
+            (m) =>
+              `<article class="schedule-milestone-row"><div><b>${Number(m.phase_order)}. ${escapeHtml(m.title)}</b><div style="color:#64748b;font-size:12px">${escapeHtml(formatDateOnly(m.start_date) || "Chưa có ngày")} – ${escapeHtml(formatDateOnly(m.end_date) || "Chưa có ngày")} · ${escapeHtml(m.status)}</div></div><div class="action-group"><button type="button" class="btn btn-sm btn-outline-primary" onclick="editScheduleMilestone(${Number(m.id)})"><i class="fa-solid fa-pen"></i> Sửa</button><button type="button" class="btn btn-sm btn-danger" onclick="deleteScheduleMilestone(${Number(m.id)})"><i class="fa-solid fa-trash"></i> Xóa</button></div></article>`,
+          )
+          .join("");
+      }
+
+      function editScheduleMilestone(milestoneId) {
+        const milestone = scheduleMilestones.find(
+          (item) => Number(item.id) === Number(milestoneId),
+        );
+        if (!milestone) return;
+        document.getElementById("scheduleMilestoneId").value = milestone.id;
+        document.getElementById("schedulePhaseOrder").value =
+          milestone.phase_order;
+        document.getElementById("scheduleTitle").value = milestone.title || "";
+        document.getElementById("scheduleStartDate").value =
+          milestone.start_date || "";
+        document.getElementById("scheduleEndDate").value =
+          milestone.end_date || "";
+        document.getElementById("scheduleDuration").value =
+          milestone.duration_weeks || "";
+        document.getElementById("scheduleDescription").value =
+          milestone.description || "";
+        document.getElementById("scheduleExpectedResults").value =
+          milestone.expected_results || "";
+        document.getElementById("scheduleStatus").value =
+          milestone.status || "NOT_STARTED";
+        document.getElementById("scheduleSaveButton").textContent =
+          "Lưu thay đổi";
+      }
+
+      async function saveScheduleMilestone(event) {
+        event.preventDefault();
+        const id = document.getElementById("scheduleMilestoneId").value;
+        const payload = {
+          phase_order: Number(
+            document.getElementById("schedulePhaseOrder").value,
+          ),
+          title: document.getElementById("scheduleTitle").value.trim(),
+          start_date:
+            document.getElementById("scheduleStartDate").value || null,
+          end_date: document.getElementById("scheduleEndDate").value || null,
+          duration_weeks:
+            document.getElementById("scheduleDuration").value.trim() || null,
+          description:
+            document.getElementById("scheduleDescription").value.trim() || null,
+          expected_results:
+            document.getElementById("scheduleExpectedResults").value.trim() ||
+            null,
+          status: document.getElementById("scheduleStatus").value,
+        };
+        try {
+          const response = await fetch(
+            `${API_BASE}/interns/${scheduleManagerInternId}/schedule/milestones${id ? `/${Number(id)}` : ""}`,
+            {
+              method: id ? "PATCH" : "POST",
+              headers: authHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify(payload),
+            },
+          );
+          const body = await response.json();
+          if (!response.ok || !body.success)
+            throw new Error(body.message || "Không lưu được mốc lịch.");
+          showToast(
+            id ? "Đã cập nhật mốc lịch." : "Đã tạo mốc lịch.",
+            "success",
+          );
+          resetScheduleMilestoneForm();
+          await loadScheduleMilestones();
+        } catch (err) {
+          showToast(err.message || "Không lưu được mốc lịch.", "error");
+        }
+      }
+
+      async function deleteScheduleMilestone(milestoneId) {
+        if (!confirm("Xóa mốc lịch này?")) return;
+        try {
+          const response = await fetch(
+            `${API_BASE}/interns/${scheduleManagerInternId}/schedule/milestones/${Number(milestoneId)}`,
+            { method: "DELETE", headers: authHeaders() },
+          );
+          const body = await response.json();
+          if (!response.ok || !body.success)
+            throw new Error(body.message || "Không xóa được mốc lịch.");
+          if (
+            document.getElementById("scheduleMilestoneId").value ===
+            String(milestoneId)
+          )
+            resetScheduleMilestoneForm();
+          showToast("Đã xóa mốc lịch.", "success");
+          await loadScheduleMilestones();
+        } catch (err) {
+          showToast(err.message || "Không xóa được mốc lịch.", "error");
+        }
+      }
+
+      async function loadMySchedule() {
+        if (currentRole !== "Intern") return;
+        const list = document.getElementById("myScheduleList");
+        list.innerHTML = `<p style="text-align:center;color:#94a3b8;padding:16px">Đang tải lịch thực tập...</p>`;
+        try {
+          const response = await fetch(`${API_BASE}/me/schedule`, {
+            headers: authHeaders(),
+          });
+          if (response.status === 401)
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
+          const body = await response.json();
+          if (!response.ok || !body.success)
+            throw new Error(body.message || "Không tải được lịch thực tập.");
+          const milestones = Array.isArray(body.data?.milestones)
+            ? body.data.milestones
+            : [];
+          if (!milestones.length) {
+            list.innerHTML = `<p style="text-align:center;color:#64748b;padding:24px">Chưa có lịch. Vui lòng liên hệ HR hoặc Mentor phụ trách để tạo kế hoạch thực tập.</p>`;
+            return;
+          }
+          myScheduleMilestones = milestones;
+          myScheduleWarning = body.data?.schedule_sync_warning || "";
+          const firstDated = milestones.find(
+            (m) => m.start_date && parseCalendarDate(m.start_date),
+          );
+          if (!myScheduleMonth && firstDated) {
+            const firstDate = parseCalendarDate(firstDated.start_date);
+            myScheduleMonth = new Date(
+              Date.UTC(firstDate.getUTCFullYear(), firstDate.getUTCMonth(), 1),
+            );
+          }
+          renderMyScheduleCalendar();
+        } catch (err) {
+          list.innerHTML = `<p style="text-align:center;color:#ef4444;padding:16px">${escapeHtml(err.message || "Lỗi tải lịch thực tập.")}</p>`;
+        }
+      }
+
+      let myScheduleMilestones = [];
+      let myScheduleMonth = null;
+      let myScheduleSelectedDate = "";
+      let myScheduleWarning = "";
+      let myScheduleShowToday = false; // chỉ hiện khung "Hôm nay" sau khi bấm nút
+      let myScheduleView = "month"; // "month" | "week"
+      let myScheduleWeekStart = null; // Date UTC của thứ Hai đầu tuần
+
+      function scheduleDateToStr(date) {
+        return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+      }
+
+      // Thứ Hai đầu tuần (UTC) chứa ngày dateStr.
+      function weekStartOf(dateStr) {
+        const date = parseCalendarDate(dateStr) || new Date();
+        const offset = (date.getUTCDay() + 6) % 7;
+        return new Date(
+          Date.UTC(
+            date.getUTCFullYear(),
+            date.getUTCMonth(),
+            date.getUTCDate() - offset,
+          ),
+        );
+      }
+
+      function setScheduleView(mode) {
+        if (mode === myScheduleView) return;
+        if (!myScheduleMonth) myScheduleMonth = monthStartOf(getVietnamToday());
+        if (mode === "week") {
+          const monthPrefix = scheduleDateToStr(myScheduleMonth).slice(0, 7);
+          const today = getVietnamToday();
+          const anchor =
+            myScheduleSelectedDate ||
+            (today.startsWith(monthPrefix)
+              ? today
+              : scheduleDateToStr(myScheduleMonth));
+          myScheduleWeekStart = weekStartOf(anchor);
+        } else if (myScheduleWeekStart) {
+          // Về chế độ tháng: lấy tháng của ngày giữa tuần (Thứ Năm)
+          const mid = new Date(myScheduleWeekStart.getTime() + 3 * 86400000);
+          myScheduleMonth = new Date(
+            Date.UTC(mid.getUTCFullYear(), mid.getUTCMonth(), 1),
+          );
+        }
+        myScheduleView = mode;
+        renderMyScheduleCalendar();
+      }
+
+      function shiftScheduleRange(delta) {
+        if (myScheduleView === "week") {
+          if (!myScheduleWeekStart)
+            myScheduleWeekStart = weekStartOf(getVietnamToday());
+          myScheduleWeekStart = new Date(
+            myScheduleWeekStart.getTime() + delta * 7 * 86400000,
+          );
+          myScheduleSelectedDate = "";
+          renderMyScheduleCalendar();
+        } else {
+          shiftScheduleMonth(delta);
+        }
+      }
+
+      // Khung "Hôm nay có gì": liệt kê các mốc đang diễn ra trong ngày hôm nay.
+      function buildScheduleTodayPanel(todayStr) {
+        const todayDate = parseCalendarDate(todayStr);
+        if (!todayDate) return "";
+        const dayNames = [
+          "Chủ nhật",
+          "Thứ hai",
+          "Thứ ba",
+          "Thứ tư",
+          "Thứ năm",
+          "Thứ sáu",
+          "Thứ bảy",
+        ];
+        const statusText = {
+          IN_PROGRESS: "Đang thực hiện",
+          COMPLETED: "Hoàn thành",
+          PENDING: "Chưa bắt đầu",
+          NOT_STARTED: "Chưa bắt đầu",
+        };
+        const dayMs = 86400000;
+        const dated = myScheduleMilestones.filter(
+          (item) =>
+            parseCalendarDate(item.start_date) &&
+            parseCalendarDate(item.end_date),
+        );
+        const active = dated.filter(
+          (item) => item.start_date <= todayStr && item.end_date >= todayStr,
+        );
+        const label = `${dayNames[todayDate.getUTCDay()]}, ${formatDateOnly(todayStr)}`;
+        let body = "";
+        if (active.length) {
+          body = active
+            .map((item) => {
+              const start = parseCalendarDate(item.start_date);
+              const end = parseCalendarDate(item.end_date);
+              const total = Math.round((end - start) / dayMs) + 1;
+              const current = Math.round((todayDate - start) / dayMs) + 1;
+              const percent = Math.min(100, Math.round((current / total) * 100));
+              const cls =
+                item.status === "IN_PROGRESS"
+                  ? "is-in-progress"
+                  : item.status === "COMPLETED"
+                    ? "is-completed"
+                    : "";
+              return `<article class="schedule-today-item ${cls}"><div class="schedule-today-item-head"><b>${Number(item.phase_order)}. ${escapeHtml(item.title)}</b><span class="badge ${item.status === "COMPLETED" ? "badge-active" : "badge-pending"}">${escapeHtml(statusText[item.status] || item.status)}</span></div><div class="schedule-today-meta">${escapeHtml(formatDateOnly(item.start_date))} – ${escapeHtml(formatDateOnly(item.end_date))} · Ngày ${current}/${total}</div><div class="schedule-today-progress"><span style="width:${percent}%"></span></div>${item.description ? `<p class="schedule-agenda-description">${escapeHtml(item.description)}</p>` : ""}${item.expected_results ? `<small style="color:#64748b">Kết quả dự kiến: ${escapeHtml(item.expected_results)}</small>` : ""}</article>`;
+            })
+            .join("");
+        } else {
+          const upcoming = dated
+            .filter((item) => item.start_date > todayStr)
+            .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+          const past = dated
+            .filter((item) => item.end_date < todayStr)
+            .sort((a, b) => b.end_date.localeCompare(a.end_date))[0];
+          let hint = "";
+          if (upcoming) {
+            const days = Math.round(
+              (parseCalendarDate(upcoming.start_date) - todayDate) / dayMs,
+            );
+            hint = `Mốc tiếp theo: <b>${escapeHtml(upcoming.title)}</b> – bắt đầu ${escapeHtml(formatDateOnly(upcoming.start_date))} (còn ${days} ngày).`;
+          } else if (past) {
+            hint = `Mốc gần nhất đã kết thúc: <b>${escapeHtml(past.title)}</b> (${escapeHtml(formatDateOnly(past.end_date))}).`;
+          }
+          body = `<p class="schedule-today-empty">Hôm nay không có mốc nào.${hint ? " " + hint : ""}</p>`;
+        }
+        return `<section class="schedule-today-panel"><div class="schedule-today-head"><i class="fa-solid fa-sun text-primary"></i><h4>Hôm nay có gì?</h4><span class="schedule-today-date">${escapeHtml(label)}</span><button type="button" class="schedule-today-close" onclick="closeScheduleTodayPanel()" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button></div>${body}</section>`;
+      }
+
+      function goToScheduleToday() {
+        const today = getVietnamToday();
+        myScheduleMonth = monthStartOf(today);
+        myScheduleWeekStart = weekStartOf(today);
+        myScheduleSelectedDate = today; // chọn luôn ngày hôm nay để hiện chi tiết bên dưới
+        myScheduleShowToday = true;
+        renderMyScheduleCalendar();
+      }
+
+      function closeScheduleTodayPanel() {
+        myScheduleShowToday = false;
+        renderMyScheduleCalendar();
+      }
+
+      function parseCalendarDate(value) {
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+        if (!match) return null;
+        const date = new Date(
+          Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
+        );
+        return date.getUTCFullYear() === Number(match[1]) &&
+          date.getUTCMonth() === Number(match[2]) - 1 &&
+          date.getUTCDate() === Number(match[3])
+          ? date
+          : null;
+      }
+
+      // Ngày đầu tháng (UTC) của một chuỗi YYYY-MM-DD.
+      function monthStartOf(dateStr) {
+        const [year, month] = dateStr.split("-").map(Number);
+        return new Date(Date.UTC(year, month - 1, 1));
+      }
+
+      function shiftScheduleMonth(delta) {
+        if (!myScheduleMonth) myScheduleMonth = monthStartOf(getVietnamToday());
+        myScheduleMonth = new Date(
+          Date.UTC(
+            myScheduleMonth.getUTCFullYear(),
+            myScheduleMonth.getUTCMonth() + delta,
+            1,
+          ),
+        );
+        myScheduleSelectedDate = "";
+        renderMyScheduleCalendar();
+      }
+
+      function selectScheduleCalendarDate(dateStr) {
+        myScheduleSelectedDate = dateStr;
+        renderMyScheduleCalendar();
+      }
+
+      function renderMyScheduleCalendar() {
+        const list = document.getElementById("myScheduleList");
+        if (!list || !myScheduleMilestones.length) return;
+        if (!myScheduleMonth) myScheduleMonth = monthStartOf(getVietnamToday());
+        const year = myScheduleMonth.getUTCFullYear();
+        const month = myScheduleMonth.getUTCMonth();
+        const monthTitle = new Intl.DateTimeFormat("vi-VN", {
+          month: "long",
+          year: "numeric",
+          timeZone: "UTC",
+        }).format(myScheduleMonth);
+        const weekdayNames = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+        const isWeek = myScheduleView === "week";
+        if (isWeek && !myScheduleWeekStart)
+          myScheduleWeekStart = weekStartOf(
+            myScheduleSelectedDate || getVietnamToday(),
+          );
+        const weekEnd = isWeek
+          ? new Date(myScheduleWeekStart.getTime() + 6 * 86400000)
+          : null;
+        const rangeStartStr = isWeek
+          ? scheduleDateToStr(myScheduleWeekStart)
+          : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+        const rangeEndStr = isWeek
+          ? scheduleDateToStr(weekEnd)
+          : `${year}-${String(month + 1).padStart(2, "0")}-31`;
+        const pad2 = (n) => String(n).padStart(2, "0");
+        const rangeTitle = isWeek
+          ? `${pad2(myScheduleWeekStart.getUTCDate())}/${pad2(myScheduleWeekStart.getUTCMonth() + 1)} – ${pad2(weekEnd.getUTCDate())}/${pad2(weekEnd.getUTCMonth() + 1)}/${weekEnd.getUTCFullYear()}`
+          : monthTitle;
+        const firstOfMonth = new Date(Date.UTC(year, month, 1));
+        const offset = (firstOfMonth.getUTCDay() + 6) % 7;
+        const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+        const totalCells = isWeek ? 7 : Math.ceil((offset + daysInMonth) / 7) * 7;
+        const todayStr = getVietnamToday();
+        const todayPanel = myScheduleShowToday
+          ? buildScheduleTodayPanel(todayStr)
+          : "";
+        let cells = "";
+        for (let index = 0; index < totalCells; index += 1) {
+          const date = isWeek
+            ? new Date(myScheduleWeekStart.getTime() + index * 86400000)
+            : new Date(Date.UTC(year, month, 1 - offset + index));
+          const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+          const active = myScheduleMilestones.filter(
+            (item) =>
+              item.start_date &&
+              item.end_date &&
+              item.start_date <= dateStr &&
+              item.end_date >= dateStr,
+          );
+          const classes = ["schedule-day"];
+          if (isWeek) classes.push("is-week");
+          else if (date.getUTCMonth() !== month) classes.push("is-outside");
+          if (dateStr === todayStr) classes.push("is-today");
+          if (dateStr === myScheduleSelectedDate) classes.push("is-selected");
+          const dots = active
+            .slice(0, isWeek ? undefined : 2)
+            .map(
+              (item) =>
+                `<span class="schedule-day-event ${item.status === "IN_PROGRESS" ? "is-in-progress" : item.status === "COMPLETED" ? "is-completed" : ""}" title="${escapeHtml(item.title)}"></span>${isWeek || item.start_date === dateStr ? `<span class="schedule-day-label">${escapeHtml(item.title)}</span>` : ""}`,
+            )
+            .join("");
+          cells += `<button type="button" class="${classes.join(" ")}" onclick="selectScheduleCalendarDate('${dateStr}')" aria-label="${dateStr}${active.length ? `: ${escapeHtml(active.map((item) => item.title).join(", "))}` : ""}"><span class="schedule-day-number">${date.getUTCDate()}</span>${isWeek ? `<span class="schedule-day-weekname">${weekdayNames[index]}</span>` : ""}<span class="schedule-day-events">${dots}</span></button>`;
+        }
+        const undated = myScheduleMilestones.filter(
+          (item) => !item.start_date || !item.end_date,
+        );
+        list.innerHTML = `<div class="intern-schedule-calendar">${myScheduleWarning ? `<p class="alert-box alert-error" style="display:block">${escapeHtml(myScheduleWarning)}</p>` : ""}${todayPanel}<div class="schedule-view-bar"><div class="schedule-view-toggle"><button type="button" class="${isWeek ? "" : "active"}" onclick="setScheduleView('month')">Tháng</button><button type="button" class="${isWeek ? "active" : ""}" onclick="setScheduleView('week')">Tuần</button></div><button class="btn btn-sm btn-outline-primary" type="button" onclick="goToScheduleToday()">Hôm nay</button></div><div class="schedule-calendar-toolbar"><button class="btn btn-sm btn-outline-primary" type="button" onclick="shiftScheduleRange(-1)" aria-label="${isWeek ? "Tuần trước" : "Tháng trước"}"><i class="fa-solid fa-chevron-left"></i></button><h4>${escapeHtml(rangeTitle)}</h4><button class="btn btn-sm btn-outline-primary" type="button" onclick="shiftScheduleRange(1)" aria-label="${isWeek ? "Tuần sau" : "Tháng sau"}"><i class="fa-solid fa-chevron-right"></i></button></div><div class="schedule-calendar-grid${isWeek ? " is-week" : ""}">${weekdayNames.map((day) => `<div class="schedule-weekday">${day}</div>`).join("")}${cells}</div>${undated.length ? `<section class="schedule-month-agenda"><h4>Mốc chưa có ngày</h4>${undated.map((item) => `<article class="schedule-agenda-item"><b>${Number(item.phase_order)}. ${escapeHtml(item.title)}</b><div class="schedule-agenda-date">Chưa đặt đủ ngày · ${escapeHtml(item.status)}</div></article>`).join("")}</section>` : ""}</div>`;
+      }
+
       let myContracts = [];
       const confirmingMyContracts = new Set();
 
@@ -5346,10 +6741,16 @@
         const list = document.getElementById("myContractsList");
         list.innerHTML = `<p style="text-align:center;color:#94a3b8;padding:16px;">Đang tải danh sách hợp đồng...</p>`;
         try {
-          const response = await fetch(`${API_BASE}/me/contracts`, { headers: authHeaders() });
-          if (response.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          const response = await fetch(`${API_BASE}/me/contracts`, {
+            headers: authHeaders(),
+          });
+          if (response.status === 401)
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
           const body = await response.json();
-          if (!response.ok || !body.success) throw new Error(body.message || "Không tải được hợp đồng.");
+          if (!response.ok || !body.success)
+            throw new Error(body.message || "Không tải được hợp đồng.");
           myContracts = Array.isArray(body.data) ? body.data : [];
           renderMyContracts();
         } catch (err) {
@@ -5363,10 +6764,11 @@
           list.innerHTML = `<p style="text-align:center;color:#94a3b8;padding:16px;">HR chưa gửi hợp đồng thực tập cho bạn.</p>`;
           return;
         }
-        list.innerHTML = myContracts.map((contract) => {
-          const confirmed = contract.confirmation_status === "CONFIRMED";
-          const busy = confirmingMyContracts.has(Number(contract.id));
-          return `
+        list.innerHTML = myContracts
+          .map((contract) => {
+            const confirmed = contract.confirmation_status === "CONFIRMED";
+            const busy = confirmingMyContracts.has(Number(contract.id));
+            return `
             <article style="padding:16px 4px;border-bottom:1px solid #e2e8f0">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
                 <div style="min-width:220px;flex:1">
@@ -5383,31 +6785,53 @@
                 <div class="action-group" style="flex-wrap:wrap;justify-content:flex-end">
                   ${contract.mime_type === "application/pdf" ? `<button class="btn btn-sm btn-outline-primary" onclick="viewMyContract(${Number(contract.id)})"><i class="fa-solid fa-eye"></i> Xem</button>` : ""}
                   <button class="btn btn-sm btn-primary" onclick="downloadMyContract(${Number(contract.id)})"><i class="fa-solid fa-download"></i> Tải xuống</button>
-                  ${confirmed
-                    ? `<button class="btn btn-sm" disabled><i class="fa-solid fa-check"></i> Đã xác nhận</button>`
-                    : `<button class="btn btn-sm btn-success" ${busy ? "disabled" : ""} onclick="confirmMyContract(${Number(contract.id)})"><i class="fa-solid ${busy ? "fa-spinner fa-spin" : "fa-check"}"></i> ${busy ? "Đang xác nhận..." : "Xác nhận hợp đồng"}</button>`}
+                  ${
+                    confirmed
+                      ? `<button class="btn btn-sm" disabled><i class="fa-solid fa-check"></i> Đã xác nhận</button>`
+                      : `<button class="btn btn-sm btn-success" ${busy ? "disabled" : ""} onclick="confirmMyContract(${Number(contract.id)})"><i class="fa-solid ${busy ? "fa-spinner fa-spin" : "fa-check"}"></i> ${busy ? "Đang xác nhận..." : "Xác nhận hợp đồng"}</button>`
+                  }
                 </div>
               </div>
             </article>`;
-        }).join("");
+          })
+          .join("");
       }
 
       async function confirmMyContract(contractId) {
-        const contract = myContracts.find((item) => Number(item.id) === Number(contractId));
+        const contract = myContracts.find(
+          (item) => Number(item.id) === Number(contractId),
+        );
         if (!contract || contract.confirmation_status !== "PENDING") return;
-        if (!confirm(`Bạn xác nhận đã đọc và đồng ý với hợp đồng "${contract.title || contract.original_name}"?`)) return;
+        if (
+          !confirm(
+            `Bạn xác nhận đã đọc và đồng ý với hợp đồng "${contract.title || contract.original_name}"?`,
+          )
+        )
+          return;
         confirmingMyContracts.add(Number(contractId));
         renderMyContracts();
         try {
-          const response = await fetch(`${API_BASE}/me/contracts/${Number(contractId)}/confirm`, {
-            method: "POST",
-            headers: authHeaders(),
-          });
-          if (response.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          const response = await fetch(
+            `${API_BASE}/me/contracts/${Number(contractId)}/confirm`,
+            {
+              method: "POST",
+              headers: authHeaders(),
+            },
+          );
+          if (response.status === 401)
+            return forceLogout(
+              "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+            );
           const body = await response.json();
-          if (!response.ok || !body.success) throw new Error(body.message || "Không xác nhận được hợp đồng.");
-          myContracts = myContracts.map((item) => Number(item.id) === Number(contractId) ? body.data : item);
-          showToast(body.message || "Đã xác nhận hợp đồng thành công!", "success");
+          if (!response.ok || !body.success)
+            throw new Error(body.message || "Không xác nhận được hợp đồng.");
+          myContracts = myContracts.map((item) =>
+            Number(item.id) === Number(contractId) ? body.data : item,
+          );
+          showToast(
+            body.message || "Đã xác nhận hợp đồng thành công!",
+            "success",
+          );
         } catch (err) {
           showToast(err.message || "Không xác nhận được hợp đồng!", "error");
         } finally {
@@ -5417,9 +6841,12 @@
       }
 
       async function fetchMyContractBlob(contractId) {
-        const response = await fetch(`${API_BASE}/me/contracts/${Number(contractId)}/download`, {
-          headers: authHeaders(),
-        });
+        const response = await fetch(
+          `${API_BASE}/me/contracts/${Number(contractId)}/download`,
+          {
+            headers: authHeaders(),
+          },
+        );
         if (response.status === 401) {
           forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
           throw new Error("Phiên đăng nhập đã hết hạn.");
@@ -5433,7 +6860,11 @@
 
       async function viewMyContract(contractId) {
         const preview = window.open("about:blank", "_blank");
-        if (!preview) return showToast("Trình duyệt đã chặn cửa sổ xem file. Hãy cho phép cửa sổ bật lên rồi thử lại.", "error");
+        if (!preview)
+          return showToast(
+            "Trình duyệt đã chặn cửa sổ xem file. Hãy cho phép cửa sổ bật lên rồi thử lại.",
+            "error",
+          );
         preview.opener = null;
         try {
           const blob = await fetchMyContractBlob(contractId);
@@ -5449,7 +6880,9 @@
       async function downloadMyContract(contractId) {
         try {
           const blob = await fetchMyContractBlob(contractId);
-          const contract = myContracts.find((item) => Number(item.id) === Number(contractId));
+          const contract = myContracts.find(
+            (item) => Number(item.id) === Number(contractId),
+          );
           const objectUrl = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = objectUrl;
@@ -5468,10 +6901,66 @@
       function openContracts(id, name, viewOnly = false) {
         contractsInternId = id;
         document.getElementById("contractsInternName").textContent = name;
-        document.getElementById("contractUploadForm").style.display = viewOnly ? "none" : "";
+        document.getElementById("contractUploadForm").style.display = viewOnly
+          ? "none"
+          : "";
         document.getElementById("contractsModal").classList.add("open");
+        loadContractPrograms();
         document.getElementById("contractError").textContent = "";
         loadContracts();
+      }
+
+      async function createScheduleTemplate(internId = contractsInternId) {
+        if (
+          !internId ||
+          !confirm(
+            "Tạo các mốc BM02 từ ngày trong hợp đồng đã xác nhận? Nếu đã có mốc, hệ thống sẽ từ chối và giữ nguyên toàn bộ.",
+          )
+        )
+          return;
+        try {
+          const response = await fetch(
+            `${API_BASE}/interns/${Number(internId)}/schedule/template`,
+            { method: "POST", headers: authHeaders() },
+          );
+          const body = await response.json();
+          if (!response.ok || !body.success)
+            throw new Error(body.message || "Không tạo được kế hoạch.");
+          showToast("Đã tạo kế hoạch từ mẫu.", "success");
+          if (Number(scheduleManagerInternId) === Number(internId))
+            await loadScheduleMilestones();
+          else {
+            const student = studentsList.find(
+              (item) => Number(item.id) === Number(internId),
+            );
+            closeContracts();
+            openScheduleManager(internId, student?.fullName || "");
+          }
+        } catch (err) {
+          showToast(err.message || "Không tạo được kế hoạch.", "error");
+        }
+      }
+
+      async function loadContractPrograms() {
+        const select = document.getElementById("contractProgramId");
+        if (!select) return;
+        try {
+          const response = await fetch(`${API_BASE}/programs`, {
+            headers: authHeaders(),
+          });
+          const body = await response.json();
+          if (!response.ok || !body.success) return;
+          select.innerHTML =
+            `<option value="">Không liên kết chương trình</option>` +
+            (body.data || [])
+              .map(
+                (p) =>
+                  `<option value="${Number(p.id)}">${escapeHtml(p.name)} — ${escapeHtml(p.department_name || "")}</option>`,
+              )
+              .join("");
+        } catch {
+          /* Chương trình là trường liên kết tùy chọn. */
+        }
       }
 
       function closeContracts() {
@@ -5488,14 +6977,17 @@
             { headers: authHeaders() },
           );
           const body = await response.json();
-          if (!response.ok) throw new Error(body.message || "Không tải được hợp đồng.");
+          if (!response.ok)
+            throw new Error(body.message || "Không tải được hợp đồng.");
 
           if (!body.data.length) {
             list.innerHTML = "<p>Thực tập sinh chưa có hợp đồng nào.</p>";
             return;
           }
 
-          list.innerHTML = body.data.map((contract) => `
+          list.innerHTML = body.data
+            .map(
+              (contract) => `
             <div style="display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid #e2e8f0">
               <div>
                 <b>${escapeHtml(contract.title || contract.original_name)}</b>
@@ -5514,7 +7006,9 @@
                 <button class="btn btn-sm btn-danger" onclick="deleteContract(${Number(contract.id)})">Xóa</button>
               </div>
             </div>
-          `).join("");
+          `,
+            )
+            .join("");
         } catch (err) {
           list.innerHTML = `<p style="color:#ef4444">${escapeHtml(err.message || "Lỗi tải danh sách hợp đồng.")}</p>`;
         }
@@ -5551,8 +7045,12 @@
           if (xhr.status >= 200 && xhr.status < 300) {
             form.reset();
             loadContracts();
-            const student = studentsList.find((item) => Number(item.id) === Number(contractsInternId));
-            if (student) student.contract_count = (Number(student.contract_count) || 0) + 1;
+            const student = studentsList.find(
+              (item) => Number(item.id) === Number(contractsInternId),
+            );
+            if (student)
+              student.contract_count =
+                (Number(student.contract_count) || 0) + 1;
             renderContractManagement();
           } else {
             errorBox.textContent = body.message || "Tải hợp đồng thất bại.";
@@ -5566,7 +7064,11 @@
         xhr.send(formData);
       }
 
-      async function downloadContract(contractId, inline = false, originalName = "hop-dong") {
+      async function downloadContract(
+        contractId,
+        inline = false,
+        originalName = "hop-dong",
+      ) {
         try {
           const response = await fetch(
             `${API_BASE}/interns/${contractsInternId}/contracts/${contractId}/download${inline ? "?disposition=inline" : ""}`,
@@ -5603,9 +7105,16 @@
             { method: "DELETE", headers: authHeaders() },
           );
           const body = await response.json();
-          if (!response.ok) throw new Error(body.message || "Xóa hợp đồng thất bại.");
-          const student = studentsList.find((item) => Number(item.id) === Number(contractsInternId));
-          if (student) student.contract_count = Math.max(0, (Number(student.contract_count) || 1) - 1);
+          if (!response.ok)
+            throw new Error(body.message || "Xóa hợp đồng thất bại.");
+          const student = studentsList.find(
+            (item) => Number(item.id) === Number(contractsInternId),
+          );
+          if (student)
+            student.contract_count = Math.max(
+              0,
+              (Number(student.contract_count) || 1) - 1,
+            );
           renderContractManagement();
           await loadContracts();
         } catch (err) {
@@ -5672,7 +7181,9 @@
       }
 
       async function programLoadDepartments() {
-        const selectedFilter = document.getElementById("programFilterDepartment").value;
+        const selectedFilter = document.getElementById(
+          "programFilterDepartment",
+        ).value;
         programDepartments = await programRequest("/departments");
         const options = programDepartments
           .map(
@@ -5680,7 +7191,9 @@
               `<option value="${Number(department.id)}">${escapeHtml(department.name)}</option>`,
           )
           .join("");
-        const departmentFilter = document.getElementById("programFilterDepartment");
+        const departmentFilter = document.getElementById(
+          "programFilterDepartment",
+        );
         departmentFilter.innerHTML = `<option value="">Tất cả phòng ban</option>${options}`;
         departmentFilter.value = selectedFilter;
         document.getElementById("programDepartment").innerHTML = options;
@@ -5693,18 +7206,28 @@
         try {
           await programLoadDepartments();
           const params = new URLSearchParams();
-          const departmentId = document.getElementById("programFilterDepartment").value;
+          const departmentId = document.getElementById(
+            "programFilterDepartment",
+          ).value;
           const status = document.getElementById("programFilterStatus").value;
-          const timeState = document.getElementById("programFilterTimeState").value;
+          const timeState = document.getElementById(
+            "programFilterTimeState",
+          ).value;
           if (departmentId) params.set("department_id", departmentId);
           if (status) params.set("status", status);
           if (timeState) params.set("time_state", timeState);
 
-          programItems = await programRequest(`/programs${params.size ? `?${params}` : ""}`);
+          programItems = await programRequest(
+            `/programs${params.size ? `?${params}` : ""}`,
+          );
           const editable = currentRole === "HR";
-          document.getElementById("programAddButton").style.display = editable ? "" : "none";
+          document.getElementById("programAddButton").style.display = editable
+            ? ""
+            : "none";
           rows.innerHTML = programItems.length
-            ? programItems.map((program) => programRenderRow(program, editable)).join("")
+            ? programItems
+                .map((program) => programRenderRow(program, editable))
+                .join("")
             : '<tr><td colspan="6">Chưa có chương trình.</td></tr>';
         } catch (err) {
           rows.innerHTML = `<tr><td colspan="6" class="program-error">${escapeHtml(err.message)}</td></tr>`;
@@ -5716,7 +7239,8 @@
           ? `<button class="btn btn-sm btn-info" onclick="programEdit(${Number(program.id)})">Sửa</button>
              <button class="btn btn-sm btn-danger" onclick="programDelete(${Number(program.id)})">Xóa</button>`
           : "";
-        const capacity = program.capacity == null ? "—" : Number(program.capacity);
+        const capacity =
+          program.capacity == null ? "—" : Number(program.capacity);
 
         const timeStateLabels = {
           UPCOMING: "Sắp diễn ra",
@@ -5724,9 +7248,10 @@
           ENDED: "Đã kết thúc",
           UNSCHEDULED: "Chưa đặt lịch",
         };
-        const period = program.time_state === "UNSCHEDULED"
-          ? "Chưa đặt lịch"
-          : `${escapeHtml(programFormatDate(program.start_date))} – ${escapeHtml(programFormatDate(program.end_date))} · ${escapeHtml(program.duration_days)} ngày`;
+        const period =
+          program.time_state === "UNSCHEDULED"
+            ? "Chưa đặt lịch"
+            : `${escapeHtml(programFormatDate(program.start_date))} – ${escapeHtml(programFormatDate(program.end_date))} · ${escapeHtml(program.duration_days)} ngày`;
 
         return `<tr>
           <td>${escapeHtml(program.name)}</td>
@@ -5740,21 +7265,28 @@
 
       function programOpenModal(item = null) {
         document.getElementById("programError").innerText = "";
-        document.getElementById("programModalTitle").innerText = item ? "Sửa chương trình" : "Thêm chương trình";
+        document.getElementById("programModalTitle").innerText = item
+          ? "Sửa chương trình"
+          : "Thêm chương trình";
         document.getElementById("programId").value = item?.id || "";
         document.getElementById("programName").value = item?.name || "";
-        document.getElementById("programDescription").value = item?.description || "";
-        document.getElementById("programStartDate").value = item?.start_date || "";
+        document.getElementById("programDescription").value =
+          item?.description || "";
+        document.getElementById("programStartDate").value =
+          item?.start_date || "";
         document.getElementById("programEndDate").value = item?.end_date || "";
         document.getElementById("programCapacity").value = item?.capacity ?? "";
-        document.getElementById("programStatus").value = item?.status || "DRAFT";
-        document.getElementById("programDepartment").value = item?.department_id || programDepartments[0]?.id || "";
+        document.getElementById("programStatus").value =
+          item?.status || "DRAFT";
+        document.getElementById("programDepartment").value =
+          item?.department_id || programDepartments[0]?.id || "";
         programUpdateDateConstraints();
         document.getElementById("programModal").style.display = "flex";
       }
 
       function programFormatDate(value) {
-        if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "—";
+        if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))
+          return "—";
         const [year, month, day] = value.split("-");
         return `${day}/${month}/${year}`;
       }
@@ -5762,7 +7294,11 @@
       function programDateOrdinal(value) {
         if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
         const parsed = new Date(`${value}T00:00:00Z`);
-        if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) return null;
+        if (
+          Number.isNaN(parsed.getTime()) ||
+          parsed.toISOString().slice(0, 10) !== value
+        )
+          return null;
         return Math.floor(parsed.getTime() / 86400000);
       }
 
@@ -5780,19 +7316,28 @@
         const end = endDate ? programDateOrdinal(endDate) : null;
         error.innerText = "";
 
-        if ((status === "OPEN" || status === "ONGOING") && (!startDate || !endDate)) {
-          error.innerText = "Chương trình OPEN hoặc ONGOING phải có đủ ngày bắt đầu và kết thúc!";
+        if (
+          (status === "OPEN" || status === "ONGOING") &&
+          (!startDate || !endDate)
+        ) {
+          error.innerText =
+            "Chương trình OPEN hoặc ONGOING phải có đủ ngày bắt đầu và kết thúc!";
           return false;
         }
         if ((startDate && start == null) || (endDate && end == null)) {
-          error.innerText = "Ngày phải đúng định dạng YYYY-MM-DD và là ngày có thật!";
+          error.innerText =
+            "Ngày phải đúng định dạng YYYY-MM-DD và là ngày có thật!";
           return false;
         }
         if (start != null && end != null && end < start) {
           error.innerText = "Ngày kết thúc không được trước ngày bắt đầu!";
           return false;
         }
-        if (start != null && end != null && end - start + 1 > programMaxDurationDays) {
+        if (
+          start != null &&
+          end != null &&
+          end - start + 1 > programMaxDurationDays
+        ) {
           error.innerText = `Thời lượng chương trình không được vượt quá ${programMaxDurationDays} ngày!`;
           return false;
         }
@@ -5800,7 +7345,9 @@
       }
 
       function programEdit(id) {
-        const item = programItems.find((program) => Number(program.id) === Number(id));
+        const item = programItems.find(
+          (program) => Number(program.id) === Number(id),
+        );
         if (item) programOpenModal(item);
       }
 
@@ -5854,14 +7401,24 @@
       }
 
       async function programDelete(id) {
-        const item = programItems.find((program) => Number(program.id) === Number(id));
-        if (!item || !confirm("Bạn có chắc muốn xóa chương trình thực tập này?")) return;
+        const item = programItems.find(
+          (program) => Number(program.id) === Number(id),
+        );
+        if (
+          !item ||
+          !confirm("Bạn có chắc muốn xóa chương trình thực tập này?")
+        )
+          return;
 
         try {
           await programRequest(`/programs/${id}`, { method: "DELETE" });
           await programLoad();
+          showToast("Đã xóa chương trình thực tập.", "success");
         } catch (err) {
-          alert(err.message);
+          showToast(
+            err.message || "Không xóa được chương trình thực tập.",
+            "error",
+          );
         }
       }
     </script>
