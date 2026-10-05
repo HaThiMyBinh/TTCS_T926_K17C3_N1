@@ -396,6 +396,8 @@ async function initDatabase() {
 
   await ensureColumn("intern_profiles", "mentor_id", "BIGINT NULL");
   await ensureIndex("intern_profiles", "idx_intern_mentor_id", "mentor_id");
+  await ensureIndex("intern_profiles", "idx_intern_university", "university");
+  await ensureIndex("intern_profiles", "idx_intern_major", "major");
   await ensureForeignKey(
     "intern_profiles",
     "fk_intern_mentor_id",
@@ -1104,35 +1106,64 @@ async function syncMentorsWithAccounts() {
   );
 }
 
-async function getAllStudents({
-  includeContractCount = false,
-  unassigned = false,
-} = {}) {
-  const db = requireDb();
-  const whereSql = unassigned ? "WHERE mentor_id IS NULL" : "";
-  const [rows] = await db.query(
-    `SELECT id, student_code AS studentCode, full_name AS fullName, email, phone,
-            university, major, mentor_name AS mentorName, mentor_id AS mentorId,
-            status, created_at AS createdAt
-            ${includeContractCount ? `, (SELECT COUNT(*) FROM internship_contracts c WHERE c.intern_id = intern_profiles.id) AS contract_count` : ""}
-     FROM intern_profiles ${whereSql} ORDER BY id DESC`,
+async function getAllStudents({ includeContractCount = false, filters = {} } = {}) {
+  const { buildInternFilterConditions } = require("./utils/internFilters");
+  const { whereSql, params } = buildInternFilterConditions(filters);
+  const [rows] = await requireDb().query(
+    `SELECT ip.id, ip.student_code AS studentCode, ip.full_name AS fullName, ip.email, ip.phone,
+            ip.university, ip.major, ip.mentor_name AS mentorName, ip.mentor_id AS mentorId,
+            ip.status, ip.created_at AS createdAt
+            ${includeContractCount ? `, (SELECT COUNT(*) FROM internship_contracts c WHERE c.intern_id = ip.id) AS contract_count` : ""}
+     FROM intern_profiles ip ${whereSql} ORDER BY ip.id DESC`,
+    params,
   );
   return rows;
 }
 
-async function getStudentsForMentorEmail(email) {
+async function getStudentsForMentorEmail(email, filters = {}) {
+  const { buildInternFilterConditions } = require("./utils/internFilters");
+  const { whereSql, params } = buildInternFilterConditions(filters);
   const [rows] = await requireDb().query(
     `SELECT ip.id, ip.student_code AS studentCode, ip.full_name AS fullName,
             ip.email, ip.phone, ip.university, ip.major,
             ip.mentor_name AS mentorName, ip.mentor_id AS mentorId,
             ip.status, ip.created_at AS createdAt
-     FROM intern_profiles ip
-     JOIN mentors m ON m.id = ip.mentor_id
-     WHERE LOWER(m.email) = LOWER(?)
+     FROM intern_profiles ip JOIN mentors m ON m.id = ip.mentor_id
+     ${whereSql ? `${whereSql} AND` : "WHERE"} LOWER(m.email) = LOWER(?)
      ORDER BY ip.id DESC`,
-    [email],
+    [...params, email],
   );
   return rows;
+}
+
+async function getInternFilterOptions({ university = "" } = {}) {
+  const database = requireDb();
+  const [universities] = await database.query(
+    `SELECT DISTINCT TRIM(university) AS value FROM intern_profiles
+     WHERE university IS NOT NULL AND TRIM(university) <> ''
+     ORDER BY value COLLATE utf8mb4_unicode_ci`,
+  );
+  const universityCondition = university
+    ? " AND CONVERT(university USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(? USING utf8mb4) COLLATE utf8mb4_unicode_ci"
+    : "";
+  const [majors] = await database.query(
+    `SELECT DISTINCT TRIM(major) AS value FROM intern_profiles
+     WHERE major IS NOT NULL AND TRIM(major) <> ''${universityCondition}
+     ORDER BY value COLLATE utf8mb4_unicode_ci`,
+    university ? [university] : [],
+  );
+  return {
+    universities: universities.map((row) => row.value),
+    majors: majors.map((row) => row.value),
+  };
+}
+
+async function countInterns({ unassigned = false } = {}) {
+  const whereSql = unassigned ? "WHERE mentor_id IS NULL" : "";
+  const [rows] = await requireDb().query(
+    `SELECT COUNT(*) AS count FROM intern_profiles ${whereSql}`,
+  );
+  return Number(rows[0]?.count) || 0;
 }
 
 async function assignInternMentor(internId, mentorId) {
@@ -2207,6 +2238,8 @@ module.exports = {
   deleteMentor,
   getAllStudents,
   getStudentsForMentorEmail,
+  getInternFilterOptions,
+  countInterns,
   assignInternMentor,
   insertStudent,
   updateStudent,
