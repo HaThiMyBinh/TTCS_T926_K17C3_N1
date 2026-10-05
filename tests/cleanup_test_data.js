@@ -31,7 +31,9 @@ const TEST_EMAIL_PREFIXES = [
     );
   } catch (err) {
     console.error(" Lỗi khi dọn dữ liệu test:", err.message);
-    console.error(" -> Kiểm tra MySQL đã chạy và backend/db_config.json đúng chưa.");
+    console.error(
+      " -> Kiểm tra MySQL đã chạy và backend/db_config.json đúng chưa.",
+    );
     process.exit(1);
   }
 })();

@@ -211,7 +211,9 @@ async function runAutoInternTests() {
         );
       }
     } catch (e) {
-      console.log(" [CLEANUP] Lỗi kết nối khi dọn hồ sơ thực tập sinh test: " + e.message);
+      console.log(
+        " [CLEANUP] Lỗi kết nối khi dọn hồ sơ thực tập sinh test: " + e.message,
+      );
     }
   }
 

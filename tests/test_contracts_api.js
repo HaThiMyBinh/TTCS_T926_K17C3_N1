@@ -43,7 +43,13 @@ function makeUploadForm(buffer, filename, metadata = {}) {
   return form;
 }
 
-async function uploadContract(internId, token, buffer, filename, metadata = {}) {
+async function uploadContract(
+  internId,
+  token,
+  buffer,
+  filename,
+  metadata = {},
+) {
   return request(`/interns/${internId}/contracts`, token, {
     method: "POST",
     body: makeUploadForm(buffer, filename, metadata),
@@ -132,10 +138,7 @@ async function runApiTests() {
       tokens.HR,
     );
     const listBody = await listResponse.json();
-    check(
-      "Liệt kê đủ hợp đồng",
-      listResponse.ok && listBody.data.length === 3,
-    );
+    check("Liệt kê đủ hợp đồng", listResponse.ok && listBody.data.length === 3);
 
     const docxContract = listBody.data.find(
       (contract) => contract.original_name === "contract.docx",
@@ -144,9 +147,7 @@ async function runApiTests() {
       `/interns/${internId}/contracts/${docxContract.id}/download`,
       tokens.HR,
     );
-    const downloadedContent = Buffer.from(
-      await downloadResponse.arrayBuffer(),
-    );
+    const downloadedContent = Buffer.from(await downloadResponse.arrayBuffer());
     check(
       "Tải xuống đúng nội dung",
       downloadResponse.ok && downloadedContent.equals(FILES["contract.docx"]),
@@ -204,7 +205,10 @@ async function runApiTests() {
       FILES["contract.pdf"],
       "invalid-id.pdf",
     );
-    check("ID intern không hợp lệ trả 400", invalidInternIdResponse.status === 400);
+    check(
+      "ID intern không hợp lệ trả 400",
+      invalidInternIdResponse.status === 400,
+    );
 
     const longTitleResponse = await uploadContract(
       internId,
@@ -213,7 +217,10 @@ async function runApiTests() {
       "long-title.pdf",
       { title: "T".repeat(256) },
     );
-    check("Tiêu đề dài hơn 255 ký tự trả 400", longTitleResponse.status === 400);
+    check(
+      "Tiêu đề dài hơn 255 ký tự trả 400",
+      longTitleResponse.status === 400,
+    );
 
     const longNoteResponse = await uploadContract(
       internId,
@@ -222,7 +229,10 @@ async function runApiTests() {
       "long-note.pdf",
       { note: "N".repeat(1001) },
     );
-    check("Ghi chú dài hơn 1000 ký tự trả 400", longNoteResponse.status === 400);
+    check(
+      "Ghi chú dài hơn 1000 ký tự trả 400",
+      longNoteResponse.status === 400,
+    );
 
     const invalidDatesResponse = await uploadContract(
       internId,
@@ -231,7 +241,10 @@ async function runApiTests() {
       "invalid-dates.pdf",
       { start_date: "2026-12-31", end_date: "2026-01-01" },
     );
-    check("Khoảng ngày không hợp lệ trả 400", invalidDatesResponse.status === 400);
+    check(
+      "Khoảng ngày không hợp lệ trả 400",
+      invalidDatesResponse.status === 400,
+    );
 
     const beforeOtherInternUpload = new Set(fs.readdirSync(UPLOADS_DIR));
     const otherInternUpload = await uploadContract(
@@ -242,7 +255,10 @@ async function runApiTests() {
     );
     const otherInternBody = await otherInternUpload.json();
     if (otherInternUpload.ok) {
-      createdFiles.set("other-intern.pdf", getNewFiles(beforeOtherInternUpload)[0]);
+      createdFiles.set(
+        "other-intern.pdf",
+        getNewFiles(beforeOtherInternUpload)[0],
+      );
     }
     const idorResponse = await request(
       `/interns/${internId}/contracts/${otherInternBody.data.id}/download`,
@@ -270,7 +286,10 @@ async function runApiTests() {
           );
         }
         const response = await request(endpoint.url, tokens[role], options);
-        check(`Từ chối ${role} qua ${endpoint.method}`, response.status === 403);
+        check(
+          `Từ chối ${role} qua ${endpoint.method}`,
+          response.status === 403,
+        );
       }
     }
 

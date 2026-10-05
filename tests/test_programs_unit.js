@@ -96,4 +96,6 @@ assert.deepEqual(
   },
 );
 
-console.log("PROGRAM UNIT: validation, ngày, capacity, status, độ dài, ID, DTO PASS");
+console.log(
+  "PROGRAM UNIT: validation, ngày, capacity, status, độ dài, ID, DTO PASS",
+);

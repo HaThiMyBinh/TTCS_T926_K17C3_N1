@@ -64,9 +64,17 @@ async function testMentorAssignmentApi() {
 
   try {
     for (const roleToken of [admin, await loginAs("Mentor"), internToken]) {
-      assert.equal((await call("/interns/1/mentor", roleToken, "PUT", { mentor_id: null })).status, 403);
+      assert.equal(
+        (await call("/interns/1/mentor", roleToken, "PUT", { mentor_id: null }))
+          .status,
+        403,
+      );
     }
-    assert.equal((await call("/interns/1/mentor", null, "PUT", { mentor_id: null })).status, 401);
+    assert.equal(
+      (await call("/interns/1/mentor", null, "PUT", { mentor_id: null }))
+        .status,
+      401,
+    );
 
     const mentorA = await call("/mentors", hr, "POST", {
       fullName: "Mentor Assign Test A",
@@ -85,8 +93,15 @@ async function testMentorAssignmentApi() {
 
     const mentorAToken = await tokenFor(mentorAEmail);
     const mentorBToken = await tokenFor(mentorBEmail);
-    const noProfileToken = generateToken({ id: 987654321, email: `${prefix}missing@example.test`, role: "Mentor" });
-    assert.deepEqual((await call("/mentors/me/interns", noProfileToken)).body, []);
+    const noProfileToken = generateToken({
+      id: 987654321,
+      email: `${prefix}missing@example.test`,
+      role: "Mentor",
+    });
+    assert.deepEqual(
+      (await call("/mentors/me/interns", noProfileToken)).body,
+      [],
+    );
     assert.equal((await call("/mentors/me/interns", null)).status, 401);
     for (const roleToken of [hr, admin, internToken]) {
       assert.equal((await call("/mentors/me/interns", roleToken)).status, 403);
@@ -106,45 +121,126 @@ async function testMentorAssignmentApi() {
     });
     assert.equal(unassignedStudent.status, 201);
 
-    assert.equal((await call("/interns/not-an-id/mentor", hr, "PUT", { mentor_id: mentorAId })).status, 400);
-    for (const mentorId of [String(mentorAId), [mentorAId], -1, "1 OR 1=1", 1.5]) {
-      const invalid = await call(`/interns/${studentId}/mentor`, hr, "PUT", { mentor_id: mentorId });
-      assert.equal(invalid.status, 400, `Expected 400 for mentor_id=${JSON.stringify(mentorId)}`);
+    assert.equal(
+      (
+        await call("/interns/not-an-id/mentor", hr, "PUT", {
+          mentor_id: mentorAId,
+        })
+      ).status,
+      400,
+    );
+    for (const mentorId of [
+      String(mentorAId),
+      [mentorAId],
+      -1,
+      "1 OR 1=1",
+      1.5,
+    ]) {
+      const invalid = await call(`/interns/${studentId}/mentor`, hr, "PUT", {
+        mentor_id: mentorId,
+      });
+      assert.equal(
+        invalid.status,
+        400,
+        `Expected 400 for mentor_id=${JSON.stringify(mentorId)}`,
+      );
     }
-    assert.equal((await call("/interns/987654321/mentor", hr, "PUT", { mentor_id: null })).status, 404);
-    assert.equal((await call(`/interns/${studentId}/mentor`, hr, "PUT", { mentor_id: 987654321 })).status, 404);
+    assert.equal(
+      (await call("/interns/987654321/mentor", hr, "PUT", { mentor_id: null }))
+        .status,
+      404,
+    );
+    assert.equal(
+      (
+        await call(`/interns/${studentId}/mentor`, hr, "PUT", {
+          mentor_id: 987654321,
+        })
+      ).status,
+      404,
+    );
 
-    const assignedA = await call(`/interns/${studentId}/mentor`, hr, "PUT", { mentor_id: mentorAId });
+    const assignedA = await call(`/interns/${studentId}/mentor`, hr, "PUT", {
+      mentor_id: mentorAId,
+    });
     assert.equal(assignedA.status, 200);
     assert.equal(Number(assignedA.body.student.mentorId), Number(mentorAId));
-    assert.deepEqual((await call("/mentors/me/interns", mentorAToken)).body.map((s) => Number(s.id)), [Number(studentId)]);
-    assert.deepEqual((await call("/mentors/me/interns", mentorBToken)).body, []);
-    assert.deepEqual((await call("/interns", mentorAToken)).body.map((s) => Number(s.id)), [Number(studentId)]);
+    assert.deepEqual(
+      (await call("/mentors/me/interns", mentorAToken)).body.map((s) =>
+        Number(s.id),
+      ),
+      [Number(studentId)],
+    );
+    assert.deepEqual(
+      (await call("/mentors/me/interns", mentorBToken)).body,
+      [],
+    );
+    assert.deepEqual(
+      (await call("/interns", mentorAToken)).body.map((s) => Number(s.id)),
+      [Number(studentId)],
+    );
     assert.deepEqual((await call("/interns", mentorBToken)).body, []);
-    assert.deepEqual((await call("/students", mentorAToken)).body.map((s) => Number(s.id)), [Number(studentId)]);
-    assert.deepEqual((await call("/interns?unassigned=true", mentorAToken)).body, []);
+    assert.deepEqual(
+      (await call("/students", mentorAToken)).body.map((s) => Number(s.id)),
+      [Number(studentId)],
+    );
+    assert.deepEqual(
+      (await call("/interns?unassigned=true", mentorAToken)).body,
+      [],
+    );
     const hrList = await call("/interns", hr);
     const adminList = await call("/interns", await loginAs("Admin"));
-    assert.equal(hrList.body.some((s) => Number(s.id) === Number(unassignedStudent.body.student.id)), true);
-    assert.equal(adminList.body.some((s) => Number(s.id) === Number(unassignedStudent.body.student.id)), true);
+    assert.equal(
+      hrList.body.some(
+        (s) => Number(s.id) === Number(unassignedStudent.body.student.id),
+      ),
+      true,
+    );
+    assert.equal(
+      adminList.body.some(
+        (s) => Number(s.id) === Number(unassignedStudent.body.student.id),
+      ),
+      true,
+    );
 
-    const reassignedB = await call(`/interns/${studentId}/mentor`, hr, "PUT", { mentor_id: mentorBId });
+    const reassignedB = await call(`/interns/${studentId}/mentor`, hr, "PUT", {
+      mentor_id: mentorBId,
+    });
     assert.equal(reassignedB.status, 200);
-    assert.deepEqual((await call("/mentors/me/interns", mentorAToken)).body, []);
-    assert.deepEqual((await call("/mentors/me/interns", mentorBToken)).body.map((s) => Number(s.id)), [Number(studentId)]);
+    assert.deepEqual(
+      (await call("/mentors/me/interns", mentorAToken)).body,
+      [],
+    );
+    assert.deepEqual(
+      (await call("/mentors/me/interns", mentorBToken)).body.map((s) =>
+        Number(s.id),
+      ),
+      [Number(studentId)],
+    );
 
-    const cleared = await call(`/interns/${studentId}/mentor`, hr, "PUT", { mentor_id: null });
+    const cleared = await call(`/interns/${studentId}/mentor`, hr, "PUT", {
+      mentor_id: null,
+    });
     assert.equal(cleared.status, 200);
     assert.equal(cleared.body.student.mentorName, "");
     const unassigned = await call("/interns?unassigned=true", hr);
-    assert.equal(unassigned.body.some((student) => Number(student.id) === Number(studentId)), true);
+    assert.equal(
+      unassigned.body.some(
+        (student) => Number(student.id) === Number(studentId),
+      ),
+      true,
+    );
 
-    const unmatchedLegacyUpdate = await call(`/interns/${studentId}`, hr, "PUT", {
-      fullName: "US9 Assignment Student",
-      email: `${prefix}student@example.test`,
-      university: "US9 test university",
-      mentorName: "No matching mentor",
-    });
+    const unmatchedLegacyUpdate = await call(
+      `/interns/${studentId}`,
+      hr,
+      "PUT",
+      {
+        fullName: "US9 Assignment Student",
+        email: `${prefix}student@example.test`,
+        university: "US9 test university",
+        mentorName: "No matching mentor",
+      },
+    );
     assert.equal(unmatchedLegacyUpdate.status, 200);
     assert.equal(unmatchedLegacyUpdate.body.student.mentorId, null);
 
@@ -164,16 +260,32 @@ async function testMentorAssignmentApi() {
     });
     assert.equal(rename.status, 200);
     let students = await call("/interns", hr);
-    assert.equal(students.body.find((student) => Number(student.id) === Number(studentId)).mentorName, "Mentor Assign Test B Renamed");
-    assert.deepEqual((await call("/mentors/me/interns", mentorBToken)).body, []);
-    const renamedMentorToken = await tokenFor(`${prefix}b-renamed@example.test`);
-    assert.deepEqual((await call("/mentors/me/interns", renamedMentorToken)).body.map((s) => Number(s.id)), [Number(studentId)]);
+    assert.equal(
+      students.body.find((student) => Number(student.id) === Number(studentId))
+        .mentorName,
+      "Mentor Assign Test B Renamed",
+    );
+    assert.deepEqual(
+      (await call("/mentors/me/interns", mentorBToken)).body,
+      [],
+    );
+    const renamedMentorToken = await tokenFor(
+      `${prefix}b-renamed@example.test`,
+    );
+    assert.deepEqual(
+      (await call("/mentors/me/interns", renamedMentorToken)).body.map((s) =>
+        Number(s.id),
+      ),
+      [Number(studentId)],
+    );
 
     const deleted = await call(`/mentors/${mentorBId}`, hr, "DELETE");
     assert.equal(deleted.status, 200);
     mentorBId = null;
     students = await call("/interns", hr);
-    const afterDelete = students.body.find((student) => Number(student.id) === Number(studentId));
+    const afterDelete = students.body.find(
+      (student) => Number(student.id) === Number(studentId),
+    );
     assert.equal(afterDelete.mentorId, null);
     assert.equal(afterDelete.mentorName, "");
 
@@ -184,16 +296,25 @@ async function testMentorAssignmentApi() {
     });
     assert.equal(mentorC.status, 201);
     const raceResults = await Promise.all([
-      call(`/interns/${studentId}/mentor`, hr, "PUT", { mentor_id: mentorC.body.mentor.id }),
+      call(`/interns/${studentId}/mentor`, hr, "PUT", {
+        mentor_id: mentorC.body.mentor.id,
+      }),
       call(`/mentors/${mentorC.body.mentor.id}`, hr, "DELETE"),
     ]);
-    assert.ok([200, 404].includes(raceResults[0].status), `Assignment raced with deletion: ${raceResults[0].status}`);
+    assert.ok(
+      [200, 404].includes(raceResults[0].status),
+      `Assignment raced with deletion: ${raceResults[0].status}`,
+    );
     assert.equal(raceResults[1].status, 200);
     students = await call("/interns", hr);
-    const afterRace = students.body.find((student) => Number(student.id) === Number(studentId));
+    const afterRace = students.body.find(
+      (student) => Number(student.id) === Number(studentId),
+    );
     assert.equal(afterRace.mentorId, null);
     assert.equal(afterRace.mentorName, "");
-    console.log("MENTOR ASSIGNMENT API: RBAC, assignment, filters, sync, and safety PASS");
+    console.log(
+      "MENTOR ASSIGNMENT API: RBAC, assignment, filters, sync, and safety PASS",
+    );
   } finally {
     await cleanup();
   }
