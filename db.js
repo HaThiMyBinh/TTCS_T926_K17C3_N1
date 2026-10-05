@@ -537,6 +537,25 @@ async function initDatabase() {
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
   await ensureUniqueScheduleIndex();
 
+  // Nhiệm vụ Mentor giao cho thực tập sinh. Xóa hồ sơ intern thì xóa nhiệm vụ;
+  // xóa mentor chỉ bỏ liên kết người giao.
+  await pool.query(`CREATE TABLE IF NOT EXISTS intern_tasks (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    intern_id BIGINT NOT NULL,
+    created_by_mentor_id BIGINT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    due_date DATE NULL,
+    priority ENUM('LOW', 'MEDIUM', 'HIGH') NOT NULL DEFAULT 'MEDIUM',
+    status ENUM('TODO', 'IN_PROGRESS', 'DONE') NOT NULL DEFAULT 'TODO',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_task_intern (intern_id),
+    INDEX idx_task_mentor (created_by_mentor_id),
+    CONSTRAINT fk_task_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_task_mentor FOREIGN KEY (created_by_mentor_id) REFERENCES mentors(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
   await seedDepartmentsFromMentors(pool);
 
   // Seed dữ liệu mặc định: roles, permissions, role_permissions
@@ -1766,6 +1785,97 @@ async function findMentorByEmail(email) {
   return rows[0] || null;
 }
 
+// ---------- NHIỆM VỤ GIAO CHO THỰC TẬP SINH ----------
+const TASK_SELECT = `SELECT t.id, t.intern_id AS internId, t.created_by_mentor_id AS createdByMentorId,
+            t.title, t.description, t.due_date AS dueDate, t.priority, t.status,
+            t.created_at AS createdAt, t.updated_at AS updatedAt,
+            ip.full_name AS internName, ip.student_code AS studentCode,
+            ip.mentor_id AS internMentorId, m.full_name AS mentorName
+     FROM intern_tasks t
+     JOIN intern_profiles ip ON ip.id = t.intern_id
+     LEFT JOIN mentors m ON m.id = ip.mentor_id`;
+const TASK_ORDER = `ORDER BY (t.status = 'DONE') ASC, (t.due_date IS NULL) ASC, t.due_date ASC, t.id DESC`;
+
+async function insertInternTask(task) {
+  const [result] = await requireDb().query(
+    `INSERT INTO intern_tasks (intern_id, created_by_mentor_id, title, description, due_date, priority)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      task.internId,
+      task.createdByMentorId || null,
+      task.title,
+      task.description || null,
+      task.dueDate || null,
+      task.priority || "MEDIUM",
+    ],
+  );
+  return result.insertId;
+}
+
+async function findInternTaskById(id) {
+  const [rows] = await requireDb().query(
+    `${TASK_SELECT} WHERE t.id = ? LIMIT 1`,
+    [id],
+  );
+  return rows[0] || null;
+}
+
+// Mentor chỉ thấy nhiệm vụ của thực tập sinh đang được phân công cho mình.
+async function listInternTasksForMentor(mentorId, { internId = null } = {}) {
+  const params = [mentorId];
+  let internSql = "";
+  if (internId) {
+    internSql = " AND t.intern_id = ?";
+    params.push(internId);
+  }
+  const [rows] = await requireDb().query(
+    `${TASK_SELECT} WHERE ip.mentor_id = ?${internSql} ${TASK_ORDER}`,
+    params,
+  );
+  return rows;
+}
+
+async function listInternTasksForIntern(internId) {
+  const [rows] = await requireDb().query(
+    `${TASK_SELECT} WHERE t.intern_id = ? ${TASK_ORDER}`,
+    [internId],
+  );
+  return rows;
+}
+
+// fields dùng khóa nội bộ (title, description, dueDate, priority, status),
+// không nhận khóa từ request.
+async function updateInternTask(id, fields) {
+  const columns = {
+    title: "title",
+    description: "description",
+    dueDate: "due_date",
+    priority: "priority",
+    status: "status",
+  };
+  const sets = [];
+  const params = [];
+  for (const [key, column] of Object.entries(columns)) {
+    if (!Object.prototype.hasOwnProperty.call(fields, key)) continue;
+    sets.push(`${column} = ?`);
+    params.push(fields[key]);
+  }
+  if (sets.length === 0) return 0;
+  const [result] = await requireDb().query(
+    `UPDATE intern_tasks SET ${sets.join(", ")} WHERE id = ?`,
+    [...params, id],
+  );
+  return result.affectedRows;
+}
+
+async function deleteInternTask(id) {
+  const [result] = await requireDb().query(
+    "DELETE FROM intern_tasks WHERE id = ?",
+    [id],
+  );
+  return result.affectedRows;
+}
+
 async function listScheduleMilestones(internId) {
   const [rows] = await requireDb().query(
     `SELECT id, intern_id AS internId, phase_order AS phaseOrder, title,
@@ -1918,6 +2028,32 @@ async function findContractById(internId, contractId) {
     [contractId, internId],
   );
   return rows[0] || null;
+}
+
+// Chỉ cho sửa chương trình và khoảng ngày hợp đồng (không đổi file/tiêu đề);
+// cho phép cả hợp đồng đã xác nhận. `changes` dùng khóa camelCase.
+const CONTRACT_UPDATABLE_COLUMNS = {
+  programId: "program_id",
+  startDate: "start_date",
+  endDate: "end_date",
+};
+
+async function updateContractFields(internId, contractId, changes) {
+  const keys = Object.keys(changes).filter((key) =>
+    Object.hasOwn(CONTRACT_UPDATABLE_COLUMNS, key),
+  );
+  if (keys.length === 0) return findContractById(internId, contractId);
+
+  const assignments = keys
+    .map((key) => `${CONTRACT_UPDATABLE_COLUMNS[key]} = ?`)
+    .join(", ");
+  const [result] = await requireDb().query(
+    `UPDATE internship_contracts SET ${assignments}
+     WHERE id = ? AND intern_id = ?`,
+    [...keys.map((key) => changes[key]), contractId, internId],
+  );
+  if (result.affectedRows === 0) return null;
+  return findContractById(internId, contractId);
 }
 
 async function deleteContract(internId, contractId) {
@@ -2262,6 +2398,7 @@ module.exports = {
   insertContract,
   findContractById,
   deleteContract,
+  updateContractFields,
   confirmContractAtomic,
   listDepartments,
   findDepartmentByName,
@@ -2274,6 +2411,12 @@ module.exports = {
   deleteProgram,
   findMentorById,
   findMentorByEmail,
+  insertInternTask,
+  findInternTaskById,
+  listInternTasksForMentor,
+  listInternTasksForIntern,
+  updateInternTask,
+  deleteInternTask,
   listScheduleMilestones,
   insertScheduleMilestone,
   insertScheduleMilestonesAtomic,
