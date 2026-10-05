@@ -61,14 +61,6 @@ chưa từng chạy thử lần nào:
 - File dữ liệu mẫu ban đầu (chỉ cần cho import thủ công, backend tự seed lúc
   khởi động): `seed_data.sql`
 
-### GỬI EMAIL THÔNG BÁO KẾT QUẢ XÉT DUYỆT
-
-Khi HR **duyệt** hoặc **từ chối** hồ sơ, hệ thống gửi email thật tới ứng viên (từ chối kèm lý do).
-Việc gửi chạy **nền** qua hàng đợi trong bộ nhớ (EventEmitter), nên HR nhận phản hồi ngay và lỗi mail
-không làm hỏng việc duyệt. Mỗi email được ghi vào bảng `email_logs`; lỗi tạm thời (mất mạng, timeout)
-được tự thử lại tối đa 3 lần (chờ 5s, 15s, 45s), còn lỗi vĩnh viễn (sai mật khẩu SMTP, email nhận sai)
-ghi thất bại ngay. Email không bao giờ chứa mật khẩu.
-
 **Cấu hình SMTP (chỉ Admin):**
 
 1. Cài thư viện: `cd backend` rồi `npm install` (bắt buộc, vì `run.bat` chỉ tự cài khi chưa có `node_modules`).
@@ -110,6 +102,10 @@ cd backend
 npm test                      # Chạy TẤT CẢ test bằng 1 lệnh
 npm run test:unit             # Chỉ unit test (KHÔNG cần MySQL / backend)
 npm run test:contracts-unit   # Unit test hợp đồng
+npm run test:intern-filter-unit # Unit test bộ lọc thực tập sinh
+npm run test:intern-filter-api  # API test bộ lọc (cần MySQL / backend)
+npm run test:tasks-unit       # Unit test giao nhiệm vụ (không cần MySQL)
+npm run test:tasks-api        # API test giao nhiệm vụ (cần MySQL / backend)
 npm run test:contracts-api    # API test hợp đồng (cần MySQL / backend)
 ```
 
@@ -137,11 +133,3 @@ npm run test:cleanup
 **Test:** `cd backend && npm test` (cần MySQL đang chạy; backend được tự bật). Chỉ chạy test không cần DB: `npm run test:unit`.
 
 Kiểm thử toàn bộ: `cd backend && npm test -- --unit`, sau đó `cd backend && npm test` (cần MySQL đang chạy cho phần API).
-
-### Múi giờ, báo cáo và định dạng code
-
-- **Múi giờ Việt Nam:** mọi nghiệp vụ "hôm nay" (lịch thực tập, chương trình) dùng `backend/utils/date.js` (`Asia/Ho_Chi_Minh`), không phụ thuộc múi giờ máy chủ. Pool MySQL cố định `+07:00` nên `NOW()` và `TIMESTAMP` cũng theo giờ Việt Nam; frontend hiển thị ngày giờ theo cùng múi giờ. Unit test: `npm run test:date-unit`.
-- **Báo cáo & Thống kê:** `GET /api/reports` (quyền `VIEW_REPORTS`) trả số liệu thật từ DB: số hồ sơ theo trạng thái, thực tập sinh đã có mentor, hợp đồng đã xác nhận và các tỷ lệ tương ứng (`null` khi chưa có dữ liệu để tính).
-- **Chưa triển khai:** Giao nhiệm vụ (`/api/tasks`) và Nộp báo cáo công việc (`/api/submissions`) chỉ kiểm tra quyền và trả danh sách rỗng (`implemented: false`); giao diện hiển thị thông báo chưa triển khai thay vì dữ liệu mẫu.
-- **Thông báo giao diện:** dùng toast thay cho `alert()`; thông báo khi buộc đăng xuất (phiên hết hạn) hiển thị trên trang đăng nhập.
-- **Định dạng:** dự án dùng Prettier (`.prettierrc.json`) và `.editorconfig` (thụt 2 dấu cách, LF).

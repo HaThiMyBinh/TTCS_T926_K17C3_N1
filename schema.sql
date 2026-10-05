@@ -89,8 +89,10 @@ CREATE TABLE IF NOT EXISTS `intern_profiles` (
     `status` VARCHAR(50) DEFAULT 'Đang thực tập',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_intern_mentor_id` FOREIGN KEY (`mentor_id`) REFERENCES `mentors`(`id`) ON DELETE SET NULL,
-    INDEX `idx_intern_mentor_id` (`mentor_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    INDEX `idx_intern_mentor_id` (`mentor_id`),
+    INDEX `idx_intern_university` (`university`),
+    INDEX `idx_intern_major` (`major`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 8. BẢNG EMAIL_LOGS (Nhật ký gửi email thông báo kết quả xét duyệt )
 CREATE TABLE IF NOT EXISTS `email_logs` (
@@ -199,6 +201,24 @@ CREATE TABLE IF NOT EXISTS `intern_schedules` (
   UNIQUE KEY `uq_schedule_intern_phase` (`intern_id`, `phase_order`),
   INDEX `idx_schedule_intern` (`intern_id`),
   CONSTRAINT `fk_schedule_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 13. BẢNG NHIỆM VỤ MENTOR GIAO CHO THỰC TẬP SINH (INTERN_TASKS)
+CREATE TABLE IF NOT EXISTS `intern_tasks` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `intern_id` BIGINT NOT NULL,
+  `created_by_mentor_id` BIGINT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `description` TEXT NULL,
+  `due_date` DATE NULL,
+  `priority` ENUM('LOW', 'MEDIUM', 'HIGH') NOT NULL DEFAULT 'MEDIUM',
+  `status` ENUM('TODO', 'IN_PROGRESS', 'DONE') NOT NULL DEFAULT 'TODO',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_task_intern` (`intern_id`),
+  INDEX `idx_task_mentor` (`created_by_mentor_id`),
+  CONSTRAINT `fk_task_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_task_mentor` FOREIGN KEY (`created_by_mentor_id`) REFERENCES `mentors`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ==============================================================================
