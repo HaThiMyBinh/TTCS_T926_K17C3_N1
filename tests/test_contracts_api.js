@@ -168,6 +168,117 @@ async function runApiTests() {
       deletedPdfFile && !fs.existsSync(path.join(UPLOADS_DIR, deletedPdfFile)),
     );
 
+    // --- Sửa chương trình/ngày của hợp đồng đã tải lên ---
+    const patchContract = (token, targetInternId, contractId, payload) =>
+      request(`/interns/${targetInternId}/contracts/${contractId}`, token, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    check(
+      "PATCH hợp đồng: Mentor/Intern bị chặn",
+      (await patchContract(tokens.Mentor, internId, docxContract.id, {
+        program_id: null,
+      })).status === 403 &&
+        (await patchContract(tokens.Intern, internId, docxContract.id, {
+          program_id: null,
+        })).status === 403,
+    );
+    check(
+      "PATCH hợp đồng: thiếu mọi trường cần sửa trả 400",
+      (await patchContract(tokens.HR, internId, docxContract.id, {})).status ===
+        400,
+    );
+    check(
+      "PATCH hợp đồng: program_id không hợp lệ trả 400",
+      (await patchContract(tokens.HR, internId, docxContract.id, {
+        program_id: "abc",
+      })).status === 400,
+    );
+    check(
+      "PATCH hợp đồng: chương trình không tồn tại trả 404",
+      (await patchContract(tokens.HR, internId, docxContract.id, {
+        program_id: 999999999,
+      })).status === 404,
+    );
+    check(
+      "PATCH hợp đồng: hợp đồng không thuộc thực tập sinh trả 404",
+      (await patchContract(tokens.HR, secondInternId, docxContract.id, {
+        program_id: null,
+      })).status === 404,
+    );
+    const unlinkResponse = await patchContract(
+      tokens.HR,
+      internId,
+      docxContract.id,
+      { program_id: null },
+    );
+    const unlinkBody = await unlinkResponse.json();
+    check(
+      "PATCH hợp đồng: gỡ liên kết bằng null",
+      unlinkResponse.ok &&
+        unlinkBody.data?.program_id === null &&
+        !Object.hasOwn(unlinkBody.data, "stored_name"),
+    );
+    check(
+      "PATCH hợp đồng: ngày sai định dạng trả 400",
+      (await patchContract(tokens.HR, internId, docxContract.id, {
+        start_date: "31/12/2026",
+      })).status === 400,
+    );
+    check(
+      "PATCH hợp đồng: ngày kết thúc trước ngày bắt đầu trả 400",
+      (await patchContract(tokens.HR, internId, docxContract.id, {
+        start_date: "2026-06-01",
+        end_date: "2026-05-01",
+      })).status === 400,
+    );
+    const datesResponse = await patchContract(
+      tokens.HR,
+      internId,
+      docxContract.id,
+      { start_date: "2026-02-01", end_date: "2026-11-30" },
+    );
+    const datesBody = await datesResponse.json();
+    check(
+      "PATCH hợp đồng: đổi ngày bắt đầu và kết thúc",
+      datesResponse.ok &&
+        datesBody.data?.start_date === "2026-02-01" &&
+        datesBody.data?.end_date === "2026-11-30",
+    );
+    const endOnlyResponse = await patchContract(
+      tokens.HR,
+      internId,
+      docxContract.id,
+      { end_date: "2026-12-15" },
+    );
+    const endOnlyBody = await endOnlyResponse.json();
+    check(
+      "PATCH hợp đồng: chỉ đổi ngày kết thúc, giữ ngày bắt đầu",
+      endOnlyResponse.ok &&
+        endOnlyBody.data?.start_date === "2026-02-01" &&
+        endOnlyBody.data?.end_date === "2026-12-15",
+    );
+    const programsResponse = await request("/programs", tokens.HR);
+    const programsBody = await programsResponse.json();
+    const existingProgram = programsBody.data?.[0];
+    if (existingProgram) {
+      const linkResponse = await patchContract(
+        tokens.HR,
+        internId,
+        docxContract.id,
+        { program_id: existingProgram.id },
+      );
+      const linkBody = await linkResponse.json();
+      check(
+        "PATCH hợp đồng: gắn chương trình có sẵn",
+        linkResponse.ok &&
+          Number(linkBody.data?.program_id) === Number(existingProgram.id),
+      );
+    } else {
+      console.log("[INFO] Không có chương trình sẵn để thử gắn liên kết");
+    }
+
     const invalidUploads = [
       [FILES["contract.pdf"], "unsupported.exe", 400, "Sai đuôi file"],
       [Buffer.from("MZbad"), "spoofed.pdf", 400, "Magic bytes giả mạo"],

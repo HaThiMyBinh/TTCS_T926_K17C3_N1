@@ -19,6 +19,8 @@ const INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
 // needsServer: cần MySQL và backend
 const SUITES = [
   { name: "email-unit", file: "test_email_unit.js", needsServer: false },
+  { name: "intern-filter-unit", file: "test_intern_filter_unit.js", needsServer: false },
+  { name: "tasks-unit", file: "test_tasks_unit.js", needsServer: false },
   { name: "upload-unit", file: "test_upload_unit.js", needsServer: false },
   {
     name: "contracts-unit",
@@ -53,6 +55,8 @@ const SUITES = [
   { name: "rbac", file: "test_rbac.js", needsServer: true },
   { name: "register", file: "test_register.js", needsServer: true },
   { name: "interns", file: "test_interns.js", needsServer: true },
+  { name: "intern-filter-api", file: "test_intern_filter_api.js", needsServer: true },
+  { name: "tasks-api", file: "test_tasks_api.js", needsServer: true },
   { name: "mentors", file: "test_mentors.js", needsServer: true },
   { name: "applications", file: "test_applications.js", needsServer: true },
   { name: "documents-api", file: "test_documents_api.js", needsServer: true },
