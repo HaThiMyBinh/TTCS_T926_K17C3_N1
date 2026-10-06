@@ -7,6 +7,7 @@ const {
   selectConfirmedContract,
   validateMilestone,
   assertMilestoneWithinRange,
+  computeScheduleSyncWarning,
 } = require("../services/schedule.service");
 
 let passed = 0;
@@ -208,6 +209,117 @@ check("Mốc bắt buộc nằm trọn trong khoảng hợp đồng CONFIRMED", 
         range,
       ),
     /khoảng hợp đồng/,
+  );
+});
+
+// Cảnh báo lệch ngày: mốc nằm trong hợp đồng, hợp đồng nằm trong chương trình
+const syncContract = { start_date: "2026-10-05", end_date: "2026-12-04" };
+const syncProgram = { start_date: "2026-10-01", end_date: "2026-12-31" };
+
+check("Không cảnh báo khi chưa có mốc nào", () => {
+  assert.equal(
+    computeScheduleSyncWarning({
+      contract: syncContract,
+      program: syncProgram,
+      milestoneStart: null,
+      milestoneEnd: null,
+    }),
+    null,
+  );
+});
+
+check("Không cảnh báo khi mốc nằm trong hợp đồng dù không trùng khít", () => {
+  assert.equal(
+    computeScheduleSyncWarning({
+      contract: syncContract,
+      program: syncProgram,
+      milestoneStart: "2026-10-06",
+      milestoneEnd: "2026-12-01",
+    }),
+    null,
+  );
+});
+
+check("Không cảnh báo khi mốc trùng đúng khoảng hợp đồng", () => {
+  assert.equal(
+    computeScheduleSyncWarning({
+      contract: syncContract,
+      program: syncProgram,
+      milestoneStart: "2026-10-05",
+      milestoneEnd: "2026-12-04",
+    }),
+    null,
+  );
+});
+
+check("Cảnh báo khi mốc cuối vượt quá ngày kết thúc hợp đồng", () => {
+  const warning = computeScheduleSyncWarning({
+    contract: syncContract,
+    program: syncProgram,
+    milestoneStart: "2026-10-05",
+    milestoneEnd: "2026-12-10",
+  });
+  assert.match(
+    warning,
+    /nằm ngoài khoảng hợp đồng \(05\/10\/2026 – 04\/12\/2026\)/,
+  );
+});
+
+check("Cảnh báo khi mốc đầu sớm hơn ngày bắt đầu hợp đồng", () => {
+  assert.match(
+    computeScheduleSyncWarning({
+      contract: syncContract,
+      program: syncProgram,
+      milestoneStart: "2026-10-01",
+      milestoneEnd: "2026-12-01",
+    }),
+    /nằm ngoài khoảng hợp đồng/,
+  );
+});
+
+check("Cảnh báo khi hợp đồng nằm ngoài thời gian chương trình", () => {
+  const warning = computeScheduleSyncWarning({
+    contract: { start_date: "2026-09-20", end_date: "2026-12-04" },
+    program: syncProgram,
+    milestoneStart: "2026-09-20",
+    milestoneEnd: "2026-12-04",
+  });
+  assert.match(
+    warning,
+    /Thời gian hợp đồng nằm ngoài thời gian của chương trình/,
+  );
+});
+
+check("Hợp đồng thiếu ngày thì so mốc với chương trình", () => {
+  assert.match(
+    computeScheduleSyncWarning({
+      contract: { start_date: null, end_date: null },
+      program: syncProgram,
+      milestoneStart: "2026-10-01",
+      milestoneEnd: "2027-01-15",
+    }),
+    /nằm ngoài khoảng chương trình/,
+  );
+  assert.equal(
+    computeScheduleSyncWarning({
+      contract: null,
+      program: syncProgram,
+      milestoneStart: "2026-10-02",
+      milestoneEnd: "2026-12-30",
+    }),
+    null,
+  );
+});
+
+check("Không có hợp đồng lẫn chương trình thì không cảnh báo", () => {
+  assert.equal(
+    computeScheduleSyncWarning({
+      contract: null,
+      program: null,
+      milestoneStart: "2026-10-01",
+      milestoneEnd: "2026-12-01",
+    }),
+    null,
   );
 });
 

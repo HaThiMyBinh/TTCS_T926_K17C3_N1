@@ -12,6 +12,7 @@ const {
 } = require("../controllers/documents.controller");
 const {
   parseId,
+  updateContract,
   validateDates,
   validateContractText,
   toDto,
@@ -175,5 +176,120 @@ check("DTO không để lộ stored_name", () => {
   assert.equal(Object.hasOwn(contract, "storedName"), false);
 });
 
-console.log(`\n${passed} PASS / ${failed} FAIL`);
-if (failed > 0) process.exit(1);
+async function expectUpdateContractError(name, args, status) {
+  try {
+    await updateContract(...args);
+    check(`updateContract: ${name}`, () => assert.fail("không ném lỗi"));
+  } catch (err) {
+    check(`updateContract: ${name}`, () =>
+      assert.ok(
+        err instanceof HttpError && err.status === status,
+        `${err.status ?? ""} ${err.message}`,
+      ),
+    );
+  }
+}
+
+async function checkUpdateContract() {
+  // Lỗi đầu vào: phát sinh trước khi chạm DB.
+  const badInput = [
+    ["thiếu mọi trường cần sửa", ["1", "2", {}]],
+    ["body rỗng", ["1", "2", undefined]],
+    ["program_id không phải số", ["1", "2", { program_id: "abc" }]],
+    ["mã thực tập sinh sai", ["x", "2", { program_id: null }]],
+    ["mã hợp đồng sai", ["1", "y", { program_id: null }]],
+    ["ngày bắt đầu sai định dạng", ["1", "2", { start_date: "01/05/2026" }]],
+    ["ngày kết thúc không tồn tại", ["1", "2", { end_date: "2026-02-30" }]],
+    ["không cho xóa trắng ngày bắt đầu", ["1", "2", { start_date: null }]],
+    ["không cho xóa trắng ngày kết thúc", ["1", "2", { end_date: "" }]],
+  ];
+  for (const [name, args] of badInput) {
+    await expectUpdateContractError(`${name} trả 400`, args, 400);
+  }
+
+  // Phần còn lại dùng DB giả để kiểm tra logic gộp ngày và lưu.
+  const db = require("../db");
+  const original = {
+    findProgramById: db.findProgramById,
+    findContractById: db.findContractById,
+    updateContractFields: db.updateContractFields,
+  };
+  let saved = null;
+  const stored = {
+    id: 2,
+    internId: 1,
+    startDate: "2026-05-10",
+    endDate: "2027-05-10",
+    programId: null,
+    confirmationStatus: "CONFIRMED",
+    storedName: "private-uuid",
+  };
+  db.findProgramById = async (id) => (id === 7 ? { id: 7 } : null);
+  db.findContractById = async (internId, contractId) =>
+    contractId === 2 ? { ...stored } : null;
+  db.updateContractFields = async (internId, contractId, changes) => {
+    saved = { internId, contractId, changes };
+    return { ...stored, ...changes };
+  };
+
+  try {
+    const dates = await updateContract("1", "2", {
+      start_date: "2026-06-01",
+      end_date: "2027-06-01",
+    });
+    check("updateContract: đổi cả hai ngày", () => {
+      assert.equal(dates.start_date, "2026-06-01");
+      assert.equal(dates.end_date, "2027-06-01");
+      assert.deepEqual(saved.changes, {
+        startDate: "2026-06-01",
+        endDate: "2027-06-01",
+      });
+      assert.equal(Object.hasOwn(dates, "stored_name"), false);
+    });
+
+    await updateContract("1", "2", { end_date: "2027-12-31" });
+    check("updateContract: chỉ đổi một đầu thì không đụng đầu còn lại", () =>
+      assert.deepEqual(saved.changes, { endDate: "2027-12-31" }),
+    );
+
+    await expectUpdateContractError(
+      "ngày kết thúc mới trước ngày bắt đầu đang lưu trả 400",
+      ["1", "2", { end_date: "2026-01-01" }],
+      400,
+    );
+    await expectUpdateContractError(
+      "ngày bắt đầu mới sau ngày kết thúc đang lưu trả 400",
+      ["1", "2", { start_date: "2028-01-01" }],
+      400,
+    );
+
+    const linked = await updateContract("1", "2", { program_id: "7" });
+    check("updateContract: gắn chương trình", () => {
+      assert.equal(linked.program_id, 7);
+      assert.deepEqual(saved.changes, { programId: 7 });
+    });
+    const unlinked = await updateContract("1", "2", { program_id: null });
+    check("updateContract: gỡ chương trình bằng null", () => {
+      assert.equal(unlinked.program_id, null);
+      assert.deepEqual(saved.changes, { programId: null });
+    });
+
+    await expectUpdateContractError(
+      "chương trình không tồn tại trả 404",
+      ["1", "2", { program_id: 99 }],
+      404,
+    );
+    await expectUpdateContractError(
+      "hợp đồng không tồn tại trả 404",
+      ["1", "3", { start_date: "2026-06-01" }],
+      404,
+    );
+  } finally {
+    Object.assign(db, original);
+  }
+}
+
+checkUpdateContract().then(() => {
+  console.log(`\n${passed} PASS / ${failed} FAIL`);
+  if (failed > 0) process.exit(1);
+});
