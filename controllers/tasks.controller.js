@@ -83,4 +83,106 @@ async function getMyTasks(req, res) {
   }
 }
 
-module.exports = { createTask, listTasks, updateTask, deleteTask, getMyTasks };
+async function updateMyTaskProgress(req, res) {
+  try {
+    const data = await service.updateMyTaskProgress(
+      req.user,
+      req.params.id,
+      req.body,
+    );
+    return res.json({
+      success: true,
+      message: "Đã cập nhật tiến độ công việc!",
+      data,
+    });
+  } catch (err) {
+    return sendError(res, err);
+  }
+}
+
+async function uploadMyTaskAttachment(req, res) {
+  try {
+    const data = await service.uploadMyTaskAttachment(
+      req.user,
+      req.params.id,
+      req.file,
+    );
+    return res.status(201).json({
+      success: true,
+      message: "Đã đính kèm file vào nhiệm vụ!",
+      data,
+    });
+  } catch (err) {
+    return sendError(res, err);
+  }
+}
+
+async function deleteMyTaskAttachment(req, res) {
+  try {
+    const data = await service.deleteMyTaskAttachment(
+      req.user,
+      req.params.id,
+      req.params.attachmentId,
+    );
+    return res.json({
+      success: true,
+      message: "Đã xóa tệp đính kèm!",
+      data,
+    });
+  } catch (err) {
+    return sendError(res, err);
+  }
+}
+
+// GET /tasks/:id/attachments/:attachmentId/download (Intern chủ nhiệm vụ hoặc Mentor phụ trách)
+async function downloadTaskAttachment(req, res) {
+  try {
+    const { filePath, originalName, mimeType } =
+      await service.getTaskAttachmentForDownload(
+        req.user,
+        req.params.id,
+        req.params.attachmentId,
+      );
+
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "private, no-store");
+
+    const onDone = (err) => {
+      if (err && !res.headersSent) {
+        sendError(
+          res,
+          new HttpError(500, "Lỗi khi truyền file về trình duyệt!"),
+        );
+      }
+    };
+
+    // ?disposition=inline: chỉ ảnh/PDF được xem trực tiếp; loại khác luôn tải về.
+    if (
+      req.query.disposition === "inline" &&
+      service.INLINE_MIME_TYPES.includes(mimeType)
+    ) {
+      const ascii = originalName.replace(/[^\x20-\x7e]|["\\]/g, "_");
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(originalName)}`,
+      );
+      return res.sendFile(filePath, onDone);
+    }
+    return res.download(filePath, originalName, onDone);
+  } catch (err) {
+    return sendError(res, err);
+  }
+}
+
+module.exports = {
+  createTask,
+  listTasks,
+  updateTask,
+  deleteTask,
+  getMyTasks,
+  updateMyTaskProgress,
+  uploadMyTaskAttachment,
+  deleteMyTaskAttachment,
+  downloadTaskAttachment,
+};
