@@ -548,12 +548,42 @@ async function initDatabase() {
     due_date DATE NULL,
     priority ENUM('LOW', 'MEDIUM', 'HIGH') NOT NULL DEFAULT 'MEDIUM',
     status ENUM('TODO', 'IN_PROGRESS', 'DONE') NOT NULL DEFAULT 'TODO',
+    progress_percent TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    progress_note TEXT NULL,
+    progress_updated_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_task_intern (intern_id),
     INDEX idx_task_mentor (created_by_mentor_id),
     CONSTRAINT fk_task_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
     CONSTRAINT fk_task_mentor FOREIGN KEY (created_by_mentor_id) REFERENCES mentors(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+  // Tiến độ do thực tập sinh cập nhật để mentor theo dõi (US12).
+  await ensureColumn(
+    "intern_tasks",
+    "progress_percent",
+    "TINYINT UNSIGNED NOT NULL DEFAULT 0",
+  );
+  await ensureColumn("intern_tasks", "progress_note", "TEXT NULL");
+  await ensureColumn("intern_tasks", "progress_updated_at", "DATETIME NULL");
+  // Việc DONE từ trước khi có cột % phải hiển thị 100% cho nhất quán.
+  await pool.query(
+    "UPDATE intern_tasks SET progress_percent = 100 WHERE status = 'DONE' AND progress_percent = 0",
+  );
+
+  // Tệp đính kèm khi thực tập sinh cập nhật tiến độ (minh chứng, báo cáo...).
+  // Xóa nhiệm vụ thì xóa bản ghi; file trên đĩa do service dọn.
+  await pool.query(`CREATE TABLE IF NOT EXISTS task_attachments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    stored_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    size_bytes BIGINT NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_task_attachment_task (task_id),
+    CONSTRAINT fk_task_attachment_task FOREIGN KEY (task_id) REFERENCES intern_tasks(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await seedDepartmentsFromMentors(pool);
@@ -1788,6 +1818,8 @@ async function findMentorByEmail(email) {
 // ---------- NHIỆM VỤ GIAO CHO THỰC TẬP SINH ----------
 const TASK_SELECT = `SELECT t.id, t.intern_id AS internId, t.created_by_mentor_id AS createdByMentorId,
             t.title, t.description, t.due_date AS dueDate, t.priority, t.status,
+            t.progress_percent AS progressPercent, t.progress_note AS progressNote,
+            t.progress_updated_at AS progressUpdatedAt,
             t.created_at AS createdAt, t.updated_at AS updatedAt,
             ip.full_name AS internName, ip.student_code AS studentCode,
             ip.mentor_id AS internMentorId, m.full_name AS mentorName
@@ -1821,15 +1853,22 @@ async function findInternTaskById(id) {
 }
 
 // Mentor chỉ thấy nhiệm vụ của thực tập sinh đang được phân công cho mình.
-async function listInternTasksForMentor(mentorId, { internId = null } = {}) {
+async function listInternTasksForMentor(
+  mentorId,
+  { internId = null, status = null } = {},
+) {
   const params = [mentorId];
-  let internSql = "";
+  let extraSql = "";
   if (internId) {
-    internSql = " AND t.intern_id = ?";
+    extraSql += " AND t.intern_id = ?";
     params.push(internId);
   }
+  if (status) {
+    extraSql += " AND t.status = ?";
+    params.push(status);
+  }
   const [rows] = await requireDb().query(
-    `${TASK_SELECT} WHERE ip.mentor_id = ?${internSql} ${TASK_ORDER}`,
+    `${TASK_SELECT} WHERE ip.mentor_id = ?${extraSql} ${TASK_ORDER}`,
     params,
   );
   return rows;
@@ -1852,6 +1891,7 @@ async function updateInternTask(id, fields) {
     dueDate: "due_date",
     priority: "priority",
     status: "status",
+    progressPercent: "progress_percent",
   };
   const sets = [];
   const params = [];
@@ -1864,6 +1904,104 @@ async function updateInternTask(id, fields) {
   const [result] = await requireDb().query(
     `UPDATE intern_tasks SET ${sets.join(", ")} WHERE id = ?`,
     [...params, id],
+  );
+  return result.affectedRows;
+}
+
+// Thực tập sinh cập nhật tiến độ. Luôn ghi progress_updated_at; chỉ đổi các
+// trường có trong `fields` (status, progressPercent, progressNote).
+async function updateInternTaskProgress(id, fields) {
+  const columns = {
+    status: "status",
+    progressPercent: "progress_percent",
+    progressNote: "progress_note",
+  };
+  const sets = ["progress_updated_at = NOW()"];
+  const params = [];
+  for (const [key, column] of Object.entries(columns)) {
+    if (!Object.prototype.hasOwnProperty.call(fields, key)) continue;
+    sets.push(`${column} = ?`);
+    params.push(fields[key]);
+  }
+  const [result] = await requireDb().query(
+    `UPDATE intern_tasks SET ${sets.join(", ")} WHERE id = ?`,
+    [...params, id],
+  );
+  return result.affectedRows;
+}
+
+// ---------- TỆP ĐÍNH KÈM CỦA CẬP NHẬT TIẾN ĐỘ ----------
+const ATTACHMENT_COLUMNS = `id, task_id AS taskId, original_name AS originalName,
+            stored_name AS storedName, mime_type AS mimeType,
+            size_bytes AS sizeBytes, uploaded_at AS uploadedAt`;
+
+// Trả về { [taskId]: [attachment, ...] } cho danh sách nhiệm vụ.
+async function listTaskAttachmentsByTaskIds(taskIds) {
+  const ids = [...new Set(taskIds.map(Number))].filter(Number.isFinite);
+  if (ids.length === 0) return {};
+  const [rows] = await requireDb().query(
+    `SELECT ${ATTACHMENT_COLUMNS} FROM task_attachments
+     WHERE task_id IN (?) ORDER BY id ASC`,
+    [ids],
+  );
+  const grouped = {};
+  for (const row of rows) {
+    (grouped[Number(row.taskId)] ||= []).push(row);
+  }
+  return grouped;
+}
+
+async function findTaskAttachmentById(taskId, attachmentId) {
+  const [rows] = await requireDb().query(
+    `SELECT ${ATTACHMENT_COLUMNS} FROM task_attachments
+     WHERE id = ? AND task_id = ? LIMIT 1`,
+    [attachmentId, taskId],
+  );
+  return rows[0] || null;
+}
+
+// Khóa dòng nhiệm vụ để hai request song song không vượt quá giới hạn số file.
+// Trả về { outcome: 'SAVED' | 'LIMIT' | 'NOT_FOUND', attachment? }
+async function insertTaskAttachmentLimited(
+  { taskId, originalName, storedName, mimeType, sizeBytes },
+  maxCount,
+) {
+  return withTransaction(async (conn) => {
+    const [tasks] = await conn.query(
+      "SELECT id FROM intern_tasks WHERE id = ? FOR UPDATE",
+      [taskId],
+    );
+    if (tasks.length === 0) return { outcome: "NOT_FOUND" };
+
+    const [[{ total }]] = await conn.query(
+      "SELECT COUNT(*) AS total FROM task_attachments WHERE task_id = ?",
+      [taskId],
+    );
+    if (Number(total) >= maxCount) return { outcome: "LIMIT" };
+
+    const [result] = await conn.query(
+      `INSERT INTO task_attachments
+         (task_id, original_name, stored_name, mime_type, size_bytes)
+       VALUES (?, ?, ?, ?, ?)`,
+      [taskId, originalName, storedName, mimeType, sizeBytes],
+    );
+    // Gắn thời điểm cập nhật để mentor thấy có hoạt động mới.
+    await conn.query(
+      "UPDATE intern_tasks SET progress_updated_at = NOW() WHERE id = ?",
+      [taskId],
+    );
+    const [rows] = await conn.query(
+      `SELECT ${ATTACHMENT_COLUMNS} FROM task_attachments WHERE id = ?`,
+      [result.insertId],
+    );
+    return { outcome: "SAVED", attachment: rows[0] };
+  });
+}
+
+async function deleteTaskAttachment(taskId, attachmentId) {
+  const [result] = await requireDb().query(
+    "DELETE FROM task_attachments WHERE id = ? AND task_id = ?",
+    [attachmentId, taskId],
   );
   return result.affectedRows;
 }
@@ -2416,7 +2554,12 @@ module.exports = {
   listInternTasksForMentor,
   listInternTasksForIntern,
   updateInternTask,
+  updateInternTaskProgress,
   deleteInternTask,
+  listTaskAttachmentsByTaskIds,
+  findTaskAttachmentById,
+  insertTaskAttachmentLimited,
+  deleteTaskAttachment,
   listScheduleMilestones,
   insertScheduleMilestone,
   insertScheduleMilestonesAtomic,
