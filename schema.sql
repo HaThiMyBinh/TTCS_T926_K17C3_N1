@@ -237,6 +237,34 @@ CREATE TABLE IF NOT EXISTS `task_attachments` (
   CONSTRAINT `fk_task_attachment_task` FOREIGN KEY (`task_id`) REFERENCES `intern_tasks`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 15. BẢNG BÁO CÁO TUẦN CỦA THỰC TẬP SINH (WEEKLY_REPORTS)
+CREATE TABLE IF NOT EXISTS `weekly_reports` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `intern_id` BIGINT NOT NULL,
+  `week_start` DATE NOT NULL,
+  `content` TEXT NOT NULL,
+  `difficulties` TEXT NULL,
+  `next_plan` TEXT NULL,
+  `is_late` TINYINT(1) NOT NULL DEFAULT 0,
+  `submitted_at` DATETIME NOT NULL,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_weekly_report_intern_week` (`intern_id`, `week_start`),
+  CONSTRAINT `fk_weekly_report_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 16. BẢNG TỆP ĐÍNH KÈM CỦA BÁO CÁO TUẦN (WEEKLY_REPORT_ATTACHMENTS)
+CREATE TABLE IF NOT EXISTS `weekly_report_attachments` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `report_id` BIGINT NOT NULL,
+  `original_name` VARCHAR(255) NOT NULL,
+  `stored_name` VARCHAR(255) NOT NULL,
+  `mime_type` VARCHAR(100) NOT NULL,
+  `size_bytes` BIGINT NOT NULL,
+  `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_weekly_attachment_report` (`report_id`),
+  CONSTRAINT `fk_weekly_attachment_report` FOREIGN KEY (`report_id`) REFERENCES `weekly_reports`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ==============================================================================
 -- DỮ LIỆU MẪU BAN ĐẦU (SEED DATA)
 -- ==============================================================================

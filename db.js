@@ -586,6 +586,34 @@ async function initDatabase() {
     CONSTRAINT fk_task_attachment_task FOREIGN KEY (task_id) REFERENCES intern_tasks(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
+  // Báo cáo tuần của thực tập sinh: mỗi intern 1 báo cáo cho mỗi tuần (thứ Hai).
+  // is_late = nộp sau hạn (hết Chủ nhật của tuần đó, giờ Việt Nam).
+  await pool.query(`CREATE TABLE IF NOT EXISTS weekly_reports (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    intern_id BIGINT NOT NULL,
+    week_start DATE NOT NULL,
+    content TEXT NOT NULL,
+    difficulties TEXT NULL,
+    next_plan TEXT NULL,
+    is_late TINYINT(1) NOT NULL DEFAULT 0,
+    submitted_at DATETIME NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_weekly_report_intern_week (intern_id, week_start),
+    CONSTRAINT fk_weekly_report_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS weekly_report_attachments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    report_id BIGINT NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    stored_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    size_bytes BIGINT NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_weekly_attachment_report (report_id),
+    CONSTRAINT fk_weekly_attachment_report FOREIGN KEY (report_id) REFERENCES weekly_reports(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
   await seedDepartmentsFromMentors(pool);
 
   // Seed dữ liệu mặc định: roles, permissions, role_permissions
@@ -1155,7 +1183,10 @@ async function syncMentorsWithAccounts() {
   );
 }
 
-async function getAllStudents({ includeContractCount = false, filters = {} } = {}) {
+async function getAllStudents({
+  includeContractCount = false,
+  filters = {},
+} = {}) {
   const { buildInternFilterConditions } = require("./utils/internFilters");
   const { whereSql, params } = buildInternFilterConditions(filters);
   const [rows] = await requireDb().query(
@@ -1397,6 +1428,22 @@ async function deleteStudent(id) {
         409,
       );
     }
+    // File đính kèm của nhiệm vụ và báo cáo tuần bị xóa DB theo (CASCADE) nên phải lấy
+    // tên file trước để dọn trên đĩa.
+    const [taskFiles] = await conn.query(
+      `SELECT ta.stored_name AS storedName
+       FROM task_attachments ta
+       JOIN intern_tasks t ON t.id = ta.task_id
+       WHERE t.intern_id = ?`,
+      [id],
+    );
+    const [reportFiles] = await conn.query(
+      `SELECT wa.stored_name AS storedName
+       FROM weekly_report_attachments wa
+       JOIN weekly_reports wr ON wr.id = wa.report_id
+       WHERE wr.intern_id = ?`,
+      [id],
+    );
     const [rows] = await conn.query(
       "SELECT email FROM intern_profiles WHERE id = ?",
       [id],
@@ -1408,7 +1455,7 @@ async function deleteStudent(id) {
         [rows[0].email, internRoleId],
       );
     }
-    return contracts;
+    return [...contracts, ...taskFiles, ...reportFiles];
   });
   return contractRows.map((row) => row.storedName);
 }
@@ -1926,6 +1973,188 @@ async function updateInternTaskProgress(id, fields) {
   const [result] = await requireDb().query(
     `UPDATE intern_tasks SET ${sets.join(", ")} WHERE id = ?`,
     [...params, id],
+  );
+  return result.affectedRows;
+}
+
+// ---------- BÁO CÁO TUẦN ----------
+// Kỳ thực tập của intern: ngày bắt đầu sớm nhất / kết thúc muộn nhất của các hợp đồng
+// đã xác nhận (endDate = null nếu có hợp đồng chưa có ngày kết thúc).
+const PERIOD_SELECT = `SELECT MIN(start_date) AS startDate,
+            CASE WHEN SUM(end_date IS NULL) > 0 THEN NULL ELSE MAX(end_date) END AS endDate
+     FROM internship_contracts
+     WHERE confirmation_status = 'CONFIRMED'`;
+
+async function findInternContractPeriod(internId) {
+  const [rows] = await requireDb().query(`${PERIOD_SELECT} AND intern_id = ?`, [
+    internId,
+  ]);
+  return rows[0] || { startDate: null, endDate: null };
+}
+
+// Thực tập sinh của mentor kèm kỳ thực tập (dùng cho bảng tổng quan nộp báo cáo).
+async function listInternsWithPeriodForMentor(mentorId) {
+  const [rows] = await requireDb().query(
+    `SELECT ip.id, ip.full_name AS fullName, ip.student_code AS studentCode,
+            ip.created_at AS createdAt, p.startDate, p.endDate
+     FROM intern_profiles ip
+     LEFT JOIN (
+       SELECT intern_id, MIN(start_date) AS startDate,
+              CASE WHEN SUM(end_date IS NULL) > 0 THEN NULL ELSE MAX(end_date) END AS endDate
+       FROM internship_contracts
+       WHERE confirmation_status = 'CONFIRMED'
+       GROUP BY intern_id
+     ) p ON p.intern_id = ip.id
+     WHERE ip.mentor_id = ?
+     ORDER BY ip.full_name ASC, ip.id ASC`,
+    [mentorId],
+  );
+  return rows;
+}
+
+const WEEKLY_REPORT_SELECT = `SELECT wr.id, wr.intern_id AS internId, wr.week_start AS weekStart,
+            wr.content, wr.difficulties, wr.next_plan AS nextPlan, wr.is_late AS isLate,
+            wr.submitted_at AS submittedAt, wr.updated_at AS updatedAt,
+            ip.full_name AS internName, ip.student_code AS studentCode,
+            ip.mentor_id AS internMentorId
+     FROM weekly_reports wr
+     JOIN intern_profiles ip ON ip.id = wr.intern_id`;
+
+async function findWeeklyReportById(id) {
+  const [rows] = await requireDb().query(
+    `${WEEKLY_REPORT_SELECT} WHERE wr.id = ? LIMIT 1`,
+    [id],
+  );
+  return rows[0] || null;
+}
+
+async function findWeeklyReportByWeek(internId, weekStart) {
+  const [rows] = await requireDb().query(
+    `${WEEKLY_REPORT_SELECT} WHERE wr.intern_id = ? AND wr.week_start = ? LIMIT 1`,
+    [internId, weekStart],
+  );
+  return rows[0] || null;
+}
+
+// Nộp mới hoặc cập nhật báo cáo của tuần đó. Nộp lại không đổi is_late / submitted_at.
+async function upsertWeeklyReport({
+  internId,
+  weekStart,
+  content,
+  difficulties,
+  nextPlan,
+  isLate,
+}) {
+  await requireDb().query(
+    `INSERT INTO weekly_reports
+       (intern_id, week_start, content, difficulties, next_plan, is_late, submitted_at)
+     VALUES (?, ?, ?, ?, ?, ?, NOW())
+     ON DUPLICATE KEY UPDATE
+       content = VALUES(content),
+       difficulties = VALUES(difficulties),
+       next_plan = VALUES(next_plan)`,
+    [internId, weekStart, content, difficulties, nextPlan, isLate ? 1 : 0],
+  );
+  return findWeeklyReportByWeek(internId, weekStart);
+}
+
+async function listWeeklyReportsForIntern(internId) {
+  const [rows] = await requireDb().query(
+    `${WEEKLY_REPORT_SELECT} WHERE wr.intern_id = ? ORDER BY wr.week_start DESC`,
+    [internId],
+  );
+  return rows;
+}
+
+// Mentor chỉ thấy báo cáo của thực tập sinh đang được phân công cho mình.
+async function listWeeklyReportsForMentor(
+  mentorId,
+  { internId = null, weekStart = null } = {},
+) {
+  const params = [mentorId];
+  let extraSql = "";
+  if (internId) {
+    extraSql += " AND wr.intern_id = ?";
+    params.push(internId);
+  }
+  if (weekStart) {
+    extraSql += " AND wr.week_start = ?";
+    params.push(weekStart);
+  }
+  const [rows] = await requireDb().query(
+    `${WEEKLY_REPORT_SELECT} WHERE ip.mentor_id = ?${extraSql}
+     ORDER BY wr.week_start DESC, ip.full_name ASC`,
+    params,
+  );
+  return rows;
+}
+
+const WEEKLY_ATTACHMENT_COLUMNS = `id, report_id AS reportId, original_name AS originalName,
+            stored_name AS storedName, mime_type AS mimeType,
+            size_bytes AS sizeBytes, uploaded_at AS uploadedAt`;
+
+// Trả về { [reportId]: [attachment, ...] }.
+async function listWeeklyReportAttachmentsByReportIds(reportIds) {
+  const ids = [...new Set(reportIds.map(Number))].filter(Number.isFinite);
+  if (ids.length === 0) return {};
+  const [rows] = await requireDb().query(
+    `SELECT ${WEEKLY_ATTACHMENT_COLUMNS} FROM weekly_report_attachments
+     WHERE report_id IN (?) ORDER BY id ASC`,
+    [ids],
+  );
+  const grouped = {};
+  for (const row of rows) {
+    (grouped[Number(row.reportId)] ||= []).push(row);
+  }
+  return grouped;
+}
+
+async function findWeeklyReportAttachmentById(reportId, attachmentId) {
+  const [rows] = await requireDb().query(
+    `SELECT ${WEEKLY_ATTACHMENT_COLUMNS} FROM weekly_report_attachments
+     WHERE id = ? AND report_id = ? LIMIT 1`,
+    [attachmentId, reportId],
+  );
+  return rows[0] || null;
+}
+
+// Khóa dòng báo cáo để hai request song song không vượt quá giới hạn số file.
+// Trả về { outcome: 'SAVED' | 'LIMIT' | 'NOT_FOUND', attachment? }
+async function insertWeeklyReportAttachmentLimited(
+  { reportId, originalName, storedName, mimeType, sizeBytes },
+  maxCount,
+) {
+  return withTransaction(async (conn) => {
+    const [reports] = await conn.query(
+      "SELECT id FROM weekly_reports WHERE id = ? FOR UPDATE",
+      [reportId],
+    );
+    if (reports.length === 0) return { outcome: "NOT_FOUND" };
+
+    const [[{ total }]] = await conn.query(
+      "SELECT COUNT(*) AS total FROM weekly_report_attachments WHERE report_id = ?",
+      [reportId],
+    );
+    if (Number(total) >= maxCount) return { outcome: "LIMIT" };
+
+    const [result] = await conn.query(
+      `INSERT INTO weekly_report_attachments
+         (report_id, original_name, stored_name, mime_type, size_bytes)
+       VALUES (?, ?, ?, ?, ?)`,
+      [reportId, originalName, storedName, mimeType, sizeBytes],
+    );
+    const [rows] = await conn.query(
+      `SELECT ${WEEKLY_ATTACHMENT_COLUMNS} FROM weekly_report_attachments WHERE id = ?`,
+      [result.insertId],
+    );
+    return { outcome: "SAVED", attachment: rows[0] };
+  });
+}
+
+async function deleteWeeklyReportAttachment(reportId, attachmentId) {
+  const [result] = await requireDb().query(
+    "DELETE FROM weekly_report_attachments WHERE id = ? AND report_id = ?",
+    [attachmentId, reportId],
   );
   return result.affectedRows;
 }
@@ -2560,6 +2789,17 @@ module.exports = {
   findTaskAttachmentById,
   insertTaskAttachmentLimited,
   deleteTaskAttachment,
+  findInternContractPeriod,
+  listInternsWithPeriodForMentor,
+  findWeeklyReportById,
+  findWeeklyReportByWeek,
+  upsertWeeklyReport,
+  listWeeklyReportsForIntern,
+  listWeeklyReportsForMentor,
+  listWeeklyReportAttachmentsByReportIds,
+  findWeeklyReportAttachmentById,
+  insertWeeklyReportAttachmentLimited,
+  deleteWeeklyReportAttachment,
   listScheduleMilestones,
   insertScheduleMilestone,
   insertScheduleMilestonesAtomic,
