@@ -21,6 +21,11 @@ const SUITES = [
   { name: "email-unit", file: "test_email_unit.js", needsServer: false },
   { name: "intern-filter-unit", file: "test_intern_filter_unit.js", needsServer: false },
   { name: "tasks-unit", file: "test_tasks_unit.js", needsServer: false },
+  {
+    name: "task-attachments-unit",
+    file: "test_task_attachments_unit.js",
+    needsServer: false,
+  },
   { name: "upload-unit", file: "test_upload_unit.js", needsServer: false },
   {
     name: "contracts-unit",

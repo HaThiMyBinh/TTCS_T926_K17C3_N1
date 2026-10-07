@@ -65,6 +65,9 @@ const fakeDb = {
       dueDate: task.dueDate || null,
       priority: task.priority || "MEDIUM",
       status: "TODO",
+      progressPercent: 0,
+      progressNote: null,
+      progressUpdatedAt: null,
       createdAt: "2026-01-01 00:00:00",
       updatedAt: "2026-01-01 00:00:00",
     };
@@ -75,11 +78,15 @@ const fakeDb = {
     const task = tasks.find((t) => t.id === id);
     return task ? joinTask(task) : null;
   },
-  listInternTasksForMentor: async (mentorId, { internId = null } = {}) => {
+  listInternTasksForMentor: async (
+    mentorId,
+    { internId = null, status = null } = {},
+  ) => {
     return tasks
       .map(joinTask)
       .filter((t) => t.internMentorId === mentorId)
-      .filter((t) => !internId || t.internId === internId);
+      .filter((t) => !internId || t.internId === internId)
+      .filter((t) => !status || t.status === status);
   },
   listInternTasksForIntern: async (internId) => {
     return tasks.filter((t) => t.internId === internId).map(joinTask);
@@ -90,6 +97,13 @@ const fakeDb = {
     Object.assign(task, fields);
     return 1;
   },
+  updateInternTaskProgress: async (id, fields) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return 0;
+    Object.assign(task, fields, { progressUpdatedAt: "2026-01-02 08:00:00" });
+    return 1;
+  },
+  listTaskAttachmentsByTaskIds: async () => ({}),
   deleteInternTask: async (id) => {
     const before = tasks.length;
     tasks = tasks.filter((t) => t.id !== id);
@@ -259,7 +273,10 @@ async function testList() {
   assert.deepStrictEqual(titles(list), expected);
   assert.ok(list.every((t) => t.intern_id === 10));
   list = await service.listTasksForMentor(mentor2);
-  assert.deepStrictEqual(list.map((t) => t.id), [taskB.id]);
+  assert.deepStrictEqual(
+    list.map((t) => t.id),
+    [taskB.id],
+  );
   list = await service.listTasksForMentor(mentor1, { intern_id: "10" });
   assert.strictEqual(list.length, 2);
   list = await service.listTasksForMentor(mentor1, { intern_id: "11" });
@@ -315,7 +332,10 @@ async function testInternView(taskB) {
   assert.strictEqual(mine[0].mentor_name, "Mentor Một");
   const bUser = internUser("B@test.local");
   const bTasks = await service.listTasksForInternUser(bUser);
-  assert.deepStrictEqual(bTasks.map((t) => t.id), [taskB.id]);
+  assert.deepStrictEqual(
+    bTasks.map((t) => t.id),
+    [taskB.id],
+  );
   await rejects(
     service.listTasksForInternUser(internUser("ghost@test.local")),
     404,
@@ -351,14 +371,210 @@ async function testReassignAndDelete({ created }) {
   await rejects(remove(mentor1, "0"), 400, "xóa id sai");
 }
 
+function testResolveProgress() {
+  const cur = (status, percent) => ({ status, percent });
+  const r = (c, i) => service.resolveProgress(c, i);
+  const eq = (got, status, percent) =>
+    assert.deepStrictEqual(got, { status, percent });
+
+  // Chỉ gửi status
+  eq(r(cur("TODO", 0), { status: "DONE" }), "DONE", 100);
+  eq(r(cur("IN_PROGRESS", 40), { status: "TODO" }), "TODO", 0);
+  eq(r(cur("TODO", 0), { status: "IN_PROGRESS" }), "IN_PROGRESS", 0);
+  eq(r(cur("IN_PROGRESS", 40), { status: "IN_PROGRESS" }), "IN_PROGRESS", 40);
+  eq(r(cur("DONE", 100), { status: "IN_PROGRESS" }), "IN_PROGRESS", 99);
+  // Chỉ gửi percent
+  eq(r(cur("TODO", 0), { percent: 100 }), "DONE", 100);
+  eq(r(cur("TODO", 0), { percent: 30 }), "IN_PROGRESS", 30);
+  eq(r(cur("DONE", 100), { percent: 0 }), "TODO", 0);
+  eq(r(cur("IN_PROGRESS", 50), { percent: 0 }), "IN_PROGRESS", 0);
+  // Gửi cả hai, khớp nhau
+  eq(r(cur("TODO", 0), { status: "DONE", percent: 100 }), "DONE", 100);
+  eq(
+    r(cur("TODO", 0), { status: "IN_PROGRESS", percent: 0 }),
+    "IN_PROGRESS",
+    0,
+  );
+  eq(r(cur("TODO", 0), { status: "TODO", percent: 0 }), "TODO", 0);
+  // Gửi cả hai, mâu thuẫn
+  const bad = [
+    { status: "DONE", percent: 40 },
+    { status: "TODO", percent: 10 },
+    { status: "IN_PROGRESS", percent: 100 },
+  ];
+  for (const input of bad) {
+    assert.throws(() => r(cur("TODO", 0), input), is400, JSON.stringify(input));
+  }
+  // Không gửi gì: giữ nguyên
+  eq(r(cur("IN_PROGRESS", 70), {}), "IN_PROGRESS", 70);
+}
+
+function testValidateProgress() {
+  const cur = { status: "TODO", percent: 0 };
+  const v = (input) => service.validateProgressInput(input, cur);
+  const bad = (input) => assert.throws(() => v(input), is400);
+
+  assert.deepStrictEqual(v({ progress_percent: 50 }), {
+    status: "IN_PROGRESS",
+    progressPercent: 50,
+  });
+  assert.deepStrictEqual(v({ status: "DONE" }), {
+    status: "DONE",
+    progressPercent: 100,
+  });
+  // Chỉ ghi chú: không đụng status/percent
+  assert.deepStrictEqual(v({ progress_note: "  Xong form  " }), {
+    progressNote: "Xong form",
+  });
+  assert.deepStrictEqual(v({ progress_note: "   " }), { progressNote: null });
+  assert.deepStrictEqual(v({ progress_note: null }), { progressNote: null });
+  const max = service.PROGRESS_NOTE_MAX_LENGTH;
+  assert.strictEqual(
+    v({ progress_note: "x".repeat(max) }).progressNote.length,
+    max,
+  );
+
+  bad(null);
+  bad([]);
+  bad("x");
+  bad({});
+  bad({ status: "LATE" });
+  bad({ progress_percent: -1 });
+  bad({ progress_percent: 101 });
+  bad({ progress_percent: 1.5 });
+  bad({ progress_percent: "50" });
+  bad({ progress_percent: null });
+  bad({ progress_note: 5 });
+  bad({ progress_note: "x".repeat(max + 1) });
+  bad({ status: "DONE", progress_percent: 40 });
+  // Trường intern không được sửa, kể cả khi gửi kèm trường hợp lệ
+  for (const field of ["title", "description", "due_date", "priority", "id"]) {
+    bad({ progress_percent: 10, [field]: "x" });
+  }
+}
+
+async function testInternProgress() {
+  const a = internUser("a@test.local");
+  const b = internUser("b@test.local");
+  const mine = await createAs(mentor1, {
+    intern_id: 10,
+    title: "Việc tiến độ",
+  });
+  const otherInterns = await createAs(mentor2, {
+    intern_id: 11,
+    title: "Của B",
+  });
+  assert.strictEqual(mine.progress_percent, 0);
+  assert.strictEqual(mine.progress_note, "");
+  assert.strictEqual(mine.progress_updated_at, null);
+
+  const up = (user, id, body) => service.updateMyTaskProgress(user, id, body);
+
+  // Cập nhật hợp lệ
+  let dto = await up(a, mine.id, {
+    progress_percent: 40,
+    progress_note: "Xong UI",
+  });
+  assert.strictEqual(dto.status, "IN_PROGRESS");
+  assert.strictEqual(dto.progress_percent, 40);
+  assert.strictEqual(dto.progress_note, "Xong UI");
+  assert.ok(dto.progress_updated_at, "Phải ghi thời điểm cập nhật");
+  assert.strictEqual(dto.title, "Việc tiến độ", "Không đổi tiêu đề");
+
+  // Mentor phụ trách thấy tiến độ; filter theo status
+  let list = await service.listTasksForMentor(mentor1, {
+    status: "IN_PROGRESS",
+  });
+  const seen = list.find((t) => t.id === mine.id);
+  assert.ok(seen);
+  assert.strictEqual(seen.progress_percent, 40);
+  assert.strictEqual(seen.progress_note, "Xong UI");
+  list = await service.listTasksForMentor(mentor1, { status: "DONE" });
+  assert.ok(!list.some((t) => t.id === mine.id));
+  await rejects(
+    service.listTasksForMentor(mentor1, { status: "LATE" }),
+    400,
+    "filter status sai",
+  );
+  // Mentor khác không thấy
+  list = await service.listTasksForMentor(mentor2);
+  assert.ok(!list.some((t) => t.id === mine.id));
+
+  // Hoàn thành rồi xóa ghi chú
+  dto = await up(a, mine.id, { status: "DONE", progress_note: null });
+  assert.strictEqual(dto.status, "DONE");
+  assert.strictEqual(dto.progress_percent, 100);
+  assert.strictEqual(dto.progress_note, "");
+  assert.strictEqual(dto.is_overdue, false);
+
+  // Mở lại việc
+  dto = await up(a, mine.id, { status: "IN_PROGRESS" });
+  assert.strictEqual(dto.progress_percent, 99);
+
+  // Mentor đổi status thì % khớp theo
+  const byMentor = await service.updateTask(mentor1, mine.id, {
+    status: "DONE",
+  });
+  assert.strictEqual(byMentor.progress_percent, 100);
+  const reset = await service.updateTask(mentor1, mine.id, { status: "TODO" });
+  assert.strictEqual(reset.progress_percent, 0);
+  // Mentor sửa trường khác không làm đổi tiến độ
+  await up(a, mine.id, { progress_percent: 60 });
+  const rename = await service.updateTask(mentor1, mine.id, {
+    title: "Đổi tên",
+  });
+  assert.strictEqual(rename.progress_percent, 60);
+
+  // Lỗi quyền / dữ liệu
+  const stored = tasks.find((t) => t.id === mine.id);
+  const snapshot = JSON.stringify(stored);
+  await rejects(
+    up(b, mine.id, { progress_percent: 90 }),
+    403,
+    "việc của intern khác",
+  );
+  await rejects(
+    up(a, otherInterns.id, { progress_percent: 90 }),
+    403,
+    "việc của B",
+  );
+  await rejects(up(a, 9999, { progress_percent: 90 }), 404, "không tồn tại");
+  await rejects(up(a, "abc", { progress_percent: 90 }), 400, "id sai");
+  await rejects(up(a, mine.id, {}), 400, "body rỗng");
+  await rejects(up(a, mine.id, { title: "Hack" }), 400, "sửa tiêu đề");
+  await rejects(
+    up(a, mine.id, { status: "DONE", progress_percent: 5 }),
+    400,
+    "mâu thuẫn",
+  );
+  await rejects(
+    up(internUser("ghost@test.local"), mine.id, { status: "DONE" }),
+    404,
+    "chưa có hồ sơ",
+  );
+  await rejects(
+    up({ role: "Intern" }, mine.id, { status: "DONE" }),
+    404,
+    "token thiếu email",
+  );
+  assert.strictEqual(
+    JSON.stringify(stored),
+    snapshot,
+    "Lỗi không được đổi dữ liệu",
+  );
+}
+
 (async () => {
   testValidateInput();
+  testResolveProgress();
+  testValidateProgress();
   testDto();
   const made = await testCreate();
   const taskB = await testList();
   await testUpdate(made);
   await testInternView(taskB);
   await testReassignAndDelete(made);
+  await testInternProgress();
   console.log("PASS test_tasks_unit");
 })().catch((err) => {
   console.error(err);

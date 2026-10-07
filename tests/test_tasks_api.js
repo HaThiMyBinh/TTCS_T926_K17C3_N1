@@ -161,6 +161,18 @@ async function testPermissions(ctx) {
   }
   await forbid("GET /me/tasks với Mentor", mentor1Token, "GET", "/me/tasks");
   await forbid("GET /me/tasks với HR", hrToken, "GET", "/me/tasks");
+  const prog = { progress_percent: 10 };
+  const progUrl = "/me/tasks/1/progress";
+  await noToken("PATCH progress không token", "PATCH", progUrl, prog);
+  await forbid(
+    "PATCH progress với Mentor",
+    mentor1Token,
+    "PATCH",
+    progUrl,
+    prog,
+  );
+  await forbid("PATCH progress với HR", hrToken, "PATCH", progUrl, prog);
+  await forbid("PATCH progress với Admin", adminToken, "PATCH", progUrl, prog);
 }
 
 async function testCreate(ctx, conn) {
@@ -356,6 +368,164 @@ async function testUpdate(ctx, tasks) {
   await patchAs("Intern không sửa được", 403, internAToken, done);
 }
 
+async function testProgress(ctx, conn, tasks) {
+  const { mentor1Token, mentor2Token, internAToken, internBToken } = ctx;
+  const { taskA, taskB } = tasks;
+  const url = `/me/tasks/${taskA.id}/progress`;
+  const patchAs = (name, code, token, body, target = url) =>
+    expectStatus(name, code, "PATCH", target, token, body);
+
+  const ok = await call("PATCH", url, internAToken, {
+    progress_percent: 45,
+    progress_note: "  Đã xong giao diện, đang gọi API  ",
+  });
+  const d = ok.body?.data;
+  check(
+    "Intern cập nhật tiến độ việc của mình -> 200",
+    ok.status === 200 && ok.body?.success === true,
+    `nhận ${ok.status}`,
+  );
+  check(
+    "Có % tiến độ, ghi chú đã trim và thời điểm cập nhật",
+    d?.progress_percent === 45 &&
+      d?.progress_note === "Đã xong giao diện, đang gọi API" &&
+      Boolean(d?.progress_updated_at),
+  );
+  check("Có % > 0 thì trạng thái là IN_PROGRESS", d?.status === "IN_PROGRESS");
+  check(
+    "Không đổi tiêu đề/hạn/ưu tiên",
+    d?.title === "Trang đăng nhập (v2)" && d?.priority === "LOW",
+  );
+
+  const [rows] = await conn.query(
+    `SELECT progress_percent, progress_note, progress_updated_at
+     FROM intern_tasks WHERE id = ?`,
+    [taskA.id],
+  );
+  check(
+    "DB lưu tiến độ",
+    Number(rows[0]?.progress_percent) === 45 &&
+      rows[0]?.progress_note === "Đã xong giao diện, đang gọi API" &&
+      rows[0]?.progress_updated_at != null,
+  );
+
+  const mentorList = await call("GET", "/tasks", mentor1Token);
+  const seen = (mentorList.body?.data || []).find((t) => t.id === taskA.id);
+  check(
+    "Mentor phụ trách thấy tiến độ vừa cập nhật",
+    seen?.progress_percent === 45 &&
+      seen?.progress_note === "Đã xong giao diện, đang gọi API" &&
+      Boolean(seen?.progress_updated_at),
+  );
+  const mine = await call("GET", "/me/tasks", internAToken);
+  const mineTask = (mine.body?.data || []).find((t) => t.id === taskA.id);
+  check("Intern cũng thấy tiến độ của mình", mineTask?.progress_percent === 45);
+
+  const inProgress = await call(
+    "GET",
+    "/tasks?status=IN_PROGRESS",
+    mentor1Token,
+  );
+  const inIds = (inProgress.body?.data || []).map((t) => t.id);
+  check(
+    "Lọc ?status=IN_PROGRESS có việc vừa cập nhật",
+    inIds.includes(taskA.id),
+  );
+  const doneOnly = await call("GET", "/tasks?status=DONE", mentor1Token);
+  const doneIds = (doneOnly.body?.data || []).map((t) => t.id);
+  check("Lọc ?status=DONE không có việc đó", !doneIds.includes(taskA.id));
+  await expectStatus(
+    "Lọc status sai",
+    400,
+    "GET",
+    "/tasks?status=LATE",
+    mentor1Token,
+  );
+  const other = await call("GET", "/tasks", mentor2Token);
+  check(
+    "Mentor khác không thấy việc của intern A",
+    (other.body?.data || []).every((t) => t.id !== taskA.id),
+  );
+
+  const done = await call("PATCH", url, internAToken, { status: "DONE" });
+  check(
+    "Intern đánh dấu DONE -> 100%",
+    done.status === 200 &&
+      done.body?.data?.status === "DONE" &&
+      done.body?.data?.progress_percent === 100,
+  );
+  const cleared = await call("PATCH", url, internAToken, { progress_note: "" });
+  check(
+    "Xóa ghi chú bằng chuỗi rỗng",
+    cleared.status === 200 && cleared.body?.data?.progress_note === "",
+  );
+  const mentorDone = await call("PATCH", `/tasks/${taskA.id}`, mentor1Token, {
+    status: "TODO",
+  });
+  check(
+    "Mentor đổi về TODO thì % về 0",
+    mentorDone.status === 200 && mentorDone.body?.data?.progress_percent === 0,
+  );
+
+  const before = await conn.query(
+    "SELECT progress_percent, status FROM intern_tasks WHERE id = ?",
+    [taskA.id],
+  );
+  await patchAs("Body rỗng", 400, internAToken, {});
+  await patchAs("Trạng thái sai", 400, internAToken, { status: "LATE" });
+  await patchAs("% âm", 400, internAToken, { progress_percent: -1 });
+  await patchAs("% > 100", 400, internAToken, { progress_percent: 101 });
+  await patchAs("% không nguyên", 400, internAToken, { progress_percent: 5.5 });
+  await patchAs("% dạng chuỗi", 400, internAToken, { progress_percent: "50" });
+  await patchAs("Ghi chú quá dài", 400, internAToken, {
+    progress_note: "x".repeat(2001),
+  });
+  await patchAs("DONE nhưng 40%", 400, internAToken, {
+    status: "DONE",
+    progress_percent: 40,
+  });
+  for (const field of ["title", "description", "due_date", "priority"]) {
+    await patchAs(`Intern gửi trường cấm: ${field}`, 400, internAToken, {
+      progress_percent: 10,
+      [field]: "x",
+    });
+  }
+  await patchAs("Intern B sửa việc của intern A", 403, internBToken, {
+    progress_percent: 90,
+  });
+  await patchAs(
+    "Việc không tồn tại",
+    404,
+    internAToken,
+    { status: "DONE" },
+    "/me/tasks/999999999/progress",
+  );
+  await patchAs(
+    "Mã nhiệm vụ sai",
+    400,
+    internAToken,
+    { status: "DONE" },
+    "/me/tasks/abc/progress",
+  );
+  const [after] = await conn.query(
+    "SELECT progress_percent, status FROM intern_tasks WHERE id = ?",
+    [taskA.id],
+  );
+  check(
+    "Các yêu cầu lỗi không làm đổi dữ liệu",
+    Number(after[0].progress_percent) ===
+      Number(before[0][0].progress_percent) &&
+      after[0].status === before[0][0].status,
+  );
+  const bRows = await call("GET", "/me/tasks", internBToken);
+  check(
+    "Việc của intern B không bị ảnh hưởng",
+    (bRows.body?.data || []).every(
+      (t) => t.id !== taskB.id || t.progress_percent === 0,
+    ),
+  );
+}
+
 async function testReassignAndDelete(ctx, conn, tasks) {
   const { hrToken, mentor1Token, mentor2Token, internBToken, interns } = ctx;
   const { taskA, taskB } = tasks;
@@ -411,6 +581,7 @@ async function run() {
     await testCreateErrors(ctx, conn);
     await testLists(ctx, tasks);
     await testUpdate(ctx, tasks);
+    await testProgress(ctx, conn, tasks);
     await testReassignAndDelete(ctx, conn, tasks);
   } catch (err) {
     failed += 1;
