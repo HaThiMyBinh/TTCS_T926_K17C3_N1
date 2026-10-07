@@ -105,7 +105,11 @@ function validateAttachment({ buffer, originalname }) {
     );
   }
 
-  return { ext, cleanName: sanitizeFileName(originalname), mimeType: rule.mime };
+  return {
+    ext,
+    cleanName: sanitizeFileName(originalname),
+    mimeType: rule.mime,
+  };
 }
 
 module.exports = {
