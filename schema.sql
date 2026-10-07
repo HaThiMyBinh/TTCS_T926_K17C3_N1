@@ -213,12 +213,28 @@ CREATE TABLE IF NOT EXISTS `intern_tasks` (
   `due_date` DATE NULL,
   `priority` ENUM('LOW', 'MEDIUM', 'HIGH') NOT NULL DEFAULT 'MEDIUM',
   `status` ENUM('TODO', 'IN_PROGRESS', 'DONE') NOT NULL DEFAULT 'TODO',
+  `progress_percent` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  `progress_note` TEXT NULL,
+  `progress_updated_at` DATETIME NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX `idx_task_intern` (`intern_id`),
   INDEX `idx_task_mentor` (`created_by_mentor_id`),
   CONSTRAINT `fk_task_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_task_mentor` FOREIGN KEY (`created_by_mentor_id`) REFERENCES `mentors`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 14. BẢNG TỆP ĐÍNH KÈM CỦA CẬP NHẬT TIẾN ĐỘ (TASK_ATTACHMENTS)
+CREATE TABLE IF NOT EXISTS `task_attachments` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `task_id` BIGINT NOT NULL,
+  `original_name` VARCHAR(255) NOT NULL,
+  `stored_name` VARCHAR(255) NOT NULL,
+  `mime_type` VARCHAR(100) NOT NULL,
+  `size_bytes` BIGINT NOT NULL,
+  `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_task_attachment_task` (`task_id`),
+  CONSTRAINT `fk_task_attachment_task` FOREIGN KEY (`task_id`) REFERENCES `intern_tasks`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ==============================================================================
