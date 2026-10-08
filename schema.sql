@@ -301,6 +301,19 @@ CREATE TABLE IF NOT EXISTS `intern_evaluations` (
   CONSTRAINT `fk_evaluation_mentor` FOREIGN KEY (`mentor_id`) REFERENCES `mentors`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 19. BẢNG CHẤM CÔNG HẰNG NGÀY CỦA THỰC TẬP SINH (ATTENDANCE_LOGS)
+CREATE TABLE IF NOT EXISTS `attendance_logs` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `intern_id` BIGINT NOT NULL,
+  `work_date` DATE NOT NULL,
+  `check_in_at` DATETIME NOT NULL,
+  `is_late` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_attendance_intern_date` (`intern_id`, `work_date`),
+  INDEX `idx_attendance_date` (`work_date`),
+  CONSTRAINT `fk_attendance_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ==============================================================================
 -- DỮ LIỆU MẪU BAN ĐẦU (SEED DATA)
 -- ==============================================================================

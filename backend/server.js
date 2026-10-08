@@ -17,6 +17,7 @@ const scheduleRouter = require("./routes/schedule.routes");
 const tasksRouter = require("./routes/tasks.routes");
 const weeklyReportsRouter = require("./routes/weeklyReports.routes");
 const evaluationsRouter = require("./routes/evaluations.routes");
+const attendanceRouter = require("./routes/attendance.routes");
 const {
   applicationEvents,
   REVIEWED_EVENT,
@@ -58,6 +59,7 @@ app.use("/api", scheduleRouter);
 app.use("/api", tasksRouter);
 app.use("/api", weeklyReportsRouter);
 app.use("/api", evaluationsRouter);
+app.use("/api", attendanceRouter);
 
 app.get("/login", (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "login.html"));
