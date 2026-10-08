@@ -34,7 +34,11 @@ const fakeDb = {
     const t = tasks.find((x) => x.id === id);
     if (!t) return null;
     const intern = interns.find((i) => i.id === t.internId);
-    return { ...t, internName: intern.fullName, internMentorId: intern.mentorId };
+    return {
+      ...t,
+      internName: intern.fullName,
+      internMentorId: intern.mentorId,
+    };
   },
   listTaskAttachmentsByTaskIds: async (ids) => {
     const out = {};
@@ -63,7 +67,9 @@ const fakeDb = {
   },
   deleteTaskAttachment: async (taskId, id) => {
     const before = attachments.length;
-    attachments = attachments.filter((a) => !(a.id === id && a.taskId === taskId));
+    attachments = attachments.filter(
+      (a) => !(a.id === id && a.taskId === taskId),
+    );
     return before - attachments.length;
   },
   deleteInternTask: async (id) => {
@@ -100,7 +106,11 @@ async function rejects(promise, status, label) {
   try {
     await promise;
   } catch (err) {
-    assert.strictEqual(err.status, status, `${label}: nhận ${err.status} (${err.message})`);
+    assert.strictEqual(
+      err.status,
+      status,
+      `${label}: nhận ${err.status} (${err.message})`,
+    );
     return;
   }
   assert.fail(`${label}: mong đợi lỗi ${status}`);
@@ -123,60 +133,132 @@ const uploadsCount = () =>
   assert.ok(fs.existsSync(diskFile(attachments[0].storedName)));
 
   // Phân quyền tải lên
-  await rejects(service.uploadMyTaskAttachment(internB, "1", pdf()), 403, "intern khác");
-  await rejects(service.uploadMyTaskAttachment(internA, "99", pdf()), 404, "task không có");
-  await rejects(service.uploadMyTaskAttachment(internA, "abc", pdf()), 400, "id sai");
-  await rejects(service.uploadMyTaskAttachment(internA, "1", undefined), 400, "thiếu file");
   await rejects(
-    service.uploadMyTaskAttachment(internA, "1", { originalname: "a.exe", buffer: Buffer.from("MZ") }),
+    service.uploadMyTaskAttachment(internB, "1", pdf()),
+    403,
+    "intern khác",
+  );
+  await rejects(
+    service.uploadMyTaskAttachment(internA, "99", pdf()),
+    404,
+    "task không có",
+  );
+  await rejects(
+    service.uploadMyTaskAttachment(internA, "abc", pdf()),
+    400,
+    "id sai",
+  );
+  await rejects(
+    service.uploadMyTaskAttachment(internA, "1", undefined),
+    400,
+    "thiếu file",
+  );
+  await rejects(
+    service.uploadMyTaskAttachment(internA, "1", {
+      originalname: "a.exe",
+      buffer: Buffer.from("MZ"),
+    }),
     400,
     "đuôi exe",
   );
   await rejects(
-    service.uploadMyTaskAttachment(internA, "1", { originalname: "a.pdf", buffer: Buffer.from("MZ..") }),
+    service.uploadMyTaskAttachment(internA, "1", {
+      originalname: "a.pdf",
+      buffer: Buffer.from("MZ.."),
+    }),
     400,
     "exe đổi đuôi",
   );
-  assert.strictEqual(uploadsCount(), baseline + 1, "Lỗi validate không được để lại file");
+  assert.strictEqual(
+    uploadsCount(),
+    baseline + 1,
+    "Lỗi validate không được để lại file",
+  );
 
   // Giới hạn số file; file vượt giới hạn bị xóa khỏi đĩa
   for (let i = 1; i < service.MAX_ATTACHMENTS_PER_TASK; i++) {
     await service.uploadMyTaskAttachment(internA, "1", pdf(`f${i}.pdf`));
   }
-  await rejects(service.uploadMyTaskAttachment(internA, "1", pdf("extra.pdf")), 409, "quá 5 file");
-  assert.strictEqual(uploadsCount(), baseline + service.MAX_ATTACHMENTS_PER_TASK);
+  await rejects(
+    service.uploadMyTaskAttachment(internA, "1", pdf("extra.pdf")),
+    409,
+    "quá 5 file",
+  );
+  assert.strictEqual(
+    uploadsCount(),
+    baseline + service.MAX_ATTACHMENTS_PER_TASK,
+  );
 
   // Lỗi DB thì file mới bị xóa
   failInsert = true;
   const origErr = console.error;
   console.error = () => {};
-  await rejects(service.uploadMyTaskAttachment(internA, "1", pdf("x.pdf")), 500, "db lỗi");
+  await rejects(
+    service.uploadMyTaskAttachment(internA, "1", pdf("x.pdf")),
+    500,
+    "db lỗi",
+  );
   console.error = origErr;
   failInsert = false;
-  assert.strictEqual(uploadsCount(), baseline + service.MAX_ATTACHMENTS_PER_TASK);
+  assert.strictEqual(
+    uploadsCount(),
+    baseline + service.MAX_ATTACHMENTS_PER_TASK,
+  );
 
   // Tải xuống: chủ task và mentor phụ trách được; người khác bị chặn
   const first = attachments[0];
-  const dl = await service.getTaskAttachmentForDownload(internA, "1", String(first.id));
+  const dl = await service.getTaskAttachmentForDownload(
+    internA,
+    "1",
+    String(first.id),
+  );
   assert.strictEqual(dl.mimeType, "application/pdf");
   assert.ok(fs.existsSync(dl.filePath));
   await service.getTaskAttachmentForDownload(mentor1, "1", String(first.id));
-  await rejects(service.getTaskAttachmentForDownload(mentor2, "1", String(first.id)), 403, "mentor khác");
-  await rejects(service.getTaskAttachmentForDownload(internB, "1", String(first.id)), 403, "intern khác");
-  await rejects(service.getTaskAttachmentForDownload(internA, "1", "999"), 404, "file không có");
+  await rejects(
+    service.getTaskAttachmentForDownload(mentor2, "1", String(first.id)),
+    403,
+    "mentor khác",
+  );
+  await rejects(
+    service.getTaskAttachmentForDownload(internB, "1", String(first.id)),
+    403,
+    "intern khác",
+  );
+  await rejects(
+    service.getTaskAttachmentForDownload(internA, "1", "999"),
+    404,
+    "file không có",
+  );
 
   // Xóa: chỉ chủ task; file vật lý bị xóa
   const stored = first.storedName;
-  await rejects(service.deleteMyTaskAttachment(internB, "1", String(first.id)), 403, "xóa intern khác");
-  await rejects(service.deleteMyTaskAttachment(internA, "1", "999"), 404, "xóa không có");
-  const del = await service.deleteMyTaskAttachment(internA, "1", String(first.id));
-  assert.strictEqual(del.task.attachments.length, service.MAX_ATTACHMENTS_PER_TASK - 1);
+  await rejects(
+    service.deleteMyTaskAttachment(internB, "1", String(first.id)),
+    403,
+    "xóa intern khác",
+  );
+  await rejects(
+    service.deleteMyTaskAttachment(internA, "1", "999"),
+    404,
+    "xóa không có",
+  );
+  const del = await service.deleteMyTaskAttachment(
+    internA,
+    "1",
+    String(first.id),
+  );
+  assert.strictEqual(
+    del.task.attachments.length,
+    service.MAX_ATTACHMENTS_PER_TASK - 1,
+  );
   assert.ok(!fs.existsSync(diskFile(stored)), "File vật lý phải bị xóa");
 
   // Mentor xóa nhiệm vụ thì file đính kèm cũng bị xóa
   const left = attachments.map((a) => a.storedName);
   await service.deleteTask(mentor1, "1");
-  for (const name of left) assert.ok(!fs.existsSync(diskFile(name)), "File phải bị dọn");
+  for (const name of left)
+    assert.ok(!fs.existsSync(diskFile(name)), "File phải bị dọn");
   assert.strictEqual(uploadsCount(), baseline);
 
   console.log("PASS test_task_attachments_unit");

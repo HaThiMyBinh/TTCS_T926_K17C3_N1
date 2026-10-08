@@ -101,6 +101,34 @@ async function cleanupTestData(emails) {
       /* bảng hợp đồng có thể chưa tồn tại */
     }
 
+    // File đính kèm của nhiệm vụ và báo cáo tuần (best-effort, bảng có thể chưa tồn tại)
+    for (const sql of [
+      `SELECT ta.stored_name FROM task_attachments ta
+       JOIN intern_tasks t ON t.id = ta.task_id
+       JOIN intern_profiles i ON i.id = t.intern_id
+       WHERE LOWER(i.email) IN (?)`,
+      `SELECT wa.stored_name FROM weekly_report_attachments wa
+       JOIN weekly_reports wr ON wr.id = wa.report_id
+       JOIN intern_profiles i ON i.id = wr.intern_id
+       WHERE LOWER(i.email) IN (?)`,
+    ]) {
+      try {
+        const [files] = await conn.query(sql, [list]);
+        const uploadsDir = path.join(__dirname, "..", "uploads");
+        for (const file of files) {
+          const filePath = path.join(uploadsDir, file.stored_name);
+          if (!fs.existsSync(filePath)) continue;
+          try {
+            fs.unlinkSync(filePath);
+          } catch {
+            /* best-effort cleanup */
+          }
+        }
+      } catch {
+        /* bảng đính kèm có thể chưa tồn tại */
+      }
+    }
+
     // users xóa cuối vì các bảng kia tham chiếu tới nó
     for (const table of [
       "candidate_profiles",

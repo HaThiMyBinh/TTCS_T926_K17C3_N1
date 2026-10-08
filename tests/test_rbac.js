@@ -8,13 +8,16 @@ async function request(endpoint, token, options = {}) {
   return fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
 }
 
-async function updateInternPermissions(adminToken, permissions) {
+async function updatePermissions(adminToken, role, permissions) {
   return request("/permissions/update", adminToken, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ role: "Intern", permissions }),
+    body: JSON.stringify({ role, permissions }),
   });
 }
+
+const updateInternPermissions = (adminToken, permissions) =>
+  updatePermissions(adminToken, "Intern", permissions);
 
 async function runAutoRBACTests() {
   console.log("\nBẮT ĐẦU KIỂM THỬ TỰ ĐỘNG PHÂN QUYỀN\n");
@@ -24,7 +27,8 @@ async function runAutoRBACTests() {
   const adminToken = await loginAs("Admin");
   const hrToken = await loginAs("HR");
   const internToken = await loginAs("Intern");
-  let originalInternPermissions = ["SUBMIT_WORK"];
+  let originalInternPermissions = [];
+  let originalHrPermissions = [];
 
   const check = (name, passed) => {
     if (passed) {
@@ -42,6 +46,14 @@ async function runAutoRBACTests() {
     if (Array.isArray(permissions.Intern)) {
       originalInternPermissions = [...permissions.Intern];
     }
+    if (Array.isArray(permissions.HR)) {
+      originalHrPermissions = [...permissions.HR];
+    }
+
+    // Mặc định HR/Intern không có quyền nào (Admin tự tick), nên test tự cấp
+    // đúng quyền cần dùng rồi khôi phục lại ở khối finally.
+    await updatePermissions(adminToken, "HR", ["VIEW_REPORTS"]);
+    await updateInternPermissions(adminToken, ["SUBMIT_WORK"]);
 
     check(
       "TC_01: Đọc được ma trận quyền",
@@ -101,6 +113,11 @@ async function runAutoRBACTests() {
     );
   } finally {
     // Khôi phục đúng quyền đã đọc, kể cả khi một assertion hoặc request lỗi.
+    const restoreHrResponse = await updatePermissions(
+      adminToken,
+      "HR",
+      originalHrPermissions,
+    );
     const restoreResponse = await updateInternPermissions(
       adminToken,
       originalInternPermissions,
@@ -109,11 +126,16 @@ async function runAutoRBACTests() {
       "/submissions",
       internToken,
     );
+    const expectedSubmissionStatus = originalInternPermissions.includes(
+      "SUBMIT_WORK",
+    )
+      ? 200
+      : 403;
     check(
-      "TC_08: Khôi phục quyền ban đầu và giữ quyền nộp bài",
-      restoreResponse.ok &&
-        originalInternPermissions.includes("SUBMIT_WORK") &&
-        restoredSubmissionResponse.status === 200,
+      "TC_08: Khôi phục quyền ban đầu của HR và Intern",
+      restoreHrResponse.ok &&
+        restoreResponse.ok &&
+        restoredSubmissionResponse.status === expectedSubmissionStatus,
     );
   }
 
