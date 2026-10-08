@@ -648,6 +648,20 @@ async function initDatabase() {
     CONSTRAINT fk_evaluation_mentor FOREIGN KEY (mentor_id) REFERENCES mentors(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
+  // Chấm công hằng ngày của thực tập sinh: mỗi intern 1 lần check-in cho mỗi ngày làm việc (UNIQUE intern_id + work_date).
+  // work_date / check_in_at theo giờ Việt Nam do server tính; is_late = check-in sau giờ quy định.
+  await pool.query(`CREATE TABLE IF NOT EXISTS attendance_logs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    intern_id BIGINT NOT NULL,
+    work_date DATE NOT NULL,
+    check_in_at DATETIME NOT NULL,
+    is_late TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_attendance_intern_date (intern_id, work_date),
+    INDEX idx_attendance_date (work_date),
+    CONSTRAINT fk_attendance_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
   await seedDepartmentsFromMentors(pool);
 
   // Seed dữ liệu mặc định: roles, permissions, role_permissions
@@ -2702,6 +2716,48 @@ async function confirmContractAtomic(internId, contractId, userId) {
   });
 }
 
+// ---------- Chấm công (attendance_logs) ----------
+const ATTENDANCE_COLUMNS = `id, intern_id AS internId, work_date AS workDate,
+  check_in_at AS checkInAt, is_late AS isLate`;
+
+async function findAttendanceByDate(internId, workDate) {
+  const [rows] = await requireDb().query(
+    `SELECT ${ATTENDANCE_COLUMNS} FROM attendance_logs
+     WHERE intern_id = ? AND work_date = ? LIMIT 1`,
+    [internId, workDate],
+  );
+  return rows[0] || null;
+}
+
+// Ghi 1 lần check-in. Trùng (intern_id, work_date) -> trả { duplicate: true } thay vì ném lỗi,
+// để chặn đúng cả khi 2 request đến cùng lúc.
+async function insertAttendanceLog({ internId, workDate, checkInAt, isLate }) {
+  try {
+    const [result] = await requireDb().query(
+      `INSERT INTO attendance_logs (intern_id, work_date, check_in_at, is_late)
+       VALUES (?, ?, ?, ?)`,
+      [internId, workDate, checkInAt, isLate ? 1 : 0],
+    );
+    const [rows] = await requireDb().query(
+      `SELECT ${ATTENDANCE_COLUMNS} FROM attendance_logs WHERE id = ? LIMIT 1`,
+      [result.insertId],
+    );
+    return { duplicate: false, log: rows[0] || null };
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") return { duplicate: true, log: null };
+    throw err;
+  }
+}
+
+async function listAttendanceForIntern(internId, { limit = 60 } = {}) {
+  const [rows] = await requireDb().query(
+    `SELECT ${ATTENDANCE_COLUMNS} FROM attendance_logs
+     WHERE intern_id = ? ORDER BY work_date DESC LIMIT ?`,
+    [internId, Number(limit)],
+  );
+  return rows;
+}
+
 async function listDepartments() {
   const [rows] = await requireDb().query(
     "SELECT id, name, description, created_at FROM departments ORDER BY name",
@@ -3029,6 +3085,9 @@ module.exports = {
   deleteWeeklyReportFeedback,
   reapplyRejectedCandidate,
   hasConfirmedContract,
+  findAttendanceByDate,
+  insertAttendanceLog,
+  listAttendanceForIntern,
   countContractsOutsideProgramRange,
   findInternEvaluation,
   upsertInternEvaluation,
