@@ -1,0 +1,9 @@
+node_modules/
+db_config.json
+mail_config.json
+.env
+
+# file CV / Đơn xin thực tập do người dùng upload - KHÔNG commit, KHÔNG phục vụ tĩnh
+uploads/*
+!uploads/.gitkeep
+tests/.server.log

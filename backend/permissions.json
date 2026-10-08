@@ -1,0 +1,13 @@
+{
+  "Admin": [
+    "MANAGE_USERS",
+    "SYSTEM_SETTINGS"
+  ],
+  "HR": [],
+  "Mentor": [
+    "ASSIGN_TASKS"
+  ],
+  "Intern": [
+    "SUBMIT_WORK"
+  ]
+}

@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng Nhập Hệ Thống</title>
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      :root {
+        --primary: #2b61c6;
+        --primary-hover: #1f3bac;
+        --slate-100: #f1f5f9;
+        --slate-200: #e2e8f0;
+        --slate-300: #cbd5e1;
+        --slate-600: #475569;
+        --slate-700: #334155;
+        --slate-800: #1e293b;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Roboto", sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        width: 100vw;
+        overflow-x: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8fafc;
+        padding: 24px;
+      }
+
+      /* KHỐI ĐĂNG NHẬP (THẺ TRẮNG, NỀN SÁNG ĐƠN GIẢN) */
+      .login-container {
+        width: 100%;
+        max-width: 420px;
+        padding: 34px 32px 28px;
+        background: #ffffff;
+        border: 1px solid var(--slate-200);
+        border-radius: 12px;
+      }
+
+      @media (max-width: 768px) {
+        .login-container {
+          margin: 20px;
+          max-width: 420px;
+        }
+      }
+
+      /* TIÊU ĐỀ ĐĂNG NHẬP HỆ THỐNG */
+      .login-title {
+        text-align: center;
+        color: var(--slate-800);
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 0.1px;
+        margin-bottom: 24px;
+      }
+
+      /* ALERT THÔNG BÁO */
+      .alert-box {
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-bottom: 16px;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+      }
+      .alert-error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+      .alert-success {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+      .alert-info {
+        background: #e0f2fe;
+        color: #075985;
+        border: 1px solid #bae6fd;
+      }
+
+      /* FORM GROUPS */
+      .form-group {
+        margin-bottom: 16px;
+      }
+
+      .form-group label {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--slate-800);
+        margin-bottom: 6px;
+      }
+
+      .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .input-wrapper i.field-icon {
+        position: absolute;
+        left: 14px;
+        color: #94a3b8;
+        font-size: 14px;
+        pointer-events: none;
+      }
+
+      .form-control {
+        width: 100%;
+        height: 44px;
+        padding: 10px 14px 10px 40px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 13.5px;
+        color: var(--slate-800);
+        outline: none;
+        transition: all 0.2s ease;
+        background: #ffffff;
+      }
+
+      .form-control:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+
+      /* TOGGLE SHOW/HIDE PASSWORD */
+      .btn-toggle-pwd {
+        position: absolute;
+        right: 12px;
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .btn-toggle-pwd:hover {
+        color: var(--slate-700);
+      }
+
+      /* MÃ XÁC THỰC (CAPTCHA ROW) */
+      .captcha-input-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .captcha-input-row .form-control {
+        padding-left: 14px; /* Không có icon bên trái */
+        flex: 1;
+      }
+
+      .btn-refresh {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-refresh:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+      }
+
+      /* KHUNG HIỂN THỊ ẢNH CAPTCHA */
+      .captcha-display-box {
+        width: 100%;
+        height: 52px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        cursor: pointer;
+      }
+
+      #captchaCanvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      /* NÚT ĐĂNG NHẬP */
+      .btn-submit {
+        width: 100%;
+        height: 46px;
+        margin-top: 18px;
+        background-color: var(--primary);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        font-size: 15.5px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition:
+          background-color 0.2s ease,
+          transform 0.1s ease;
+      }
+
+      .btn-submit:hover {
+        background-color: var(--primary-hover);
+      }
+
+      .btn-submit:active {
+        transform: scale(0.99);
+      }
+
+      .btn-submit:disabled {
+        background-color: #cbd5e1;
+        box-shadow: none;
+        cursor: not-allowed;
+      }
+
+      /* LIÊN KẾT PHÍA DƯỚI NÚT */
+      .footer-links {
+        margin-top: 20px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .footer-links a {
+        color: #2563eb;
+        font-size: 13.5px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      .footer-links a:hover {
+        text-decoration: underline;
+        color: #1d4ed8;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- KHUNG ĐĂNG NHẬP HỆ THỐNG -->
+    <div class="login-container">
+      <h2 class="login-title">Đăng nhập hệ thống</h2>
+
+      <div id="loginAlert" class="alert-box"></div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <!-- 1. MÃ TÀI KHOẢN -->
+        <div class="form-group">
+          <label>Mã tài khoản</label>
+          <div class="input-wrapper">
+            <i class="fa-regular fa-user field-icon"></i>
+            <input
+              type="text"
+              id="accountInput"
+              class="form-control"
+              placeholder="Nhập Mã tài khoản"
+              required
+              autocomplete="username"
+            />
+          </div>
+        </div>
+
+        <!-- 2. MẬT KHẨU -->
+        <div class="form-group">
+          <label>Mật khẩu</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock field-icon"></i>
+            <input
+              type="password"
+              id="passwordInput"
+              class="form-control"
+              placeholder="Mật khẩu"
+              required
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="btn-toggle-pwd"
+              onclick="togglePasswordVisibility()"
+            >
+              <i id="pwdEyeIcon" class="fa-regular fa-eye-slash"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. MÃ XÁC THỰC (CAPTCHA) -->
+        <div class="form-group">
+          <label>Mã xác thực</label>
+          <div class="captcha-input-row">
+            <input
+              type="text"
+              id="captchaInput"
+              class="form-control"
+              placeholder="Nhập mã xác thực"
+              required
+              maxlength="6"
+              autocomplete="off"
+            />
+            <button
+              type="button"
+              class="btn-refresh"
+              onclick="generateCaptcha()"
+              title="Đổi mã xác thực khác"
+            >
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+          <div
+            class="captcha-display-box"
+            onclick="generateCaptcha()"
+            title="Nhấp để đổi mã khác"
+          >
+            <canvas id="captchaCanvas" width="376" height="52"></canvas>
+          </div>
+        </div>
+
+        <!-- NÚT ĐĂNG NHẬP MÀU CAM -->
+        <button type="submit" id="btnLogin" class="btn-submit">
+          <span>Đăng nhập</span>
+        </button>
+      </form>
+
+      <!-- CÁC ĐƯỜNG LINK ĐIỀU HƯỚNG PHÍA DƯỚI -->
+      <div class="footer-links">
+        <a href="register.html">Chưa có tài khoản? Đăng ký</a>
+        <a
+          href="#"
+          onclick="
+            showAlert(
+              document.getElementById('loginAlert'),
+              'Vui lòng liên hệ Quản trị viên để đặt lại mật khẩu!',
+              'info',
+            );
+            return false;
+          "
+          >Quên mật khẩu?</a
+        >
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = "/api";
+      let currentCaptcha = "";
+
+      // 1. SINH MÃ CAPTCHA ĐỒ HỌA (VẼ LÊN CANVAS VỚI MÀU SẮC VÀ ĐƯỜNG NHIỄU GIỐNG ẢNH MẪU)
+      function generateCaptcha() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let code = "";
+        for (let i = 0; i < 5; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        currentCaptcha = code;
+
+        const canvas = document.getElementById("captchaCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Xóa canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Nền trắng ngà có vân nhẹ
+        ctx.fillStyle = "#fcfdfd";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Vẽ các đường vẽ nhiễu màu sắc ngẫu nhiên
+        const colors = [
+          "#e11d48",
+          "#2563eb",
+          "#16a34a",
+          "#9333ea",
+          "#ea580c",
+          "#0284c7",
+        ];
+        for (let i = 0; i < 5; i++) {
+          ctx.strokeStyle = colors[Math.floor(Math.random() * colors.length)];
+          ctx.lineWidth = 1 + Math.random() * 2;
+          ctx.beginPath();
+          ctx.moveTo(
+            Math.random() * canvas.width,
+            Math.random() * canvas.height,
+          );
+          ctx.lineTo(
+            Math.random() * canvas.width,
+            Math.random() * canvas.height,
+          );
+          ctx.stroke();
+        }
+
+        // Vẽ các chấm nhiễu
+        for (let i = 0; i < 30; i++) {
+          ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+          ctx.beginPath();
+          ctx.arc(
+            Math.random() * canvas.width,
+            Math.random() * canvas.height,
+            1.5,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        }
+
+        // Vẽ các ký tự Captcha biến dạng nhẹ
+        const charColors = [
+          "#4338ca",
+          "#0369a1",
+          "#047857",
+          "#b91c1c",
+          "#6d28d9",
+        ];
+        ctx.font = "bold 28px 'Courier New', monospace";
+        ctx.textBaseline = "middle";
+
+        const startX = 60;
+        const spacing = 50;
+
+        for (let i = 0; i < code.length; i++) {
+          ctx.save();
+          const char = code[i];
+          const x = startX + i * spacing;
+          const y = canvas.height / 2 + (Math.random() * 8 - 4);
+          const angle = (Math.random() * 20 - 10) * (Math.PI / 180);
+
+          ctx.translate(x, y);
+          ctx.rotate(angle);
+          ctx.fillStyle = charColors[i % charColors.length];
+          ctx.fillText(char, 0, 0);
+          ctx.restore();
+        }
+
+        // Tự động xóa trường nhập mã xác thực
+        document.getElementById("captchaInput").value = "";
+      }
+
+      // 2. ẨN / HIỆN MẬT KHẨU
+      function togglePasswordVisibility() {
+        const pwd = document.getElementById("passwordInput");
+        const icon = document.getElementById("pwdEyeIcon");
+        if (pwd.type === "password") {
+          pwd.type = "text";
+          icon.className = "fa-regular fa-eye";
+        } else {
+          pwd.type = "password";
+          icon.className = "fa-regular fa-eye-slash";
+        }
+      }
+
+      // 3. XỬ LÝ SUBMIT FORM ĐĂNG NHẬP
+      async function handleLogin(e) {
+        e.preventDefault();
+
+        const account = document.getElementById("accountInput").value.trim();
+        const password = document.getElementById("passwordInput").value;
+        const captchaEntered = document
+          .getElementById("captchaInput")
+          .value.trim()
+          .toUpperCase();
+        const alertBox = document.getElementById("loginAlert");
+        const btn = document.getElementById("btnLogin");
+
+        // Kiểm tra Captcha
+        if (captchaEntered !== currentCaptcha.toUpperCase()) {
+          showAlert(
+            alertBox,
+            " Mã xác thực (Captcha) không chính xác! Vui lòng nhập lại.",
+            "error",
+          );
+          generateCaptcha();
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng nhập...`;
+
+        try {
+          const res = await fetch(`${API_BASE}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ account, password }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            showAlert(
+              alertBox,
+              " Đăng nhập thành công! Đang chuyển hướng...",
+              "success",
+            );
+
+            sessionStorage.setItem("currentUser", JSON.stringify(data.user));
+            sessionStorage.setItem("authToken", data.token);
+
+            // Chuyển hướng sang trang Dashboard
+            setTimeout(() => {
+              window.location.href = "index.html";
+            }, 800);
+          } else {
+            showAlert(
+              alertBox,
+
+              data.error || "Mã tài khoản hoặc mật khẩu không chính xác!",
+              "error",
+            );
+            generateCaptcha();
+          }
+        } catch (err) {
+          showAlert(
+            alertBox,
+            " Không thể kết nối tới Backend Server! (Hãy chắc chắn server.js đang chạy)",
+            "error",
+          );
+          generateCaptcha();
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<span>Đăng nhập</span>`;
+        }
+      }
+
+      function showAlert(el, msg, type) {
+        el.className = `alert-box alert-${type}`;
+        el.textContent = msg;
+        el.style.display = "flex";
+      }
+
+      // Khởi tạo Captcha khi tải trang
+      window.addEventListener("DOMContentLoaded", () => {
+        generateCaptcha();
+
+        // Thông báo do trang chính để lại khi buộc đăng xuất (VD: phiên hết hạn).
+        const flashMessage = sessionStorage.getItem("flashMessage");
+        if (flashMessage) {
+          sessionStorage.removeItem("flashMessage");
+          showAlert(
+            document.getElementById("loginAlert"),
+            flashMessage,
+            "error",
+          );
+        }
+      });
+    </script>
+  </body>
+</html>
