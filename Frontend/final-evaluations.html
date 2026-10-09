@@ -1,465 +1,148 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Báo cáo đánh giá cuối kỳ</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Báo cáo tổng hợp đánh giá cuối kỳ</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      color: #1f2937;
-      background: #f4f7fb;
-      font-family: Arial, sans-serif;
-    }
-
-    .layout {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    aside {
-      width: 230px;
-      padding: 24px 16px;
-      color: white;
-      background: #173b67;
-    }
-
-    .brand {
-      margin: 0 0 32px;
-      font-size: 20px;
-    }
-
-    .menu a {
-      display: block;
-      margin: 8px 0;
-      padding: 12px;
-      border-radius: 8px;
-      color: #e5eef9;
-      text-decoration: none;
-    }
-
-    .menu a.active,
-    .menu a:hover {
-      color: white;
-      background: #2b5688;
-    }
-
-    main {
-      flex: 1;
-      min-width: 0;
-      padding: 32px;
-    }
-
-    .heading {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    h1 {
-      margin: 0 0 8px;
-      font-size: 26px;
-    }
-
-    .subtitle {
-      margin: 0;
-      color: #64748b;
-    }
-
-    .badge {
-      padding: 8px 12px;
-      border-radius: 20px;
-      color: #175c38;
-      background: #dcfce7;
-      font-size: 14px;
-      white-space: nowrap;
-    }
-
-    .summary {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .card,
-    .panel {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      background: white;
-      box-shadow: 0 2px 8px #0f172a0a;
-    }
-
-    .card {
-      padding: 18px;
-    }
-
-    .card-label {
-      color: #64748b;
-      font-size: 14px;
-    }
-
-    .card-value {
-      margin-top: 8px;
-      font-size: 26px;
-      font-weight: 700;
-    }
-
-    .panel {
-      overflow: hidden;
-    }
-
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      padding: 18px;
-      border-bottom: 1px solid #e2e8f0;
-    }
-
-    input,
-    select {
-      min-height: 40px;
-      padding: 8px 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 7px;
-      background: white;
-      font-size: 14px;
-    }
-
-    input {
-      flex: 1;
-      min-width: 220px;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      white-space: nowrap;
-    }
-
-    th,
-    td {
-      padding: 14px 16px;
-      border-bottom: 1px solid #e2e8f0;
-    }
-
-    th {
-      color: #475569;
-      background: #f8fafc;
-      font-size: 13px;
-    }
-
-    tbody tr:hover {
-      background: #f8fafc;
-    }
-
-    .score {
-      font-weight: 700;
-    }
-
-    .status {
-      display: inline-block;
-      padding: 5px 9px;
-      border-radius: 20px;
-      font-size: 12px;
-    }
-
-    .status.pass {
-      color: #166534;
-      background: #dcfce7;
-    }
-
-    .status.review {
-      color: #9a3412;
-      background: #ffedd5;
-    }
-
-    .status.missing {
-      color: #475569;
-      background: #e2e8f0;
-    }
-
-    .pagination {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 16px 18px;
-      color: #64748b;
-      font-size: 14px;
-    }
-
-    .page-buttons {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    button {
-      padding: 8px 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 7px;
-      background: white;
-      cursor: pointer;
-    }
-
-    button:hover:not(:disabled) {
-      background: #eff6ff;
-    }
-
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.45;
-    }
-
-    @media (max-width: 700px) {
-      .layout {
-        display: block;
-      }
-
-      aside {
-        width: 100%;
-      }
-
-      .menu {
-        display: flex;
-        flex-wrap: wrap;
-      }
-
-      main {
-        padding: 20px 14px;
-      }
-
-      .summary {
-        grid-template-columns: 1fr;
-      }
-
-      .heading {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .pagination {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f8f9fa; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #dee2e6; padding: 10px; text-align: left; }
+    th { background-color: #e9ecef; }
+    .badge-incomplete { background-color: #ffc107; color: #212529; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+    .badge-success { background-color: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+    .alert-error { background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 6px; margin-top: 10px; }
+    .alert-warning { background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 6px; margin-top: 10px; }
+    .alert-info { background-color: #e2e3e5; color: #383d41; padding: 15px; border-radius: 6px; margin-top: 10px; }
   </style>
 </head>
-
 <body>
-  <div class="layout">
-    <aside>
-      <h2 class="brand">HR Portal</h2>
-      <nav class="menu">
-        <a href="index.html">Tổng quan</a>
-        <a href="#">Thực tập sinh</a>
-        <a class="active" href="final-evaluations.html">Báo cáo cuối kỳ</a>
-      </nav>
-    </aside>
 
-    <main>
-      <header class="heading">
-        <div>
-          <h1>Báo cáo đánh giá cuối kỳ</h1>
-          <p class="subtitle">Tổng hợp kết quả đánh giá thực tập sinh</p>
-        </div>
-        <span class="badge">Dữ liệu mẫu</span>
-      </header>
+  <div class="card">
+    <h2>📊 Báo Cáo Tổng Hợp Đánh Giá Cuối Kỳ (HR)</h2>
 
-      <section class="summary">
-        <article class="card">
-          <div class="card-label">Tổng thực tập sinh</div>
-          <div class="card-value" id="total-count">0</div>
-        </article>
-        <article class="card">
-          <div class="card-label">Điểm trung bình</div>
-          <div class="card-value" id="average-score">0</div>
-        </article>
-        <article class="card">
-          <div class="card-label">Đạt yêu cầu</div>
-          <div class="card-value" id="passed-count">0</div>
-        </article>
-      </section>
-
-      <section class="panel">
-        <div class="filters">
-          <input
-            id="search"
-            type="search"
-            placeholder="Tìm theo tên hoặc mã thực tập sinh..."
-          />
-
-          <select id="department-filter" aria-label="Lọc phòng ban">
-            <option value="">Tất cả phòng ban</option>
-            <option value="Công nghệ">Công nghệ</option>
-            <option value="Nhân sự">Nhân sự</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Kinh doanh">Kinh doanh</option>
-          </select>
-
-          <select id="status-filter" aria-label="Lọc kết quả">
-            <option value="">Tất cả kết quả</option>
-            <option value="Đạt">Đạt</option>
-            <option value="Cần xem xét">Cần xem xét</option>
-            <option value="Chưa đủ dữ liệu">Chưa đủ dữ liệu</option>
-          </select>
-        </div>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Mã</th>
-                <th>Họ và tên</th>
-                <th>Phòng ban</th>
-                <th>Người hướng dẫn</th>
-                <th>Điểm trung bình</th>
-                <th>Kết quả</th>
-              </tr>
-            </thead>
-            <tbody id="report-rows"></tbody>
-          </table>
-        </div>
-
-        <div class="pagination">
-          <span id="page-info">Đang hiển thị 0 kết quả</span>
-          <div class="page-buttons">
-            <button id="previous-page" type="button">Trước</button>
-            <span id="page-number">1 / 1</span>
-            <button id="next-page" type="button">Sau</button>
-          </div>
-        </div>
-      </section>
-    </main>
+    <!-- Khung hiển thị dữ liệu hoặc các trạng thái (Task 5.6) -->
+    <div id="report-content">
+      <p>⏳ Đang tải dữ liệu báo cáo...</p>
+    </div>
   </div>
 
   <script>
-    const interns = [
-      { id: "TT001", name: "Nguyễn Minh Anh", department: "Công nghệ", mentor: "Trần Quốc Bảo", score: 8.6 },
-      { id: "TT002", name: "Trần Gia Hân", department: "Marketing", mentor: "Lê Thu Hà", score: 7.8 },
-      { id: "TT003", name: "Lê Hoàng Nam", department: "Công nghệ", mentor: "Phạm Minh Đức", score: 6.2 },
-      { id: "TT004", name: "Phạm Ngọc Linh", department: "Nhân sự", mentor: "Võ Thanh Mai", score: null },
-      { id: "TT005", name: "Đỗ Tuấn Kiệt", department: "Kinh doanh", mentor: "Nguyễn Hoàng Long", score: 8.1 },
-      { id: "TT006", name: "Vũ Khánh Vy", department: "Marketing", mentor: "Lê Thu Hà", score: 5.9 },
-      { id: "TT007", name: "Bùi Đức Anh", department: "Công nghệ", mentor: "Trần Quốc Bảo", score: 9.1 },
-      { id: "TT008", name: "Đặng Mỹ Duyên", department: "Nhân sự", mentor: "Võ Thanh Mai", score: 7.4 },
-      { id: "TT009", name: "Hồ Nhật Minh", department: "Kinh doanh", mentor: "Nguyễn Hoàng Long", score: null },
-      { id: "TT010", name: "Nguyễn Thảo My", department: "Công nghệ", mentor: "Phạm Minh Đức", score: 8.3 },
-      { id: "TT011", name: "Phan Quốc Huy", department: "Marketing", mentor: "Lê Thu Hà", score: 6.8 },
-      { id: "TT012", name: "Mai Bảo Trân", department: "Kinh doanh", mentor: "Nguyễn Hoàng Long", score: 7.1 }
-    ];
+    // Hàm gọi API báo cáo và xử lý các trạng thái (Task 5.6)
+    async function loadReportData() {
+      const contentDiv = document.getElementById('report-content');
 
-    const pageSize = 5;
-    let currentPage = 1;
+      // 1. Trạng thái Loading
+      contentDiv.innerHTML = '<p>⏳ Đang tải dữ liệu báo cáo...</p>';
 
-    const searchInput = document.getElementById("search");
-    const departmentFilter = document.getElementById("department-filter");
-    const statusFilter = document.getElementById("status-filter");
+      try {
+        // Gọi API GET /api/reports/final-evaluations (Task 5.2)
+        const response = await fetch('/api/reports/final-evaluations', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
+          }
+        });
 
-    function getStatus(intern) {
-      if (intern.score === null) return "Chưa đủ dữ liệu";
-      return intern.score >= 7 ? "Đạt" : "Cần xem xét";
-    }
+        // 2. Xử lý lỗi HTTP 401, 403, 500
+        if (response.status === 401) {
+          contentDiv.innerHTML = `
+            <div class="alert-error">
+              <h3>🔒 Phiên làm việc hết hạn (Lỗi 401)</h3>
+              <p>Vui lòng đăng nhập lại tài khoản HR để xem báo cáo.</p>
+            </div>`;
+          return;
+        }
 
-    function getFilteredInterns() {
-      const keyword = searchInput.value.trim().toLocaleLowerCase("vi");
-      const department = departmentFilter.value;
-      const status = statusFilter.value;
+        if (response.status === 403) {
+          contentDiv.innerHTML = `
+            <div class="alert-warning">
+              <h3>🚫 Không có quyền truy cập (Lỗi 403)</h3>
+              <p>Bạn không có quyền VIEW_REPORTS để truy cập trang này.</p>
+            </div>`;
+          return;
+        }
 
-      return interns.filter((intern) => {
-        const matchesSearch =
-          intern.name.toLocaleLowerCase("vi").includes(keyword) ||
-          intern.id.toLocaleLowerCase("vi").includes(keyword);
+        if (!response.ok) {
+          contentDiv.innerHTML = `
+            <div class="alert-error">
+              <h3>⚠️ Lỗi hệ thống Server (Lỗi ${response.status})</h3>
+              <p>Không thể kết nối máy chủ. Vui lòng thử lại sau.</p>
+            </div>`;
+          return;
+        }
 
-        return matchesSearch &&
-          (!department || intern.department === department) &&
-          (!status || getStatus(intern) === status);
-      });
-    }
+        const resData = await response.json();
+        const reports = resData.data || resData.items || [];
 
-    function renderReport() {
-      const filtered = getFilteredInterns();
-      const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+        // 3. Trạng thái "Chưa đủ dữ liệu"
+        if (resData.status === 'INCOMPLETE' || resData.isIncomplete) {
+          contentDiv.innerHTML = `
+            <div class="alert-warning">
+              <h3>⚠️ Chưa đủ dữ liệu</h3>
+              <p>Hệ thống chưa tổng hợp đủ thông tin đánh giá cuối kỳ.</p>
+            </div>`;
+          return;
+        }
 
-      currentPage = Math.min(currentPage, pageCount);
-      const start = (currentPage - 1) * pageSize;
-      const pageItems = filtered.slice(start, start + pageSize);
+        // 4. Trạng thái Rỗng (Không có dữ liệu)
+        if (reports.length === 0) {
+          contentDiv.innerHTML = `
+            <div class="alert-info">
+              <p>📭 Không tìm thấy dữ liệu báo cáo nào.</p>
+            </div>`;
+          return;
+        }
 
-      document.getElementById("report-rows").innerHTML = pageItems.length
-        ? pageItems.map((intern) => {
-            const status = getStatus(intern);
-            const statusClass =
-              status === "Đạt" ? "pass" :
-              status === "Cần xem xét" ? "review" : "missing";
-
-            return `
+        // 5. Hiển thị bảng báo cáo nếu thành công
+        let tableHtml = `
+          <table>
+            <thead>
               <tr>
-                <td>${intern.id}</td>
-                <td>${intern.name}</td>
-                <td>${intern.department}</td>
-                <td>${intern.mentor}</td>
-                <td class="score">${intern.score === null ? "—" : intern.score.toFixed(1)}</td>
-                <td><span class="status ${statusClass}">${status}</span></td>
+                <th>STT</th>
+                <th>Họ và Tên</th>
+                <th>Chuyên cần</th>
+                <th>Điểm TB</th>
+                <th>Trạng thái</th>
               </tr>
-            `;
-          }).join("")
-        : '<tr><td colspan="6">Không tìm thấy dữ liệu phù hợp.</td></tr>';
+            </thead>
+            <tbody>
+        `;
 
-      const scoredInterns = filtered.filter((intern) => intern.score !== null);
-      const average = scoredInterns.length
-        ? scoredInterns.reduce((sum, intern) => sum + intern.score, 0) / scoredInterns.length
-        : 0;
+        reports.forEach((item, index) => {
+          const isIncomplete = item.isIncomplete || item.averageScore === null || item.averageScore === undefined;
+          tableHtml += `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${item.fullName || 'N/A'}</td>
+              <td>${item.attendanceCount ?? 'N/A'}</td>
+              <td>${isIncomplete ? '-' : item.averageScore}</td>
+              <td>
+                ${isIncomplete 
+                  ? '<span class="badge-incomplete">Chưa đủ dữ liệu</span>' 
+                  : '<span class="badge-success">Đã hoàn tất</span>'}
+              </td>
+            </tr>
+          `;
+        });
 
-      document.getElementById("total-count").textContent = filtered.length;
-      document.getElementById("average-score").textContent = average.toFixed(1);
-      document.getElementById("passed-count").textContent =
-        filtered.filter((intern) => getStatus(intern) === "Đạt").length;
+        tableHtml += `</tbody></table>`;
+        contentDiv.innerHTML = tableHtml;
 
-      document.getElementById("page-info").textContent = filtered.length
-        ? `Đang hiển thị ${start + 1}–${Math.min(start + pageSize, filtered.length)} trong ${filtered.length} kết quả`
-        : "Đang hiển thị 0 kết quả";
-
-      document.getElementById("page-number").textContent = `${currentPage} / ${pageCount}`;
-      document.getElementById("previous-page").disabled = currentPage === 1;
-      document.getElementById("next-page").disabled = currentPage === pageCount;
+      } catch (error) {
+        // Xử lý lỗi kết nối 500
+        contentDiv.innerHTML = `
+          <div class="alert-error">
+            <h3>⚠️ Lỗi kết nối Server (500)</h3>
+            <p>Vui lòng kiểm tra lại dịch vụ backend.</p>
+          </div>`;
+      }
     }
 
-    [searchInput, departmentFilter, statusFilter].forEach((control) => {
-      control.addEventListener("input", () => {
-        currentPage = 1;
-        renderReport();
-      });
-      control.addEventListener("change", () => {
-        currentPage = 1;
-        renderReport();
-      });
-    });
-
-    document.getElementById("previous-page").addEventListener("click", () => {
-      currentPage--;
-      renderReport();
-    });
-
-    document.getElementById("next-page").addEventListener("click", () => {
-      currentPage++;
-      renderReport();
-    });
-
-    renderReport();
+    // Tự động chạy hàm khi mở trang
+    window.onload = loadReportData;
   </script>
 </body>
 </html>
