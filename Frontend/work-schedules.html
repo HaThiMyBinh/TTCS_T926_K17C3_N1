@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task 8.4 - Giao Diện Thiết Lập Lịch HR (Dữ Liệu Giả)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f4f6f9; padding: 20px; color: #333; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .card { background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    h2 { color: #2c3e50; margin-bottom: 15px; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; }
+    select, input[type="text"], input[type="time"], input[type="number"] { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; }
+    .btn { padding: 9px 16px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; }
+    .btn-primary { background-color: #007bff; color: white; }
+    .btn-success { background-color: #28a745; color: white; }
+    .btn-secondary { background-color: #6c757d; color: white; }
+    .btn-warning { background-color: #ffc107; color: #212529; }
+    .btn-danger { background-color: #dc3545; color: white; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .form-container { background: #eef2f7; padding: 20px; border-radius: 6px; margin-bottom: 20px; display: none; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 13px; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
+    th { background-color: #f8f9fa; color: #495057; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; background: #e9ecef; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h2>📅 Task 8.4: Thiết Lập Lịch Làm Việc (Dữ Liệu Giả)</h2>
+
+      <!-- Thanh lọc theo nhóm -->
+      <div class="toolbar">
+        <div>
+          <label><b>Lọc theo nhóm:</b></label>
+          <select id="group-filter" onchange="filterSchedules()">
+            <option value="ALL">-- Tất cả các nhóm --</option>
+            <option value="Dev">Nhóm Dev</option>
+            <option value="Tester">Nhóm Tester</option>
+            <option value="Marketing">Nhóm Marketing</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="showCreateForm()">➕ Thêm Lịch Mới</button>
+      </div>
+
+      <!-- Form tạo / sửa (Mockup) -->
+      <div id="schedule-form-container" class="form-container">
+        <h3 id="form-title" style="margin-bottom: 15px; color: #007bff;">Tạo Lịch Làm Việc Mới</h3>
+        <form onsubmit="handleSaveSchedule(event)">
+          <input type="hidden" id="schedule-id">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tên Nhóm *</label>
+              <select id="group-name" required>
+                <option value="Dev">Nhóm Dev</option>
+                <option value="Tester">Nhóm Tester</option>
+                <option value="Marketing">Nhóm Marketing</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Ngày Trong Tuần *</label>
+              <select id="day-of-week" required>
+                <option value="2">Thứ 2</option>
+                <option value="3">Thứ 3</option>
+                <option value="4">Thứ 4</option>
+                <option value="5">Thứ 5</option>
+                <option value="6">Thứ 6</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Giờ Vào *</label>
+              <input type="time" id="start-time" value="08:00" required>
+            </div>
+            <div class="form-group">
+              <label>Giờ Ra *</label>
+              <input type="time" id="end-time" value="17:00" required>
+            </div>
+            <div class="form-group">
+              <label>Du Di (Phút)</label>
+              <input type="number" id="grace-period" value="15">
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="hideForm()">Hủy</button>
+            <button type="submit" class="btn btn-success">💾 Lưu Lịch (Giả)</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Bảng danh sách -->
+      <table>
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Nhóm</th>
+            <th>Thứ / Ngày</th>
+            <th>Giờ Vào</th>
+            <th>Giờ Ra</th>
+            <th>Du Di</th>
+            <th>Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody id="schedule-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // DỮ LIỆU GIẢ (MOCK DATA - Task 8.4)
+    let mockSchedules = [
+      { id: 1, group_name: 'Dev', day_of_week: '2', start_time: '08:00', end_time: '17:00', grace_period: 15 },
+      { id: 2, group_name: 'Dev', day_of_week: '3', start_time: '08:00', end_time: '17:00', grace_period: 15 },
+      { id: 3, group_name: 'Tester', day_of_week: '2', start_time: '08:30', end_time: '17:30', grace_period: 10 },
+      { id: 4, group_name: 'Marketing', day_of_week: '4', start_time: '09:00', end_time: '18:00', grace_period: 20 }
+    ];
+
+    function renderTable(data) {
+      const tbody = document.getElementById('schedule-table-body');
+      const dayNames = { '2': 'Thứ 2', '3': 'Thứ 3', '4': 'Thứ 4', '5': 'Thứ 5', '6': 'Thứ 6' };
+      
+      tbody.innerHTML = data.map((item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td><b>${item.group_name}</b></td>
+          <td><span class="badge">${dayNames[item.day_of_week] || item.day_of_week}</span></td>
+          <td>${item.start_time}</td>
+          <td>${item.end_time}</td>
+          <td>${item.grace_period} phút</td>
+          <td>
+            <button class="btn btn-warning btn-sm" onclick="editSchedule(${item.id})">✏️ Sửa</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSchedule(${item.id})">🗑️ Xóa</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterSchedules() {
+      const selectedGroup = document.getElementById('group-filter').value;
+      if (selectedGroup === 'ALL') renderTable(mockSchedules);
+      else renderTable(mockSchedules.filter(s => s.group_name === selectedGroup));
+    }
+
+    function showCreateForm() {
+      document.getElementById('schedule-id').value = '';
+      document.getElementById('form-title').innerText = 'Tạo Lịch Làm Việc Mới (Dữ liệu giả)';
+      document.getElementById('schedule-form-container').style.display = 'block';
+    }
+
+    function hideForm() {
+      document.getElementById('schedule-form-container').style.display = 'none';
+    }
+
+    function editSchedule(id) {
+      const item = mockSchedules.find(s => s.id === id);
+      if (!item) return;
+      document.getElementById('schedule-id').value = item.id;
+      document.getElementById('group-name').value = item.group_name;
+      document.getElementById('day-of-week').value = item.day_of_week;
+      document.getElementById('start-time').value = item.start_time;
+      document.getElementById('end-time').value = item.end_time;
+      document.getElementById('grace-period').value = item.grace_period;
+      document.getElementById('form-title').innerText = 'Chỉnh Sửa Lịch (Dữ liệu giả)';
+      document.getElementById('schedule-form-container').style.display = 'block';
+    }
+
+    function handleSaveSchedule(e) {
+      e.preventDefault();
+      const id = document.getElementById('schedule-id').value;
+      const group_name = document.getElementById('group-name').value;
+      const day_of_week = document.getElementById('day-of-week').value;
+      const start_time = document.getElementById('start-time').value;
+      const end_time = document.getElementById('end-time').value;
+      const grace_period = parseInt(document.getElementById('grace-period').value);
+
+      if (id) {
+        const index = mockSchedules.findIndex(s => s.id == id);
+        mockSchedules[index] = { id: parseInt(id), group_name, day_of_week, start_time, end_time, grace_period };
+      } else {
+        mockSchedules.push({ id: Date.now(), group_name, day_of_week, start_time, end_time, grace_period });
+      }
+      alert('Đã lưu thành công vào dữ liệu giả!');
+      hideForm();
+      filterSchedules();
+    }
+
+    function deleteSchedule(id) {
+      if (confirm('Xóa dữ liệu giả này?')) {
+        mockSchedules = mockSchedules.filter(s => s.id !== id);
+        filterSchedules();
+      }
+    }
+
+    window.onload = () => renderTable(mockSchedules);
+  </script>
+</body>
+</html>
