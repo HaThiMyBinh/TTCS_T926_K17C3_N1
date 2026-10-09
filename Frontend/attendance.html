@@ -3,10 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chấm Công Thực Tập Sinh</title>
+  <title>Chấm Công Thực Tập Sinh - US 6.5</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #f4f6f9; padding: 20px; color: #333; }
+    body { display: flex; background-color: #f4f6f9; min-height: 100vh; color: #333; }
+    
+    /* MENU SIDEBAR NAVIGATION (Dành cho Intern) */
+    .sidebar { width: 240px; background-color: #1e293b; color: white; padding: 20px 0; flex-shrink: 0; }
+    .sidebar h3 { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #334155; font-size: 18px; color: #38bdf8; }
+    .nav-menu { list-style: none; margin-top: 20px; }
+    .nav-menu li a { display: block; padding: 12px 20px; color: #94a3b8; text-decoration: none; font-weight: 500; transition: 0.2s; }
+    .nav-menu li a.active, .nav-menu li a:hover { background-color: #0f172a; color: #38bdf8; border-left: 4px solid #38bdf8; }
+
+    /* NỘI DUNG CHÍNH */
+    .main-content { flex: 1; padding: 30px; overflow-y: auto; }
     .container { max-width: 900px; margin: 0 auto; }
     .card { background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
     h2 { margin-bottom: 15px; color: #2c3e50; }
@@ -25,7 +35,7 @@
     .btn-checkout:hover:not(:disabled) { background-color: #c82333; }
     .btn:disabled { background-color: #6c757d; opacity: 0.65; cursor: not-allowed; }
     
-    /* Thông báo / Alert (Trạng thái Báo lỗi / Thành công) */
+    /* Thông báo / Alert */
     .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 15px; display: none; font-size: 14px; }
     .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .alert-danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
@@ -43,54 +53,67 @@
 </head>
 <body>
 
-  <div class="container">
-    <!-- Khung Chấm công Hôm Nay -->
-    <div class="card">
-      <h2>⏰ Chấm Công Hôm Nay</h2>
-      
-      <div class="clock-box">
-        <div class="clock-time" id="digital-clock">00:00:00</div>
-        <div class="clock-date" id="digital-date">Đang tải ngày...</div>
+  <!-- SIDEBAR MENU NAVIGATION -->
+  <div class="sidebar">
+    <h3>INTERN PORTAL</h3>
+    <ul class="nav-menu">
+      <li><a href="index.html">Trang chủ</a></li>
+      <li><a href="attendance.html" class="active">Chấm công</a></li>
+      <li><a href="final-evaluations.html">Đánh giá</a></li>
+      <li><a href="reports.html">Báo cáo</a></li>
+    </ul>
+  </div>
+
+  <div class="main-content">
+    <div class="container">
+      <!-- Khung Chấm công Hôm Nay -->
+      <div class="card">
+        <h2>⏰ Chấm Công Hôm Nay</h2>
+        
+        <div class="clock-box">
+          <div class="clock-time" id="digital-clock">00:00:00</div>
+          <div class="clock-date" id="digital-date">Đang tải ngày...</div>
+        </div>
+
+        <!-- Khung hiển thị thông báo lỗi / thành công -->
+        <div id="alert-message" class="alert"></div>
+
+        <!-- Nút Check-in / Check-out với Trạng thái Nút & Loading -->
+        <div class="btn-group">
+          <button id="btn-checkin" class="btn btn-checkin" onclick="handleCheckIn()">
+            Check-in (Vào ca)
+          </button>
+          <button id="btn-checkout" class="btn btn-checkout" onclick="handleCheckOut()" disabled>
+            Check-out (Tan ca)
+          </button>
+        </div>
+
+        <p id="today-status-text" style="text-align: center; color: #6c757d; font-size: 14px;">
+          ⏳ Đang kiểm tra trạng thái chấm công hôm nay...
+        </p>
       </div>
 
-      <!-- Khung hiển thị thông báo lỗi / thành công (Task 6.6) -->
-      <div id="alert-message" class="alert"></div>
-
-      <!-- Nút Check-in / Check-out với Trạng thái Nút & Loading (Task 6.6) -->
-      <div class="btn-group">
-        <button id="btn-checkin" class="btn btn-checkin" onclick="handleCheckIn()">
-          Check-in (Vào ca)
-        </button>
-        <button id="btn-checkout" class="btn btn-checkout" onclick="handleCheckOut()" disabled>
-          Check-out (Tan ca)
-        </button>
-      </div>
-
-      <p id="today-status-text" style="text-align: center; color: #6c757d; font-size: 14px;">
-        ⏳ Đang kiểm tra trạng thái chấm công hôm nay...
-      </p>
-    </div>
-
-    <!-- Bảng Lịch Sử Chấm Công (Task 6.6) -->
-    <div class="card">
-      <h2>📋 Lịch Sử Chấm Công</h2>
-      <div id="history-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Ngày</th>
-              <th>Giờ Check-in</th>
-              <th>Giờ Check-out</th>
-              <th>Thời gian làm (phút)</th>
-              <th>Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody id="history-table-body">
-            <tr>
-              <td colspan="5" style="text-align: center; color: #6c757d;">⏳ Đang tải lịch sử...</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Bảng Lịch Sử Chấm Công -->
+      <div class="card">
+        <h2>📋 Lịch Sử Chấm Công</h2>
+        <div id="history-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Giờ Check-in</th>
+                <th>Giờ Check-out</th>
+                <th>Thời gian làm (phút)</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <tr>
+                <td colspan="5" style="text-align: center; color: #6c757d;">⏳ Đang tải lịch sử...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -99,9 +122,7 @@
     const API_BASE = '/api';
     const getToken = () => localStorage.getItem('token') || '';
 
-    // ==========================================
     // 1. ĐỒNG HỒ THỜI GIAN THỰC (Task 6.5)
-    // ==========================================
     function updateClock() {
       const now = new Date();
       document.getElementById('digital-clock').innerText = now.toLocaleTimeString('vi-VN');
@@ -112,9 +133,7 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    // ==========================================
-    // 2. HIỂN THỊ THÔNG BÁO LỖI / THÀNH CÔNG (Task 6.6)
-    // ==========================================
+    // 2. HIỂN THỊ THÔNG BÁO LỖI / THÀNH CÔNG
     function showAlert(message, type = 'danger') {
       const alertBox = document.getElementById('alert-message');
       alertBox.className = `alert alert-${type}`;
@@ -123,9 +142,7 @@
       setTimeout(() => { alertBox.style.display = 'none'; }, 5000);
     }
 
-    // ==========================================
-    // 3. TẢI TRẠNG THÁI HÔM NAY (GET /api/attendance/today - Task 6.4 & 6.6)
-    // ==========================================
+    // 3. TẢI TRẠNG THÁI HÔM NAY
     async function loadTodayStatus() {
       const btnCheckIn = document.getElementById('btn-checkin');
       const btnCheckOut = document.getElementById('btn-checkout');
@@ -149,19 +166,15 @@
 
         const data = await response.json();
 
-        // Xử lý Trạng thái Nút (Task 6.6)
         if (!data || !data.check_in_time) {
-          // Chưa Check-in -> Bật nút Check-in, Tắt nút Check-out
           btnCheckIn.disabled = false;
           btnCheckOut.disabled = true;
           statusText.innerText = '💡 Bạn chưa check-in hôm nay.';
         } else if (data.check_in_time && !data.check_out_time) {
-          // Đã Check-in, Chưa Check-out -> Tắt nút Check-in, Bật nút Check-out
           btnCheckIn.disabled = true;
           btnCheckOut.disabled = false;
           statusText.innerText = `✅ Đã check-in lúc: ${data.check_in_time}`;
         } else {
-          // Đã Check-out -> Tắt cả 2 nút
           btnCheckIn.disabled = true;
           btnCheckOut.disabled = true;
           statusText.innerText = `🎉 Đã hoàn tất chấm công hôm nay (Vào: ${data.check_in_time} - Ra: ${data.check_out_time})`;
@@ -172,13 +185,9 @@
       }
     }
 
-    // ==========================================
-    // 4. XỬ LÝ CHECK-IN (POST /api/attendance/check-in - Task 6.2 & 6.6)
-    // ==========================================
+    // 4. XỬ LÝ CHECK-IN
     async function handleCheckIn() {
       const btnCheckIn = document.getElementById('btn-checkin');
-      
-      // Trạng thái Loading (Task 6.6)
       btnCheckIn.disabled = true;
       btnCheckIn.innerText = '⏳ Đang xử lý...';
 
@@ -211,13 +220,9 @@
       }
     }
 
-    // ==========================================
-    // 5. XỬ LÝ CHECK-OUT (POST /api/attendance/check-out - Task 6.3 & 6.6)
-    // ==========================================
+    // 5. XỬ LÝ CHECK-OUT
     async function handleCheckOut() {
       const btnCheckOut = document.getElementById('btn-checkout');
-
-      // Trạng thái Loading (Task 6.6)
       btnCheckOut.disabled = true;
       btnCheckOut.innerText = '⏳ Đang xử lý...';
 
@@ -248,9 +253,7 @@
       }
     }
 
-    // ==========================================
-    // 6. TẢI BẢNG LỊCH SỬ CHẤM CÔNG (GET /api/me/attendance - Task 6.4 & 6.6)
-    // ==========================================
+    // 6. TẢI BẢNG LỊCH SỬ CHẤM CÔNG
     async function loadHistory() {
       const tableBody = document.getElementById('history-table-body');
 
@@ -267,13 +270,11 @@
         const resData = await response.json();
         const logs = resData.data || resData || [];
 
-        // Trạng thái Rỗng
         if (logs.length === 0) {
           tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center;">📭 Chưa có lịch sử chấm công nào.</td></tr>`;
           return;
         }
 
-        // Đổ dữ liệu vào bảng
         tableBody.innerHTML = logs.map(item => {
           let badgeHtml = '<span class="badge badge-normal">Đúng giờ</span>';
           if (item.is_late) badgeHtml = '<span class="badge badge-late">Đi muộn</span>';
@@ -295,7 +296,6 @@
       }
     }
 
-    // Khởi tạo trang khi load xong
     window.onload = function() {
       loadTodayStatus();
       loadHistory();
