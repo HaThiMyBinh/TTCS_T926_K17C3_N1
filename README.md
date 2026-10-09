@@ -193,16 +193,3 @@ Kiểm thử toàn bộ: `cd backend && npm test -- --unit`, sau đó `cd backen
 
 ---
 
-## CÁC LUẬT NGHIỆP VỤ BỔ SUNG (rà soát US1–US19)
-
-- **Đăng ký (US6)**: tạo tài khoản + hồ sơ ứng tuyển trong cùng 1 transaction; lỗi giữa chừng thì rollback, không còn tài khoản mồ côi.
-- **Nộp lại hồ sơ**: ứng viên bị **Từ chối** được đăng ký lại bằng cùng email. Hệ thống dùng lại tài khoản/hồ sơ cũ,
-  cập nhật thông tin mới, đặt về "Chờ duyệt", xóa lý do từ chối và mở khóa tài khoản. Hồ sơ đang chờ duyệt / đã duyệt thì vẫn báo email đã tồn tại.
-- **Duyệt hồ sơ (US5, US7)**: luôn yêu cầu đủ CV + Đơn xin thực tập. Tham số `require_documents` đã bị bỏ, không còn cách bỏ qua điều kiện này.
-- **Hợp đồng đã xác nhận (US10)**: HR đổi một ngày **đã có** của hợp đồng đã xác nhận thì hợp đồng quay về *Chờ xác nhận*
-  (xóa thời điểm xác nhận, response có `reconfirmation_required: true`) và thực tập sinh phải xác nhận lại.
-  Điền ngày vào chỗ còn trống hoặc đổi chương trình thì không cần xác nhận lại.
-- **Ngày hợp đồng và chương trình (US13)**: hợp đồng gắn chương trình thì ngày bắt đầu/kết thúc phải nằm trong khoảng ngày của chương trình
-  (chương trình chưa có ngày thì không giới hạn). HR không thể thu hẹp khoảng ngày chương trình nếu có hợp đồng gắn kèm nằm ngoài khoảng mới (409).
-- **Trình tự (US15, US17, US19)**: giao nhiệm vụ, nộp báo cáo tuần và đánh giá tổng kết chỉ được thực hiện khi thực tập sinh có
-  ít nhất **1 hợp đồng đã xác nhận** (nếu không trả 409). Xem / xóa dữ liệu cũ và phản hồi báo cáo không bị chặn.
