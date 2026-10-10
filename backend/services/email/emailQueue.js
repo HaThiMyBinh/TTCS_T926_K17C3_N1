@@ -73,6 +73,30 @@ class EmailQueue extends EventEmitter {
     });
   }
 
+  // Gửi báo cáo cuối kỳ đã chốt kèm CSV: gửi ngay, không ghi email_logs, không retry; lỗi ném thẳng ra service
+  async sendFinalReportEmail({ to, report, message, csv, filename }) {
+    const config = smtpConfig.readConfig();
+    if (!smtpConfig.isConfigured(config)) {
+      const err = new Error(
+        "Chưa cấu hình SMTP đầy đủ (SMTP server / port / email gửi / App Password)!",
+      );
+      err.classification = "PERMANENT";
+      throw err;
+    }
+    const built = templates.renderFinalReportEmail({ report, message });
+    const transporter = emailSender.buildTransporter(config);
+    await emailSender.sendViaTransporter(transporter, {
+      from: formatFrom(config),
+      to,
+      subject: built.subject,
+      html: built.html,
+      text: built.text,
+      attachments: [
+        { filename, content: Buffer.from(csv, "utf8"), contentType: "text/csv; charset=utf-8" },
+      ],
+    });
+  }
+
   // Gọi 1 lần khi khởi động: nạp lại các log PENDING/RETRYING bị dang dở do server tắt/crash
   async loadPendingJobsFromDb() {
     const rows = await db.listPendingOrRetryingEmailLogs();
