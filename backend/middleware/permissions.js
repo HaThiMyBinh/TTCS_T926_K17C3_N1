@@ -20,9 +20,9 @@ function ensurePermissionsFile() {
 
   const defaultPermissions = {
     Admin: ["MANAGE_USERS", "SYSTEM_SETTINGS"],
-    HR: [],
+    HR: ["VIEW_REPORTS"],
     Mentor: ["ASSIGN_TASKS"],
-    Intern: [],
+    Intern: ["SUBMIT_WORK"],
   };
 
   writeJson(PERMISSIONS_FILE, defaultPermissions);

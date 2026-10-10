@@ -101,6 +101,8 @@ Các file test nằm trong `backend/tests/`. Chỉ cần: đã cài Node.js và 
 cd backend
 npm test                      # Chạy TẤT CẢ test bằng 1 lệnh
 npm run test:unit             # Chỉ unit test (KHÔNG cần MySQL / backend)
+npm run test:attendance-unit  # Unit test chấm công
+npm run test:final-reports-unit # Unit test báo cáo cuối kỳ
 npm run test:contracts-unit   # Unit test hợp đồng
 npm run test:intern-filter-unit # Unit test bộ lọc thực tập sinh
 npm run test:intern-filter-api  # API test bộ lọc (cần MySQL / backend)
@@ -193,6 +195,34 @@ Kiểm thử toàn bộ: `cd backend && npm test -- --unit`, sau đó `cd backen
 
 ---
 
+## CHẤM CÔNG THỰC TẬP SINH (US6)
+
+- Intern check-in/check-out bằng giờ máy chủ theo múi giờ Việt Nam; mỗi ngày tối đa một lượt. Check-in cần có hợp đồng đã xác nhận và nằm trong kỳ thực tập của hợp đồng. Check-out chỉ thực hiện trong cùng ngày Việt Nam; quên check-out thì giữ trạng thái thiếu và không tính giờ.
+- Bảng `attendance_records` được tạo trong `schema.sql` và `db.initDatabase()`, xóa hồ sơ intern thì xóa bản ghi. Thời lượng được tính từ mốc check-in/check-out, không lưu cứng.
+- API (chỉ Intern; dữ liệu luôn lấy từ email trong token):
+  - `GET /api/me/attendance/today` — trạng thái, ngày và giờ máy chủ.
+  - `POST /api/me/attendance/check-in` — body tùy chọn `{ note }`.
+  - `POST /api/me/attendance/check-out` — body `{}`.
+  - `GET /api/me/attendance?from=YYYY-MM-DD&to=YYYY-MM-DD` — lịch sử và tổng thời lượng (mặc định tháng hiện tại, tối đa 366 ngày).
+- Lỗi chính: 400 dữ liệu sai, 401 chưa đăng nhập, 403 sai vai trò, 404 thiếu hồ sơ intern, 409 sai trình tự hoặc chưa đủ điều kiện hợp đồng.
+- Chưa có: HR/Mentor xem hoặc duyệt công, sửa giờ/bổ sung công, nhiều ca mỗi ngày, GPS/IP/ảnh, xuất Excel, nhắc quên check-out.
+- Kiểm thử: `cd backend && npm run test:attendance-unit`; API: `npm run test:attendance-api` (cần MySQL và backend).
+
+## BÁO CÁO TỔNG KẾT CUỐI KỲ (HR, US5)
+
+- HR tạo bản nháp theo phạm vi toàn bộ, trường hoặc chương trình; xem trước điểm đánh giá, báo cáo tuần, nhiệm vụ và (nếu có) tổng phút chấm công. Người chưa được đánh giá được ghi rõ “Chưa đánh giá” và không ảnh hưởng điểm trung bình.
+- Khi chốt, hệ thống lưu snapshot bất biến. Báo cáo đã chốt không sửa/xóa được. HR có thể in/Lưu PDF từ trình duyệt hoặc tải CSV UTF-8 BOM.
+- API (chỉ HR; các API đánh giá của Mentor vẫn giữ quyền cũ):
+  - `GET /api/final-reports/preview?scope_type=&scope_value=&from=&to=`
+  - `GET/POST /api/final-reports` — danh sách và tạo nháp.
+  - `GET/PUT/DELETE /api/final-reports/:id` — xem, sửa hoặc xóa bản nháp.
+  - `POST /api/final-reports/:id/finalize` — chốt snapshot.
+  - `GET /api/final-reports/:id/export.csv` — xuất dữ liệu.
+  - `GET /api/final-reports/recipients?scope_type=&scope_value=` — gợi ý email người nhận theo phạm vi; `DELETE /api/final-reports/recipients/:id` — xóa khỏi gợi ý.
+- Phạm vi chỉ gồm dữ liệu cần gửi; không đưa email, số điện thoại, tệp hoặc chi tiết hợp đồng. Không áp dụng nhãn xếp loại vì chưa có thang chính thức được xác nhận.
+- Chưa có: gửi email tự động, PDF sinh ở server, chữ ký số, lịch sử phiên bản, lịch chốt tự động, quyền xem cho Mentor/Intern.
+- Kiểm thử: `cd backend && npm run test:final-reports-unit`; API: `npm run test:final-reports-api` (cần MySQL và backend).
+
 ## CÁC LUẬT NGHIỆP VỤ BỔ SUNG (rà soát US1–US19)
 
 - **Đăng ký (US6)**: tạo tài khoản + hồ sơ ứng tuyển trong cùng 1 transaction; lỗi giữa chừng thì rollback, không còn tài khoản mồ côi.
@@ -206,3 +236,24 @@ Kiểm thử toàn bộ: `cd backend && npm test -- --unit`, sau đó `cd backen
   (chương trình chưa có ngày thì không giới hạn). HR không thể thu hẹp khoảng ngày chương trình nếu có hợp đồng gắn kèm nằm ngoài khoảng mới (409).
 - **Trình tự (US15, US17, US19)**: giao nhiệm vụ, nộp báo cáo tuần và đánh giá tổng kết chỉ được thực hiện khi thực tập sinh có
   ít nhất **1 hợp đồng đã xác nhận** (nếu không trả 409). Xem / xóa dữ liệu cũ và phản hồi báo cáo không bị chặn.
+
+## Cập nhật sau rà soát nghiệp vụ US5 / US6
+
+### US6 – Chấm công (thực tập sinh)
+- **Ca qua đêm / quên check-out:** check-out nhận cả ca mở bắt đầu trong vòng 16 giờ (kể cả qua nửa đêm). Ca mở lâu hơn 16 giờ mới bị coi là `MISSING_CHECKOUT`. Đang còn ca mở của ngày trước thì chưa check-in ngày mới được.
+- **Bổ sung check-out có duyệt:** thực tập sinh gửi `POST /api/me/attendance/:id/correction` (`check_out_at`, `reason`) cho ngày quên check-out trong vòng 30 ngày. Chỉ khi Mentor phụ trách hoặc HR duyệt thì giờ mới được tính vào giờ làm (bản ghi gắn cờ `isAdjusted`). Bị từ chối thì được gửi lại.
+- **HR / Mentor xem và duyệt:** `GET /api/interns/:id/attendance`, `GET /api/attendance/corrections/pending`, `POST /api/attendance/:id/correction/review` (`decision`: `APPROVED` | `REJECTED`, từ chối bắt buộc có `note`). Mentor chỉ thấy thực tập sinh mình phụ trách. Giao diện: tab "Chấm công thực tập sinh".
+- **Kỳ thực tập:** chỉ check-in được vào ngày nằm trong kỳ của *ít nhất một hợp đồng đã xác nhận* (không còn lọt vào khoảng trống giữa hai hợp đồng).
+- **Phân quyền:** API của thực tập sinh yêu cầu quyền `SUBMIT_WORK` như báo cáo tuần.
+
+### US5 – Báo cáo cuối kỳ (HR)
+- **Giờ làm và nhiệm vụ tính theo kỳ báo cáo** khi chọn khoảng ngày (nhiệm vụ tính theo hạn nộp, không có hạn thì theo ngày giao).
+- **Chỉ thực tập sinh có hợp đồng đã xác nhận** mới vào báo cáo, kể cả khi không chọn khoảng ngày.
+- **Tên chương trình / phòng ban** liệt kê đủ các chương trình của thực tập sinh (khi lọc theo chương trình thì chỉ chương trình đó).
+- **Chốt báo cáo khi còn người chưa được đánh giá** trả `409` mã `INCOMPLETE_EVALUATION`; chỉ chốt được khi gửi `{ "confirm_incomplete": true }` (giao diện hỏi xác nhận).
+- **Gửi email:** `POST /api/final-reports/:id/send` (`recipients` tối đa 10 email, `message` tùy chọn) gửi báo cáo *đã chốt* kèm file CSV qua SMTP đã cấu hình. Bản nháp không gửi được. Mỗi lần gửi thành công được ghi vào bảng `final_report_sends` (người gửi, người nhận, lời nhắn, thời điểm); danh sách báo cáo hiển thị trạng thái **Đã gửi**, số lần và người nhận gần nhất. Email người nhận được lưu vào `final_report_recipients` để gợi ý cho báo cáo cùng phạm vi lần sau.
+- Giao diện và CSV hiển thị giờ làm; tổng giờ làm nằm trong `summary.totalWorkMinutes`.
+- **Phân quyền:** HR cần quyền `VIEW_REPORTS`. `permissions.json` và mặc định đã gán `VIEW_REPORTS` cho HR. Hệ thống đang chạy với `permissions.json` cũ (HR rỗng) cần Admin cấp quyền này trong ma trận phân quyền.
+
+### Nâng cấp CSDL
+Bảng `attendance_records` có thêm các cột `is_adjusted`, `correction_*`. Server tự thêm cột vào database cũ khi khởi động (`ensureColumn`); `schema.sql` đã cập nhật cho database mới.

@@ -14,10 +14,12 @@ const internsRouter = require("./routes/interns.routes");
 const contractsRouter = require("./routes/contracts.routes");
 const programsRouter = require("./routes/programs.routes");
 const scheduleRouter = require("./routes/schedule.routes");
+const workSchedulesRouter = require("./routes/workSchedules.routes");
 const tasksRouter = require("./routes/tasks.routes");
 const weeklyReportsRouter = require("./routes/weeklyReports.routes");
 const evaluationsRouter = require("./routes/evaluations.routes");
 const attendanceRouter = require("./routes/attendance.routes");
+const finalReportsRouter = require("./routes/finalReports.routes");
 const {
   applicationEvents,
   REVIEWED_EVENT,
@@ -42,6 +44,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(FRONTEND_DIR));
+app.use("/api/final-reports", (req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); });
+app.use("/api/me/attendance", (req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); });
 app.use(apiAuthentication);
 ensurePermissionsFile();
 
@@ -56,10 +60,12 @@ app.use("/api", internsRouter);
 app.use("/api", contractsRouter);
 app.use("/api", programsRouter);
 app.use("/api", scheduleRouter);
+app.use("/api", workSchedulesRouter);
 app.use("/api", tasksRouter);
 app.use("/api", weeklyReportsRouter);
 app.use("/api", evaluationsRouter);
 app.use("/api", attendanceRouter);
+app.use("/api", finalReportsRouter);
 
 app.get("/login", (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "login.html"));

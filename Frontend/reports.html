@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xuất Báo Cáo - US 5.7</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; }
+        .report-box { border: 1px solid #ccc; padding: 20px; border-radius: 8px; max-width: 600px; }
+        .filter-group { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .filter-item { display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 5px; }
+        input, select, button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #0d6efd; color: white; cursor: pointer; font-weight: bold; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .alert { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
+        .alert-error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+    </style>
+</head>
+<body>
+
+    <div class="report-box">
+        <h2>Báo Cáo & Thống Kê</h2>
+        
+        <!-- BỘ LỌC (FILTERS) -->
+        <div class="filter-group">
+            <div class="filter-item">
+                <label for="fromDate">Từ ngày:</label>
+                <input type="date" id="fromDate">
+            </div>
+            <div class="filter-item">
+                <label for="toDate">Đến ngày:</label>
+                <input type="date" id="toDate">
+            </div>
+            <div class="filter-item">
+                <label for="reportType">Loại báo cáo:</label>
+                <select id="reportType">
+                    <option value="ALL">Tất cả dữ liệu</option>
+                    <option value="ATTENDANCE">Điểm danh</option>
+                    <option value="EVALUATION">Đánh giá</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- NÚT XUẤT BÁO CÁO -->
+        <button id="btnExport" onclick="exportReport()">Xuất Báo Cáo</button>
+
+        <!-- KHU VỰC HIỂN THỊ LỖI / THÔNG BÁO -->
+        <div id="alertBox" class="alert"></div>
+    </div>
+
+    <script>
+        async function exportReport() {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const reportType = document.getElementById('reportType').value;
+            const btnExport = document.getElementById('btnExport');
+            const alertBox = document.getElementById('alertBox');
+
+            // Reset thông báo
+            alertBox.style.display = 'none';
+            alertBox.className = 'alert';
+
+            // Validation bộ lọc cơ bản
+            if (!fromDate || !toDate) {
+                showAlert('Vui lòng chọn đầy đủ từ ngày và đến ngày!', 'error');
+                return;
+            }
+
+            // Trạng thái đang tải
+            btnExport.disabled = true;
+            btnExport.innerText = 'Đang xuất file...';
+
+            try {
+                // Gọi API backend kèm bộ lọc query string
+                const queryParams = new URLSearchParams({ fromDate, toDate, reportType });
+                const response = await fetch(`/api/reports/export?${queryParams.toString()}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
+                    }
+                });
+
+                // Xử lý các mã lỗi HTTP status (401, 403, 404, 500)
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('401: Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!');
+                    } else if (response.status === 403) {
+                        throw new Error('403: Bạn không có quyền xuất báo cáo!');
+                    } else if (response.status === 404) {
+                        throw new Error('404: Không tìm thấy dữ liệu báo cáo theo bộ lọc đã chọn!');
+                    } else if (response.status === 500) {
+                        throw new Error('500: Lỗi hệ thống máy chủ. Vui lòng thử lại sau!');
+                    } else {
+                        throw new Error(`Lỗi (${response.status}): Không thể xuất báo cáo.`);
+                    }
+                }
+
+                // Nhận file Blob và tự động tải xuống
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `BaoCao_${fromDate}_den_${toDate}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(downloadUrl);
+
+                showAlert('Tải file báo cáo thành công!', 'success');
+
+            } catch (error) {
+                showAlert(error.message, 'error');
+            } finally {
+                btnExport.disabled = false;
+                btnExport.innerText = 'Xuất Báo Cáo';
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.innerText = message;
+            alertBox.className = `alert alert-${type}`;
+            alertBox.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

@@ -3,7 +3,9 @@
     "MANAGE_USERS",
     "SYSTEM_SETTINGS"
   ],
-  "HR": [],
+  "HR": [
+    "VIEW_REPORTS"
+  ],
   "Mentor": [
     "ASSIGN_TASKS"
   ],

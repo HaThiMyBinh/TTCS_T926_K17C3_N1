@@ -648,19 +648,78 @@ async function initDatabase() {
     CONSTRAINT fk_evaluation_mentor FOREIGN KEY (mentor_id) REFERENCES mentors(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
-  // Chấm công hằng ngày của thực tập sinh: mỗi intern 1 lần check-in cho mỗi ngày làm việc (UNIQUE intern_id + work_date).
-  // work_date / check_in_at theo giờ Việt Nam do server tính; is_late = check-in sau giờ quy định.
-  await pool.query(`CREATE TABLE IF NOT EXISTS attendance_logs (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    intern_id BIGINT NOT NULL,
-    work_date DATE NOT NULL,
-    check_in_at DATETIME NOT NULL,
-    is_late TINYINT(1) NOT NULL DEFAULT 0,
+  await pool.query(`CREATE TABLE IF NOT EXISTS attendance_records (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, intern_id BIGINT NOT NULL, work_date DATE NOT NULL,
+    check_in_at DATETIME NOT NULL, check_out_at DATETIME NULL, note VARCHAR(255) NULL,
+    is_adjusted TINYINT(1) NOT NULL DEFAULT 0,
+    correction_status ENUM('PENDING','APPROVED','REJECTED') NULL,
+    correction_check_out_at DATETIME NULL, correction_reason VARCHAR(255) NULL,
+    correction_requested_at DATETIME NULL, correction_reviewed_by BIGINT NULL,
+    correction_reviewed_at DATETIME NULL, correction_review_note VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_attendance_intern_date (intern_id, work_date),
-    INDEX idx_attendance_date (work_date),
+    CONSTRAINT chk_attendance_checkout CHECK (check_out_at IS NULL OR check_out_at >= check_in_at),
     CONSTRAINT fk_attendance_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  // Database cũ: bổ sung các cột bổ sung check-out (đề nghị điều chỉnh giờ ra do quên check-out).
+  await ensureColumn("attendance_records", "is_adjusted", "TINYINT(1) NOT NULL DEFAULT 0");
+  await ensureColumn("attendance_records", "correction_status", "ENUM('PENDING','APPROVED','REJECTED') NULL");
+  await ensureColumn("attendance_records", "correction_check_out_at", "DATETIME NULL");
+  await ensureColumn("attendance_records", "correction_reason", "VARCHAR(255) NULL");
+  await ensureColumn("attendance_records", "correction_requested_at", "DATETIME NULL");
+  await ensureColumn("attendance_records", "correction_reviewed_by", "BIGINT NULL");
+  await ensureColumn("attendance_records", "correction_reviewed_at", "DATETIME NULL");
+  await ensureColumn("attendance_records", "correction_review_note", "VARCHAR(255) NULL");
+  await pool.query(`CREATE TABLE IF NOT EXISTS final_reports (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL,
+    scope_type ENUM('ALL','UNIVERSITY','PROGRAM') NOT NULL, scope_value VARCHAR(255) NULL,
+    period_from DATE NULL, period_to DATE NULL,
+    status ENUM('DRAFT','FINALIZED') NOT NULL DEFAULT 'DRAFT', hr_note TEXT NULL,
+    snapshot_json LONGTEXT NULL, created_by BIGINT NULL, finalized_by BIGINT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, finalized_at DATETIME NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_final_report_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_final_report_finalizer FOREIGN KEY (finalized_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  // Lịch sử gửi báo cáo cuối kỳ (mỗi lần gửi email thành công là một dòng).
+  await pool.query(`CREATE TABLE IF NOT EXISTS final_report_sends (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, report_id BIGINT NOT NULL, sent_by BIGINT NULL,
+    recipients TEXT NOT NULL, message VARCHAR(1000) NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_final_report_sends_report (report_id, sent_at),
+    CONSTRAINT fk_final_report_send_report FOREIGN KEY (report_id) REFERENCES final_reports(id) ON DELETE CASCADE,
+    CONSTRAINT fk_final_report_send_user FOREIGN KEY (sent_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  // Danh sách email người nhận đã dùng, gợi ý theo phạm vi báo cáo (scope_value rỗng = phạm vi ALL).
+  await pool.query(`CREATE TABLE IF NOT EXISTS final_report_recipients (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(254) NOT NULL,
+    scope_type ENUM('ALL','UNIVERSITY','PROGRAM') NOT NULL, scope_value VARCHAR(255) NOT NULL DEFAULT '',
+    created_by BIGINT NULL, last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_final_report_recipient (email, scope_type, scope_value),
+    CONSTRAINT fk_final_report_recipient_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+  // Lịch làm việc linh hoạt theo nhóm (US8): mỗi dòng là 1 ca của 1 nhóm trong 1 thứ của tuần.
+  // day_of_week theo ISO: 1 = Thứ Hai ... 7 = Chủ nhật. grace_minutes = thời gian du di (phút) sau giờ vào.
+  // Cùng nhóm + cùng thứ không được có 2 ca chồng giờ (service kiểm tra trong transaction có khóa).
+  await pool.query(`CREATE TABLE IF NOT EXISTS work_schedules (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    group_name VARCHAR(100) NOT NULL COLLATE utf8mb4_unicode_ci,
+    day_of_week TINYINT UNSIGNED NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    grace_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    created_by BIGINT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT chk_ws_day CHECK (day_of_week BETWEEN 1 AND 7),
+    CONSTRAINT chk_ws_time CHECK (start_time < end_time),
+    CONSTRAINT chk_ws_grace CHECK (grace_minutes <= 120),
+    INDEX idx_ws_group_day (group_name, day_of_week),
+    CONSTRAINT fk_ws_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await seedDefaultWorkSchedules(pool);
 
   await seedDepartmentsFromMentors(pool);
 
@@ -2277,6 +2336,94 @@ async function upsertInternEvaluation({
   return findInternEvaluation(internId);
 }
 
+async function getServerDateTime() {
+  const [rows] = await requireDb().query("SELECT DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s') AS serverNow");
+  return rows[0]?.serverNow;
+}
+const ATTENDANCE_COLUMNS = `a.id, a.intern_id AS internId, DATE_FORMAT(a.work_date, '%Y-%m-%d') AS workDate,
+    DATE_FORMAT(a.check_in_at, '%Y-%m-%d %H:%i:%s') AS checkInAt, DATE_FORMAT(a.check_out_at, '%Y-%m-%d %H:%i:%s') AS checkOutAt,
+    a.note, TIMESTAMPDIFF(MINUTE, a.check_in_at, a.check_out_at) AS durationMinutes, a.is_adjusted AS isAdjusted,
+    a.correction_status AS correctionStatus, DATE_FORMAT(a.correction_check_out_at, '%Y-%m-%d %H:%i:%s') AS correctionCheckOutAt,
+    a.correction_reason AS correctionReason, DATE_FORMAT(a.correction_requested_at, '%Y-%m-%d %H:%i:%s') AS correctionRequestedAt,
+    DATE_FORMAT(a.correction_reviewed_at, '%Y-%m-%d %H:%i:%s') AS correctionReviewedAt, a.correction_review_note AS correctionReviewNote`;
+async function findAttendanceByInternDate(internId, workDate) {
+  const [rows] = await requireDb().query(`SELECT ${ATTENDANCE_COLUMNS} FROM attendance_records a WHERE a.intern_id = ? AND a.work_date = ? LIMIT 1`, [internId, workDate]);
+  return rows[0] || null;
+}
+async function findAttendanceById(id) {
+  const [rows] = await requireDb().query(`SELECT ${ATTENDANCE_COLUMNS} FROM attendance_records a WHERE a.id = ? LIMIT 1`, [id]);
+  return rows[0] || null;
+}
+// Ca đang mở (chưa check-out) bắt đầu trong vòng maxHours giờ gần nhất — gồm cả ca qua đêm.
+async function findOpenAttendance(internId, maxHours) {
+  const [rows] = await requireDb().query(`SELECT ${ATTENDANCE_COLUMNS} FROM attendance_records a
+    WHERE a.intern_id = ? AND a.check_out_at IS NULL AND a.check_in_at >= (NOW() - INTERVAL ? HOUR)
+    ORDER BY a.check_in_at DESC LIMIT 1`, [internId, maxHours]);
+  return rows[0] || null;
+}
+// Ngày làm việc có nằm trong ít nhất một hợp đồng đã xác nhận không (không tính khoảng trống giữa các hợp đồng).
+async function hasConfirmedContractOn(internId, date) {
+  const [rows] = await requireDb().query(`SELECT 1 FROM internship_contracts WHERE intern_id = ? AND confirmation_status = 'CONFIRMED'
+    AND (start_date IS NULL OR start_date <= ?) AND (end_date IS NULL OR end_date >= ?) LIMIT 1`, [internId, date, date]);
+  return rows.length > 0;
+}
+async function insertAttendance({ internId, workDate, note }) {
+  try {
+    await requireDb().query(`INSERT INTO attendance_records (intern_id, work_date, check_in_at, note)
+      VALUES (?, ?, NOW(), ?)`, [internId, workDate, note]);
+    return findAttendanceByInternDate(internId, workDate);
+  }
+  catch (err) {
+    if (err.code === "ER_DUP_ENTRY")
+      return "DUPLICATE";
+    throw err;
+  }
+}
+async function checkOutAttendance(id) {
+  const [result] = await requireDb().query("UPDATE attendance_records SET check_out_at = NOW() WHERE id = ? AND check_out_at IS NULL", [id]);
+  if (!result.affectedRows)
+    return null;
+  return findAttendanceById(id);
+}
+async function listAttendance(internId, from, to) {
+  const [rows] = await requireDb().query(`SELECT ${ATTENDANCE_COLUMNS} FROM attendance_records a
+    WHERE a.intern_id = ? AND a.work_date BETWEEN ? AND ? ORDER BY a.work_date DESC`, [internId, from, to]);
+  return rows;
+}
+// Thực tập sinh đề nghị bổ sung giờ check-out cho ca quên check-out. Cho gửi lại sau khi bị từ chối.
+async function requestAttendanceCorrection({ id, internId, checkOutAt, reason }) {
+  const [result] = await requireDb().query(`UPDATE attendance_records SET correction_status = 'PENDING', correction_check_out_at = ?,
+    correction_reason = ?, correction_requested_at = NOW(), correction_reviewed_by = NULL, correction_reviewed_at = NULL, correction_review_note = NULL
+    WHERE id = ? AND intern_id = ? AND check_out_at IS NULL AND (correction_status IS NULL OR correction_status = 'REJECTED')`, [checkOutAt, reason, id, internId]);
+  return result.affectedRows;
+}
+async function reviewAttendanceCorrection({ id, decision, userId, note }) {
+  const approved = decision === "APPROVED";
+  const [result] = await requireDb().query(`UPDATE attendance_records SET correction_status = ?,
+    check_out_at = IF(?, correction_check_out_at, check_out_at), is_adjusted = IF(?, 1, is_adjusted),
+    correction_reviewed_by = ?, correction_reviewed_at = NOW(), correction_review_note = ?
+    WHERE id = ? AND correction_status = 'PENDING' AND check_out_at IS NULL`, [
+    decision,
+    approved,
+    approved,
+    userId,
+    note || null,
+    id
+  ]);
+  return result.affectedRows;
+}
+async function listPendingAttendanceCorrections(mentorId = null) {
+  const params = [];
+  let extra = "";
+  if (mentorId) {
+    extra = " AND ip.mentor_id = ?";
+    params.push(mentorId);
+  }
+  const [rows] = await requireDb().query(`SELECT ${ATTENDANCE_COLUMNS}, ip.full_name AS fullName, ip.student_code AS studentCode
+    FROM attendance_records a JOIN intern_profiles ip ON ip.id = a.intern_id
+    WHERE a.correction_status = 'PENDING'${extra} ORDER BY a.correction_requested_at ASC, a.id ASC`, params);
+  return rows;
+}
 async function deleteInternEvaluation(internId) {
   const [result] = await requireDb().query(
     "DELETE FROM intern_evaluations WHERE intern_id = ?",
@@ -2286,6 +2433,143 @@ async function deleteInternEvaluation(internId) {
 }
 
 // Mọi thực tập sinh của mentor kèm đánh giá (nếu có) — dùng cho bảng tổng quan.
+async function listFinalReportInterns({ scopeType, scopeValue, from, to }) {
+  // Thứ tự tham số phải khớp thứ tự xuất hiện trong câu SQL: các subquery trước, bộ lọc WHERE sau.
+  const cpParams = [], taskParams = [], attParams = [], params = [];
+  // Chỉ thực tập sinh đã có hợp đồng xác nhận (đang/đã thực tập thật) mới vào báo cáo.
+  const filters = ["EXISTS (SELECT 1 FROM internship_contracts c0 WHERE c0.intern_id=ip.id AND c0.confirmation_status='CONFIRMED')"];
+  let programClause = "";
+  if (scopeType === "UNIVERSITY") {
+    filters.push("TRIM(ip.university) = TRIM(?)");
+    params.push(scopeValue);
+  }
+  if (scopeType === "PROGRAM") {
+    filters.push("EXISTS (SELECT 1 FROM internship_contracts c WHERE c.intern_id=ip.id AND c.confirmation_status='CONFIRMED' AND c.program_id=?)");
+    params.push(scopeValue);
+    programClause = " AND c.program_id = ?";
+    cpParams.push(scopeValue);
+  }
+  if (from) {
+    filters.push("p.startDate IS NOT NULL AND (p.endDate IS NULL OR p.endDate >= ?)");
+    params.push(from);
+  }
+  if (to) {
+    filters.push("p.startDate IS NOT NULL AND p.startDate <= ?");
+    params.push(to);
+  }
+  // Nhiệm vụ và giờ làm chỉ tính trong kỳ báo cáo (nhiệm vụ theo hạn nộp, không có hạn thì theo ngày giao).
+  let taskPeriod = "", attPeriod = "";
+  if (from) {
+    taskPeriod += " AND COALESCE(due_date, DATE(created_at)) >= ?";
+    taskParams.push(from);
+    attPeriod += " AND work_date >= ?";
+    attParams.push(from);
+  }
+  if (to) {
+    taskPeriod += " AND COALESCE(due_date, DATE(created_at)) <= ?";
+    taskParams.push(to);
+    attPeriod += " AND work_date <= ?";
+    attParams.push(to);
+  }
+  const [rows] = await requireDb().query(`SELECT ip.id AS internId, ip.full_name AS fullName, ip.student_code AS studentCode,
+    ip.university, ip.major, COALESCE(m.full_name, ip.mentor_name) AS mentorName,
+    p.startDate, p.endDate, cp.programName, cp.departmentName,
+    ev.skill_score AS skillScore, ev.skill_comment AS skillComment, ev.attitude_score AS attitudeScore,
+    ev.attitude_comment AS attitudeComment, ev.overall_comment AS overallComment,
+    COALESCE(ts.taskCount,0) AS taskCount, COALESCE(ts.completedTaskCount,0) AS completedTaskCount,
+    COALESCE(att.totalWorkMinutes,0) AS totalWorkMinutes
+    FROM intern_profiles ip LEFT JOIN mentors m ON m.id=ip.mentor_id
+    LEFT JOIN intern_evaluations ev ON ev.intern_id=ip.id
+    LEFT JOIN (SELECT intern_id, MIN(start_date) AS startDate, CASE WHEN SUM(end_date IS NULL)>0 THEN NULL ELSE MAX(end_date) END AS endDate
+      FROM internship_contracts WHERE confirmation_status='CONFIRMED' GROUP BY intern_id) p ON p.intern_id=ip.id
+    LEFT JOIN (SELECT c.intern_id, GROUP_CONCAT(DISTINCT pr.name ORDER BY pr.name SEPARATOR ', ') AS programName,
+        GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ') AS departmentName
+      FROM internship_contracts c JOIN internship_programs pr ON pr.id=c.program_id LEFT JOIN departments d ON d.id=pr.department_id
+      WHERE c.confirmation_status='CONFIRMED'${programClause} GROUP BY c.intern_id) cp ON cp.intern_id=ip.id
+    LEFT JOIN (SELECT intern_id, COUNT(*) AS taskCount, SUM(status='DONE') AS completedTaskCount FROM intern_tasks WHERE 1=1${taskPeriod} GROUP BY intern_id) ts ON ts.intern_id=ip.id
+    LEFT JOIN (SELECT intern_id, SUM(TIMESTAMPDIFF(MINUTE,check_in_at,check_out_at)) AS totalWorkMinutes FROM attendance_records WHERE check_out_at IS NOT NULL${attPeriod} GROUP BY intern_id) att ON att.intern_id=ip.id
+    WHERE ${filters.join(" AND ")} ORDER BY ip.full_name, ip.id`, [...cpParams, ...taskParams, ...attParams, ...params]);
+  if (!rows.length)
+    return rows;
+  const ids = rows.map(r => r.internId);
+  const [reports] = await requireDb().query("SELECT intern_id AS internId, week_start AS weekStart, is_late AS isLate FROM weekly_reports WHERE intern_id IN (?)", [ids]);
+  const grouped = new Map();
+  for (const r of reports)
+    (grouped.get(Number(r.internId)) || (grouped.set(Number(r.internId), []), grouped.get(Number(r.internId)))).push(r);
+  return rows.map(r => ({ ...r, weeklyReports: grouped.get(Number(r.internId)) || [] }));
+}
+async function getFinalReportFilterOptions() {
+  const [programs] = await requireDb().query("SELECT id, name FROM internship_programs ORDER BY name");
+  return { ...(await getInternFilterOptions()), programs };
+}
+async function createFinalReport(fields, userId) {
+  const [result] = await requireDb().query(`INSERT INTO final_reports (title,scope_type,scope_value,period_from,period_to,hr_note,created_by)
+    VALUES (?,?,?,?,?,?,?)`, [fields.title,fields.scopeType,fields.scopeValue,fields.periodFrom,fields.periodTo,fields.hrNote,userId]);
+  return findFinalReportById(result.insertId);
+}
+async function listFinalReports({ status = null, limit = 20, offset = 0 } = {}) {
+  const params = [];
+  const where = status ? "WHERE fr.status = ?" : "";
+  if (status) params.push(status);
+  params.push(limit, offset);
+  const [rows] = await requireDb().query(`SELECT fr.id,fr.title,fr.scope_type AS scopeType,fr.scope_value AS scopeValue,
+    fr.period_from AS periodFrom,fr.period_to AS periodTo,fr.status,fr.created_by AS createdBy,u.name AS createdByName,
+    fr.created_at AS createdAt,fr.finalized_at AS finalizedAt,
+    (SELECT COUNT(*) FROM final_report_sends s WHERE s.report_id=fr.id) AS sendCount,
+    (SELECT MAX(s.sent_at) FROM final_report_sends s WHERE s.report_id=fr.id) AS lastSentAt,
+    (SELECT s.recipients FROM final_report_sends s WHERE s.report_id=fr.id ORDER BY s.sent_at DESC, s.id DESC LIMIT 1) AS lastRecipients
+    FROM final_reports fr LEFT JOIN users u ON u.id=fr.created_by ${where} ORDER BY fr.created_at DESC, fr.id DESC LIMIT ? OFFSET ?`, params);
+  return rows;
+}
+async function findFinalReportById(id) {
+  const [rows] = await requireDb().query(`SELECT id,title,scope_type AS scopeType,scope_value AS scopeValue,
+    period_from AS periodFrom,period_to AS periodTo,status,hr_note AS hrNote,snapshot_json AS snapshotJson,
+    created_by AS createdBy,finalized_by AS finalizedBy,created_at AS createdAt,finalized_at AS finalizedAt,updated_at AS updatedAt
+    FROM final_reports WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] || null;
+}
+async function updateFinalReport(id, fields) {
+  const [result] = await requireDb().query(`UPDATE final_reports SET title=?,scope_type=?,scope_value=?,period_from=?,period_to=?,hr_note=? WHERE id=? AND status='DRAFT'`,
+    [fields.title,fields.scopeType,fields.scopeValue,fields.periodFrom,fields.periodTo,fields.hrNote,id]);
+  return result.affectedRows;
+}
+async function finalizeFinalReport(id, userId, snapshot) {
+  const [result] = await requireDb().query(`UPDATE final_reports SET status='FINALIZED',snapshot_json=?,finalized_by=?,finalized_at=NOW()
+    WHERE id=? AND status='DRAFT'`, [JSON.stringify(snapshot),userId,id]);
+  return result.affectedRows;
+}
+async function deleteFinalReport(id) {
+  const [result] = await requireDb().query("DELETE FROM final_reports WHERE id=? AND status='DRAFT'", [id]);
+  return result.affectedRows;
+}
+async function recordFinalReportSend({ reportId, userId, recipients, message }) {
+  const [result] = await requireDb().query("INSERT INTO final_report_sends (report_id,sent_by,recipients,message) VALUES (?,?,?,?)",
+    [reportId, userId || null, JSON.stringify(recipients), message || null]);
+  return result.insertId;
+}
+async function listFinalReportSends(reportId) {
+  const [rows] = await requireDb().query(`SELECT s.id,s.recipients,s.message,s.sent_at AS sentAt,s.sent_by AS sentBy,u.name AS sentByName
+    FROM final_report_sends s LEFT JOIN users u ON u.id=s.sent_by WHERE s.report_id=? ORDER BY s.sent_at DESC, s.id DESC`, [reportId]);
+  return rows;
+}
+async function upsertFinalReportRecipients({ emails, scopeType, scopeValue, userId }) {
+  const value = scopeType === "ALL" ? "" : String(scopeValue || "");
+  for (const email of emails)
+    await requireDb().query(`INSERT INTO final_report_recipients (email,scope_type,scope_value,created_by) VALUES (?,?,?,?)
+      ON DUPLICATE KEY UPDATE last_used_at=CURRENT_TIMESTAMP`, [email, scopeType, value, userId || null]);
+}
+async function listFinalReportRecipients({ scopeType, scopeValue }) {
+  const value = scopeType === "ALL" ? "" : String(scopeValue || "");
+  const [rows] = await requireDb().query(`SELECT id,email,scope_type AS scopeType,scope_value AS scopeValue,last_used_at AS lastUsedAt
+    FROM final_report_recipients WHERE (scope_type=? AND scope_value=?) OR scope_type='ALL'
+    ORDER BY (scope_type=?) DESC, last_used_at DESC, id DESC LIMIT 30`, [scopeType, value, scopeType]);
+  return rows;
+}
+async function deleteFinalReportRecipient(id) {
+  const [result] = await requireDb().query("DELETE FROM final_report_recipients WHERE id=?", [id]);
+  return result.affectedRows;
+}
+
 async function listEvaluationsForMentor(mentorId) {
   const [rows] = await requireDb().query(
     `SELECT ip.id AS internId, ip.full_name AS internName, ip.student_code AS studentCode,
@@ -2716,48 +3000,6 @@ async function confirmContractAtomic(internId, contractId, userId) {
   });
 }
 
-// ---------- Chấm công (attendance_logs) ----------
-const ATTENDANCE_COLUMNS = `id, intern_id AS internId, work_date AS workDate,
-  check_in_at AS checkInAt, is_late AS isLate`;
-
-async function findAttendanceByDate(internId, workDate) {
-  const [rows] = await requireDb().query(
-    `SELECT ${ATTENDANCE_COLUMNS} FROM attendance_logs
-     WHERE intern_id = ? AND work_date = ? LIMIT 1`,
-    [internId, workDate],
-  );
-  return rows[0] || null;
-}
-
-// Ghi 1 lần check-in. Trùng (intern_id, work_date) -> trả { duplicate: true } thay vì ném lỗi,
-// để chặn đúng cả khi 2 request đến cùng lúc.
-async function insertAttendanceLog({ internId, workDate, checkInAt, isLate }) {
-  try {
-    const [result] = await requireDb().query(
-      `INSERT INTO attendance_logs (intern_id, work_date, check_in_at, is_late)
-       VALUES (?, ?, ?, ?)`,
-      [internId, workDate, checkInAt, isLate ? 1 : 0],
-    );
-    const [rows] = await requireDb().query(
-      `SELECT ${ATTENDANCE_COLUMNS} FROM attendance_logs WHERE id = ? LIMIT 1`,
-      [result.insertId],
-    );
-    return { duplicate: false, log: rows[0] || null };
-  } catch (err) {
-    if (err.code === "ER_DUP_ENTRY") return { duplicate: true, log: null };
-    throw err;
-  }
-}
-
-async function listAttendanceForIntern(internId, { limit = 60 } = {}) {
-  const [rows] = await requireDb().query(
-    `SELECT ${ATTENDANCE_COLUMNS} FROM attendance_logs
-     WHERE intern_id = ? ORDER BY work_date DESC LIMIT ?`,
-    [internId, Number(limit)],
-  );
-  return rows;
-}
-
 async function listDepartments() {
   const [rows] = await requireDb().query(
     "SELECT id, name, description, created_at FROM departments ORDER BY name",
@@ -2962,6 +3204,190 @@ async function deleteProgram(id) {
   });
 }
 
+// ---------- Lịch làm việc theo nhóm (work_schedules) ----------
+const DEFAULT_WORK_GROUP = "Mặc định";
+const DEFAULT_WORK_START = "08:30:00";
+const DEFAULT_WORK_END = "17:30:00";
+const DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5];
+
+const WORK_SCHEDULE_COLUMNS = `id, group_name, day_of_week, start_time, end_time,
+  grace_minutes, created_by, created_at, updated_at`;
+
+// Lịch mặc định (nhóm "Mặc định", Thứ Hai - Thứ Sáu, 08:30 - 17:30) chỉ nạp khi bảng còn trống,
+// nên HR xóa/sửa lịch này sau đó sẽ không bị khởi động lại ghi đè.
+async function seedDefaultWorkSchedules(targetPool = requireDb()) {
+  const [[row]] = await targetPool.query(
+    "SELECT COUNT(*) AS total FROM work_schedules",
+  );
+  if (Number(row.total) > 0) return 0;
+  const values = DEFAULT_WORK_DAYS.map((day) => [
+    DEFAULT_WORK_GROUP,
+    day,
+    DEFAULT_WORK_START,
+    DEFAULT_WORK_END,
+    0,
+  ]);
+  await targetPool.query(
+    `INSERT INTO work_schedules (group_name, day_of_week, start_time, end_time, grace_minutes)
+     VALUES ?`,
+    [values],
+  );
+  return values.length;
+}
+
+async function listWorkSchedules({ groupName, dayOfWeek } = {}) {
+  const where = [];
+  const values = [];
+  if (groupName) {
+    where.push("group_name = ?");
+    values.push(groupName);
+  }
+  if (dayOfWeek) {
+    where.push("day_of_week = ?");
+    values.push(dayOfWeek);
+  }
+  const whereSql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+  const [rows] = await requireDb().query(
+    `SELECT ${WORK_SCHEDULE_COLUMNS} FROM work_schedules${whereSql}
+     ORDER BY group_name, day_of_week, start_time, id`,
+    values,
+  );
+  return rows;
+}
+
+async function findWorkScheduleById(id) {
+  const [rows] = await requireDb().query(
+    `SELECT ${WORK_SCHEDULE_COLUMNS} FROM work_schedules WHERE id = ? LIMIT 1`,
+    [id],
+  );
+  return rows[0] || null;
+}
+
+// Các ca áp dụng cho 1 nhóm vào 1 thứ; nhóm chưa có lịch riêng thì dùng lịch mặc định.
+async function getWorkScheduleForGroupDay(groupName, dayOfWeek) {
+  const query = (name) =>
+    requireDb().query(
+      `SELECT ${WORK_SCHEDULE_COLUMNS} FROM work_schedules
+       WHERE group_name = ? AND day_of_week = ? ORDER BY start_time, id`,
+      [name, dayOfWeek],
+    );
+  const [own] = await query(groupName);
+  if (own.length) return own;
+  const [fallback] = await query(DEFAULT_WORK_GROUP);
+  return fallback;
+}
+
+// Tạo (id = null) hoặc sửa 1 ca. Khóa theo (nhóm, thứ) để 2 request đồng thời không cùng lọt
+// qua bước kiểm tra chồng giờ. Hai ca chỉ chạm đầu mút (17:00 - 17:00) không tính là trùng.
+async function saveWorkScheduleAtomic(value, { id = null, createdBy = null } = {}) {
+  const conn = await requireDb().getConnection();
+  const lockName = `work_schedule:${value.groupName.toLowerCase()}:${value.dayOfWeek}`;
+  let lockAcquired = false;
+  let transactionOpen = false;
+
+  try {
+    const [lockRows] = await conn.query(
+      "SELECT GET_LOCK(CONCAT('ws:', MD5(?)), 10) AS acquired",
+      [lockName],
+    );
+    lockAcquired = Number(lockRows[0]?.acquired) === 1;
+    if (!lockAcquired) return { outcome: "LOCK_TIMEOUT" };
+
+    await conn.beginTransaction();
+    transactionOpen = true;
+
+    if (id != null) {
+      const [existing] = await conn.query(
+        "SELECT id FROM work_schedules WHERE id = ? FOR UPDATE",
+        [id],
+      );
+      if (existing.length === 0) {
+        await conn.rollback();
+        transactionOpen = false;
+        return { outcome: "NOT_FOUND" };
+      }
+    }
+
+    const [overlaps] = await conn.query(
+      `SELECT id FROM work_schedules
+       WHERE group_name = ? AND day_of_week = ?
+         AND start_time < ? AND end_time > ?
+         AND (? IS NULL OR id <> ?)
+       LIMIT 1 FOR UPDATE`,
+      [
+        value.groupName,
+        value.dayOfWeek,
+        value.endTime,
+        value.startTime,
+        id,
+        id,
+      ],
+    );
+    if (overlaps.length > 0) {
+      await conn.rollback();
+      transactionOpen = false;
+      return { outcome: "OVERLAP" };
+    }
+
+    if (id == null) {
+      const [result] = await conn.query(
+        `INSERT INTO work_schedules
+          (group_name, day_of_week, start_time, end_time, grace_minutes, created_by)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          value.groupName,
+          value.dayOfWeek,
+          value.startTime,
+          value.endTime,
+          value.graceMinutes,
+          createdBy,
+        ],
+      );
+      id = result.insertId;
+    } else {
+      await conn.query(
+        `UPDATE work_schedules
+         SET group_name = ?, day_of_week = ?, start_time = ?, end_time = ?, grace_minutes = ?
+         WHERE id = ?`,
+        [
+          value.groupName,
+          value.dayOfWeek,
+          value.startTime,
+          value.endTime,
+          value.graceMinutes,
+          id,
+        ],
+      );
+    }
+
+    await conn.commit();
+    transactionOpen = false;
+    return { outcome: "SAVED", id };
+  } catch (err) {
+    if (transactionOpen) await conn.rollback();
+    throw err;
+  } finally {
+    if (lockAcquired) {
+      try {
+        await conn.query("SELECT RELEASE_LOCK(CONCAT('ws:', MD5(?)))", [
+          lockName,
+        ]);
+      } catch {
+        // Đóng kết nối hỏng cũng tự nhả khóa.
+      }
+    }
+    conn.release();
+  }
+}
+
+async function deleteWorkSchedule(id) {
+  const [result] = await requireDb().query(
+    "DELETE FROM work_schedules WHERE id = ?",
+    [id],
+  );
+  return result.affectedRows > 0;
+}
+
 // Số liệu tổng quan cho tab Báo cáo & Thống kê: toàn bộ lấy từ dữ liệu thật trong DB.
 async function getOverviewStats() {
   const db = requireDb();
@@ -3085,10 +3511,31 @@ module.exports = {
   deleteWeeklyReportFeedback,
   reapplyRejectedCandidate,
   hasConfirmedContract,
-  findAttendanceByDate,
-  insertAttendanceLog,
-  listAttendanceForIntern,
   countContractsOutsideProgramRange,
+  getServerDateTime,
+  findAttendanceByInternDate,
+  findAttendanceById,
+  findOpenAttendance,
+  hasConfirmedContractOn,
+  requestAttendanceCorrection,
+  reviewAttendanceCorrection,
+  listPendingAttendanceCorrections,
+  insertAttendance,
+  checkOutAttendance,
+  listAttendance,
+  listFinalReportInterns,
+  getFinalReportFilterOptions,
+  createFinalReport,
+  listFinalReports,
+  findFinalReportById,
+  updateFinalReport,
+  finalizeFinalReport,
+  deleteFinalReport,
+  recordFinalReportSend,
+  listFinalReportSends,
+  upsertFinalReportRecipients,
+  listFinalReportRecipients,
+  deleteFinalReportRecipient,
   findInternEvaluation,
   upsertInternEvaluation,
   deleteInternEvaluation,
@@ -3099,5 +3546,12 @@ module.exports = {
   updateScheduleMilestone,
   deleteScheduleMilestone,
   findMilestoneById,
+  seedDefaultWorkSchedules,
+  listWorkSchedules,
+  findWorkScheduleById,
+  getWorkScheduleForGroupDay,
+  saveWorkScheduleAtomic,
+  deleteWorkSchedule,
+  DEFAULT_WORK_GROUP,
   getOverviewStats,
 };
