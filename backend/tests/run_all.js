@@ -75,6 +75,11 @@ const SUITES = [
     file: "test_intern_schedule_unit.js",
     needsServer: false,
   },
+  {
+    name: "attendance-unit",
+    file: "test_attendance_unit.js",
+    needsServer: false,
+  },
   { name: "login", file: "test_login.js", needsServer: true },
   { name: "create-account", file: "test_create_account.js", needsServer: true },
   { name: "rbac", file: "test_rbac.js", needsServer: true },

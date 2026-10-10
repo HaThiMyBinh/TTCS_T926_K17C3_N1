@@ -301,6 +301,45 @@ CREATE TABLE IF NOT EXISTS `intern_evaluations` (
   CONSTRAINT `fk_evaluation_mentor` FOREIGN KEY (`mentor_id`) REFERENCES `mentors`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 19. BẢNG CHẤM CÔNG HẰNG NGÀY CỦA THỰC TẬP SINH (ATTENDANCE_LOGS)
+CREATE TABLE IF NOT EXISTS `attendance_logs` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `intern_id` BIGINT NOT NULL,
+  `work_date` DATE NOT NULL,
+  `check_in_at` DATETIME NOT NULL,
+  `is_late` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_attendance_intern_date` (`intern_id`, `work_date`),
+  INDEX `idx_attendance_date` (`work_date`),
+  CONSTRAINT `fk_attendance_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 20. BẢNG LỊCH LÀM VIỆC THEO NHÓM (WORK_SCHEDULES)
+-- day_of_week theo ISO: 1 = Thứ Hai ... 7 = Chủ nhật; grace_minutes = thời gian du di (phút) sau giờ vào.
+-- Cùng nhóm + cùng thứ không được có 2 ca chồng giờ (API /api/schedules kiểm tra, chạm đầu mút thì hợp lệ).
+CREATE TABLE IF NOT EXISTS `work_schedules` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `group_name` VARCHAR(100) NOT NULL COLLATE utf8mb4_unicode_ci,
+  `day_of_week` TINYINT UNSIGNED NOT NULL,
+  `start_time` TIME NOT NULL,
+  `end_time` TIME NOT NULL,
+  `grace_minutes` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  `created_by` BIGINT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT `chk_ws_day` CHECK (`day_of_week` BETWEEN 1 AND 7),
+  CONSTRAINT `chk_ws_time` CHECK (`start_time` < `end_time`),
+  CONSTRAINT `chk_ws_grace` CHECK (`grace_minutes` <= 120),
+  INDEX `idx_ws_group_day` (`group_name`, `day_of_week`),
+  CONSTRAINT `fk_ws_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Lịch mặc định: nhóm "Mặc định", Thứ Hai - Thứ Sáu, 08:30 - 17:30 (backend cũng tự nạp khi bảng còn trống)
+INSERT INTO `work_schedules` (`group_name`, `day_of_week`, `start_time`, `end_time`, `grace_minutes`)
+SELECT 'Mặc định', d.day_of_week, '08:30:00', '17:30:00', 0
+FROM (SELECT 1 AS day_of_week UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) d
+WHERE NOT EXISTS (SELECT 1 FROM `work_schedules`);
+
 -- ==============================================================================
 -- DỮ LIỆU MẪU BAN ĐẦU (SEED DATA)
 -- ==============================================================================

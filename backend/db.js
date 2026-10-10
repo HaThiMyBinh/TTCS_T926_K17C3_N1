@@ -648,6 +648,41 @@ async function initDatabase() {
     CONSTRAINT fk_evaluation_mentor FOREIGN KEY (mentor_id) REFERENCES mentors(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
+  // Chấm công hằng ngày của thực tập sinh: mỗi intern 1 lần check-in cho mỗi ngày làm việc (UNIQUE intern_id + work_date).
+  // work_date / check_in_at theo giờ Việt Nam do server tính; is_late = check-in sau giờ quy định.
+  await pool.query(`CREATE TABLE IF NOT EXISTS attendance_logs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    intern_id BIGINT NOT NULL,
+    work_date DATE NOT NULL,
+    check_in_at DATETIME NOT NULL,
+    is_late TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_attendance_intern_date (intern_id, work_date),
+    INDEX idx_attendance_date (work_date),
+    CONSTRAINT fk_attendance_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+  // Lịch làm việc linh hoạt theo nhóm (US8): mỗi dòng là 1 ca của 1 nhóm trong 1 thứ của tuần.
+  // day_of_week theo ISO: 1 = Thứ Hai ... 7 = Chủ nhật. grace_minutes = thời gian du di (phút) sau giờ vào.
+  // Cùng nhóm + cùng thứ không được có 2 ca chồng giờ (service kiểm tra trong transaction có khóa).
+  await pool.query(`CREATE TABLE IF NOT EXISTS work_schedules (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    group_name VARCHAR(100) NOT NULL COLLATE utf8mb4_unicode_ci,
+    day_of_week TINYINT UNSIGNED NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    grace_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    created_by BIGINT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT chk_ws_day CHECK (day_of_week BETWEEN 1 AND 7),
+    CONSTRAINT chk_ws_time CHECK (start_time < end_time),
+    CONSTRAINT chk_ws_grace CHECK (grace_minutes <= 120),
+    INDEX idx_ws_group_day (group_name, day_of_week),
+    CONSTRAINT fk_ws_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await seedDefaultWorkSchedules(pool);
+
   await seedDepartmentsFromMentors(pool);
 
   // Seed dữ liệu mặc định: roles, permissions, role_permissions
@@ -2702,6 +2737,48 @@ async function confirmContractAtomic(internId, contractId, userId) {
   });
 }
 
+// ---------- Chấm công (attendance_logs) ----------
+const ATTENDANCE_COLUMNS = `id, intern_id AS internId, work_date AS workDate,
+  check_in_at AS checkInAt, is_late AS isLate`;
+
+async function findAttendanceByDate(internId, workDate) {
+  const [rows] = await requireDb().query(
+    `SELECT ${ATTENDANCE_COLUMNS} FROM attendance_logs
+     WHERE intern_id = ? AND work_date = ? LIMIT 1`,
+    [internId, workDate],
+  );
+  return rows[0] || null;
+}
+
+// Ghi 1 lần check-in. Trùng (intern_id, work_date) -> trả { duplicate: true } thay vì ném lỗi,
+// để chặn đúng cả khi 2 request đến cùng lúc.
+async function insertAttendanceLog({ internId, workDate, checkInAt, isLate }) {
+  try {
+    const [result] = await requireDb().query(
+      `INSERT INTO attendance_logs (intern_id, work_date, check_in_at, is_late)
+       VALUES (?, ?, ?, ?)`,
+      [internId, workDate, checkInAt, isLate ? 1 : 0],
+    );
+    const [rows] = await requireDb().query(
+      `SELECT ${ATTENDANCE_COLUMNS} FROM attendance_logs WHERE id = ? LIMIT 1`,
+      [result.insertId],
+    );
+    return { duplicate: false, log: rows[0] || null };
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") return { duplicate: true, log: null };
+    throw err;
+  }
+}
+
+async function listAttendanceForIntern(internId, { limit = 60 } = {}) {
+  const [rows] = await requireDb().query(
+    `SELECT ${ATTENDANCE_COLUMNS} FROM attendance_logs
+     WHERE intern_id = ? ORDER BY work_date DESC LIMIT ?`,
+    [internId, Number(limit)],
+  );
+  return rows;
+}
+
 async function listDepartments() {
   const [rows] = await requireDb().query(
     "SELECT id, name, description, created_at FROM departments ORDER BY name",
@@ -2906,6 +2983,190 @@ async function deleteProgram(id) {
   });
 }
 
+// ---------- Lịch làm việc theo nhóm (work_schedules) ----------
+const DEFAULT_WORK_GROUP = "Mặc định";
+const DEFAULT_WORK_START = "08:30:00";
+const DEFAULT_WORK_END = "17:30:00";
+const DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5];
+
+const WORK_SCHEDULE_COLUMNS = `id, group_name, day_of_week, start_time, end_time,
+  grace_minutes, created_by, created_at, updated_at`;
+
+// Lịch mặc định (nhóm "Mặc định", Thứ Hai - Thứ Sáu, 08:30 - 17:30) chỉ nạp khi bảng còn trống,
+// nên HR xóa/sửa lịch này sau đó sẽ không bị khởi động lại ghi đè.
+async function seedDefaultWorkSchedules(targetPool = requireDb()) {
+  const [[row]] = await targetPool.query(
+    "SELECT COUNT(*) AS total FROM work_schedules",
+  );
+  if (Number(row.total) > 0) return 0;
+  const values = DEFAULT_WORK_DAYS.map((day) => [
+    DEFAULT_WORK_GROUP,
+    day,
+    DEFAULT_WORK_START,
+    DEFAULT_WORK_END,
+    0,
+  ]);
+  await targetPool.query(
+    `INSERT INTO work_schedules (group_name, day_of_week, start_time, end_time, grace_minutes)
+     VALUES ?`,
+    [values],
+  );
+  return values.length;
+}
+
+async function listWorkSchedules({ groupName, dayOfWeek } = {}) {
+  const where = [];
+  const values = [];
+  if (groupName) {
+    where.push("group_name = ?");
+    values.push(groupName);
+  }
+  if (dayOfWeek) {
+    where.push("day_of_week = ?");
+    values.push(dayOfWeek);
+  }
+  const whereSql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+  const [rows] = await requireDb().query(
+    `SELECT ${WORK_SCHEDULE_COLUMNS} FROM work_schedules${whereSql}
+     ORDER BY group_name, day_of_week, start_time, id`,
+    values,
+  );
+  return rows;
+}
+
+async function findWorkScheduleById(id) {
+  const [rows] = await requireDb().query(
+    `SELECT ${WORK_SCHEDULE_COLUMNS} FROM work_schedules WHERE id = ? LIMIT 1`,
+    [id],
+  );
+  return rows[0] || null;
+}
+
+// Các ca áp dụng cho 1 nhóm vào 1 thứ; nhóm chưa có lịch riêng thì dùng lịch mặc định.
+async function getWorkScheduleForGroupDay(groupName, dayOfWeek) {
+  const query = (name) =>
+    requireDb().query(
+      `SELECT ${WORK_SCHEDULE_COLUMNS} FROM work_schedules
+       WHERE group_name = ? AND day_of_week = ? ORDER BY start_time, id`,
+      [name, dayOfWeek],
+    );
+  const [own] = await query(groupName);
+  if (own.length) return own;
+  const [fallback] = await query(DEFAULT_WORK_GROUP);
+  return fallback;
+}
+
+// Tạo (id = null) hoặc sửa 1 ca. Khóa theo (nhóm, thứ) để 2 request đồng thời không cùng lọt
+// qua bước kiểm tra chồng giờ. Hai ca chỉ chạm đầu mút (17:00 - 17:00) không tính là trùng.
+async function saveWorkScheduleAtomic(value, { id = null, createdBy = null } = {}) {
+  const conn = await requireDb().getConnection();
+  const lockName = `work_schedule:${value.groupName.toLowerCase()}:${value.dayOfWeek}`;
+  let lockAcquired = false;
+  let transactionOpen = false;
+
+  try {
+    const [lockRows] = await conn.query(
+      "SELECT GET_LOCK(CONCAT('ws:', MD5(?)), 10) AS acquired",
+      [lockName],
+    );
+    lockAcquired = Number(lockRows[0]?.acquired) === 1;
+    if (!lockAcquired) return { outcome: "LOCK_TIMEOUT" };
+
+    await conn.beginTransaction();
+    transactionOpen = true;
+
+    if (id != null) {
+      const [existing] = await conn.query(
+        "SELECT id FROM work_schedules WHERE id = ? FOR UPDATE",
+        [id],
+      );
+      if (existing.length === 0) {
+        await conn.rollback();
+        transactionOpen = false;
+        return { outcome: "NOT_FOUND" };
+      }
+    }
+
+    const [overlaps] = await conn.query(
+      `SELECT id FROM work_schedules
+       WHERE group_name = ? AND day_of_week = ?
+         AND start_time < ? AND end_time > ?
+         AND (? IS NULL OR id <> ?)
+       LIMIT 1 FOR UPDATE`,
+      [
+        value.groupName,
+        value.dayOfWeek,
+        value.endTime,
+        value.startTime,
+        id,
+        id,
+      ],
+    );
+    if (overlaps.length > 0) {
+      await conn.rollback();
+      transactionOpen = false;
+      return { outcome: "OVERLAP" };
+    }
+
+    if (id == null) {
+      const [result] = await conn.query(
+        `INSERT INTO work_schedules
+          (group_name, day_of_week, start_time, end_time, grace_minutes, created_by)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          value.groupName,
+          value.dayOfWeek,
+          value.startTime,
+          value.endTime,
+          value.graceMinutes,
+          createdBy,
+        ],
+      );
+      id = result.insertId;
+    } else {
+      await conn.query(
+        `UPDATE work_schedules
+         SET group_name = ?, day_of_week = ?, start_time = ?, end_time = ?, grace_minutes = ?
+         WHERE id = ?`,
+        [
+          value.groupName,
+          value.dayOfWeek,
+          value.startTime,
+          value.endTime,
+          value.graceMinutes,
+          id,
+        ],
+      );
+    }
+
+    await conn.commit();
+    transactionOpen = false;
+    return { outcome: "SAVED", id };
+  } catch (err) {
+    if (transactionOpen) await conn.rollback();
+    throw err;
+  } finally {
+    if (lockAcquired) {
+      try {
+        await conn.query("SELECT RELEASE_LOCK(CONCAT('ws:', MD5(?)))", [
+          lockName,
+        ]);
+      } catch {
+        // Đóng kết nối hỏng cũng tự nhả khóa.
+      }
+    }
+    conn.release();
+  }
+}
+
+async function deleteWorkSchedule(id) {
+  const [result] = await requireDb().query(
+    "DELETE FROM work_schedules WHERE id = ?",
+    [id],
+  );
+  return result.affectedRows > 0;
+}
+
 // Số liệu tổng quan cho tab Báo cáo & Thống kê: toàn bộ lấy từ dữ liệu thật trong DB.
 async function getOverviewStats() {
   const db = requireDb();
@@ -3029,6 +3290,9 @@ module.exports = {
   deleteWeeklyReportFeedback,
   reapplyRejectedCandidate,
   hasConfirmedContract,
+  findAttendanceByDate,
+  insertAttendanceLog,
+  listAttendanceForIntern,
   countContractsOutsideProgramRange,
   findInternEvaluation,
   upsertInternEvaluation,
@@ -3040,5 +3304,12 @@ module.exports = {
   updateScheduleMilestone,
   deleteScheduleMilestone,
   findMilestoneById,
+  seedDefaultWorkSchedules,
+  listWorkSchedules,
+  findWorkScheduleById,
+  getWorkScheduleForGroupDay,
+  saveWorkScheduleAtomic,
+  deleteWorkSchedule,
+  DEFAULT_WORK_GROUP,
   getOverviewStats,
 };
