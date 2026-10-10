@@ -2807,6 +2807,67 @@
           </div>
         </div>
 
+        <!-- CHẤM CÔNG (INTERN) -->
+        <div id="tab-my-attendance" class="tab-pane" style="display:none">
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-clock text-primary"></i> Chấm công hôm nay</h3></div>
+            <div class="card-body"><div id="attendanceState" aria-live="polite">Đang tải...</div>
+              <label for="attendanceNote">Ghi chú khi check-in (không bắt buộc)</label>
+              <textarea id="attendanceNote" maxlength="255" oninput="document.getElementById('attendanceNoteCount').innerText=this.value.length+'/255'"></textarea><small id="attendanceNoteCount">0/255</small>
+              <p id="attendanceReason" class="text-danger"></p><button id="attendanceAction" class="btn btn-primary attendance-action" onclick="submitAttendance()" disabled>Đang tải...</button>
+              <p id="attendanceError" class="text-danger" role="alert"></p>
+            </div>
+          </div>
+          <div class="card"><div class="card-header"><h3>Lịch sử chấm công</h3></div><div class="card-body">
+            <label>Từ ngày <input type="date" id="attendanceFrom"></label><label>Đến ngày <input type="date" id="attendanceTo"></label>
+            <button class="btn btn-sm btn-primary" onclick="loadAttendanceHistory()">Xem lịch sử</button><div id="attendanceSummary"></div><div id="attendanceHistory">Đang tải...</div>
+            <div id="attendanceCorrectionForm" style="display:none;margin-top:12px">
+              <h4>Bổ sung giờ check-out ngày <span id="acDate"></span></h4>
+              <label for="acCheckOut">Giờ check-out thực tế <input type="datetime-local" id="acCheckOut"></label>
+              <label for="acReason">Lý do quên check-out</label>
+              <textarea id="acReason" maxlength="255"></textarea>
+              <p id="acError" class="text-danger" role="alert"></p>
+              <button class="btn btn-primary" onclick="submitAttendanceCorrection()">Gửi đề nghị</button>
+              <button class="btn btn-light" onclick="closeAttendanceCorrection()">Đóng</button>
+              <small>Giờ check-out cần được Mentor hoặc HR duyệt thì mới được tính vào giờ làm.</small>
+            </div>
+          </div></div>
+        </div>
+
+        <!-- CHẤM CÔNG THỰC TẬP SINH (HR / MENTOR) -->
+        <div id="tab-staff-attendance" class="tab-pane" style="display:none">
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-user-clock text-primary"></i> Đề nghị bổ sung check-out chờ duyệt</h3>
+            <button class="btn btn-sm btn-primary" onclick="loadStaffPendingCorrections()">Tải lại</button></div>
+            <div class="card-body"><p id="saError" class="text-danger" role="alert"></p><div id="saPending">Đang tải...</div></div>
+          </div>
+          <div class="card"><div class="card-header"><h3>Lịch sử chấm công theo thực tập sinh</h3></div><div class="card-body">
+            <label>Thực tập sinh <select id="saIntern"></select></label>
+            <label>Từ ngày <input type="date" id="saFrom"></label><label>Đến ngày <input type="date" id="saTo"></label>
+            <button class="btn btn-sm btn-primary" onclick="loadStaffAttendanceHistory()">Xem chấm công</button>
+            <div id="saSummary"></div><div id="saHistory"></div>
+          </div></div>
+        </div>
+
+        <!-- BÁO CÁO CUỐI KỲ (HR) -->
+        <div id="tab-final-reports" class="tab-pane" style="display:none">
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-file-lines text-primary"></i> Báo cáo cuối kỳ</h3><button class="btn btn-primary" onclick="showFinalReportForm()">Tạo báo cáo mới</button></div>
+            <div class="card-body"><div id="finalReportError" class="text-danger" role="alert"></div><div id="finalReportList">Đang tải...</div></div>
+          </div>
+          <div class="card" id="finalReportForm" style="display:none"><div class="card-header"><h3>Tạo báo cáo</h3></div><div class="card-body">
+            <div class="fr-form-grid">
+              <label class="fr-field fr-span-2"><span>Tiêu đề <span class="fr-req">*</span></span><input id="frTitle" maxlength="255" placeholder="VD: Báo cáo cuối kỳ thực tập hè 2026"></label>
+              <label class="fr-field">Phạm vi <select id="frScope" onchange="updateFinalReportScope()"><option value="ALL">Toàn bộ</option><option value="UNIVERSITY">Theo trường</option><option value="PROGRAM">Theo chương trình</option></select></label>
+              <label class="fr-field" id="frScopeValueWrap" style="display:none"><span id="frScopeValueLabel">Trường</span> <select id="frScopeValue"></select></label>
+              <label class="fr-field">Từ ngày <input type="date" id="frFrom" onchange="syncFinalReportDates()"></label>
+              <label class="fr-field">Đến ngày <input type="date" id="frTo" onchange="syncFinalReportDates()"></label>
+              <label class="fr-field fr-span-2">Nhận xét HR <textarea id="frNote" maxlength="2000" placeholder="Nhận xét chung của HR sẽ hiển thị cuối báo cáo (tối đa 2000 ký tự)"></textarea></label>
+            </div>
+            <div id="frFormError" class="text-danger" role="alert"></div>
+            <div class="fr-actions"><button id="frPreviewButton" class="btn btn-secondary" onclick="previewFinalReport()">Xem trước</button><button id="frSaveButton" class="btn btn-primary" onclick="saveFinalReport()">Lưu bản nháp</button><button class="btn btn-light" onclick="document.getElementById('finalReportForm').style.display='none'">Đóng</button></div>
+            <div id="frPreview"></div>
+          </div></div>
+          <div class="card" id="finalReportDetail" style="display:none"><div class="card-body" id="finalReportDetailBody"></div></div>
+        </div>
+
         <!-- NỘP BÁO CÁO TUẦN (INTERN) -->
         <div id="tab-submissions" class="tab-pane" style="display: none">
           <div id="wrNotIntern" class="card" style="display: none">
@@ -4894,6 +4955,9 @@
         }
         if (tabId === "tab-my-schedule") return role === "Intern";
         if (tabId === "tab-my-tasks") return role === "Intern";
+        if (tabId === "tab-my-attendance") return role === "Intern";
+        if (tabId === "tab-staff-attendance") return role === "Mentor" || role === "HR";
+        if (tabId === "tab-final-reports") return role === "HR";
         if (tabId === "tab-candidates") {
           return role === "HR" || role === "Admin";
         }
@@ -4930,7 +4994,7 @@
 
         // US9: Thêm tab "Hồ sơ của tôi" cho vai trò Intern lên đầu menu
         if (currentRole === "Intern") {
-          allowedCount += 4;
+          allowedCount += 5;
           const isProfileActive = currentTab === "tab-my-profile";
           const liProfile = document.createElement("li");
           liProfile.className = "nav-item";
@@ -4961,6 +5025,12 @@
           liMyTasks.className = "nav-item";
           liMyTasks.innerHTML = `<a class="nav-link ${currentTab === "tab-my-tasks" ? "active" : ""}" onclick="switchTab('tab-my-tasks')"><i class="fa-solid fa-list-check"></i><span>Nhiệm vụ của tôi</span></a>`;
           menuEl.appendChild(liMyTasks);
+
+          allowedCount++;
+          const liAttendance = document.createElement("li");
+          liAttendance.className = "nav-item";
+          liAttendance.innerHTML = `<a class="nav-link ${currentTab === "tab-my-attendance" ? "active" : ""}" onclick="switchTab('tab-my-attendance')"><i class="fa-solid fa-clock"></i><span>Chấm công</span></a>`;
+          menuEl.appendChild(liAttendance);
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -4993,7 +5063,7 @@
 
         // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh, Hợp đồng, Nhật ký Email
         if (currentRole === "HR") {
-          allowedCount += 5;
+          allowedCount += 6;
           const isCandidateActive = currentTab === "tab-candidates";
           const isMentorActive = currentTab === "tab-mentors";
           const isStudentActive = currentTab === "tab-students";
@@ -5049,6 +5119,17 @@
           </a>
         `;
           menuEl.appendChild(liEmailLogs);
+
+          const liFinalReports = document.createElement("li");
+          liFinalReports.className = "nav-item";
+          liFinalReports.innerHTML = `<a class="nav-link ${currentTab === "tab-final-reports" ? "active" : ""}" onclick="switchTab('tab-final-reports')"><i class="fa-solid fa-file-lines"></i><span>Báo cáo cuối kỳ</span></a>`;
+          menuEl.appendChild(liFinalReports);
+
+          allowedCount++;
+          const liStaffAttendanceHr = document.createElement("li");
+          liStaffAttendanceHr.className = "nav-item";
+          liStaffAttendanceHr.innerHTML = `<a class="nav-link ${currentTab === "tab-staff-attendance" ? "active" : ""}" onclick="switchTab('tab-staff-attendance')"><i class="fa-solid fa-clock"></i><span>Chấm công thực tập sinh</span></a>`;
+          menuEl.appendChild(liStaffAttendanceHr);
         }
 
         if (currentRole === "HR" || currentRole === "Admin") {
@@ -5075,6 +5156,12 @@
           liEvaluations.className = "nav-item";
           liEvaluations.innerHTML = `<a class="nav-link ${currentTab === "tab-evaluations" ? "active" : ""}" onclick="switchTab('tab-evaluations')"><i class="fa-solid fa-star"></i><span>Đánh giá thực tập sinh</span></a>`;
           menuEl.appendChild(liEvaluations);
+
+          allowedCount++;
+          const liStaffAttendance = document.createElement("li");
+          liStaffAttendance.className = "nav-item";
+          liStaffAttendance.innerHTML = `<a class="nav-link ${currentTab === "tab-staff-attendance" ? "active" : ""}" onclick="switchTab('tab-staff-attendance')"><i class="fa-solid fa-clock"></i><span>Chấm công thực tập sinh</span></a>`;
+          menuEl.appendChild(liStaffAttendance);
         }
 
         document.getElementById("menuCountBadge").innerText =
@@ -5141,6 +5228,18 @@
             document.getElementById("pageSubtitle").innerText =
               "Các nhiệm vụ mentor đã giao cho bạn";
             loadMyTasks();
+          } else if (tabId === "tab-my-attendance") {
+            document.getElementById("pageTitle").innerText = "Chấm công";
+            document.getElementById("pageSubtitle").innerText = "Ghi nhận thời gian làm việc theo giờ Việt Nam";
+            loadAttendanceTab();
+          } else if (tabId === "tab-staff-attendance") {
+            document.getElementById("pageTitle").innerText = "Chấm công thực tập sinh";
+            document.getElementById("pageSubtitle").innerText = "Xem giờ làm việc và duyệt đề nghị bổ sung check-out";
+            loadStaffAttendanceTab();
+          } else if (tabId === "tab-final-reports") {
+            document.getElementById("pageTitle").innerText = "Báo cáo cuối kỳ";
+            document.getElementById("pageSubtitle").innerText = "Tổng hợp đánh giá và xuất báo cáo cho nhà trường";
+            loadFinalReports();
           } else if (tabId === "tab-my-schedule") {
             document.getElementById("pageTitle").innerText =
               "Lịch thực tập của tôi";
@@ -10507,6 +10606,401 @@
             "error",
           );
         }
+      }
+      const featureCss=document.createElement("style");featureCss.textContent=`.attendance-action{width:100%;min-height:54px;font-size:1.1rem;margin-top:12px}.fr-signature{text-align:right;margin:48px 24px}.fr-print-table tr{break-inside:avoid;page-break-inside:avoid}@media print{body *{visibility:hidden!important}#frPrintable,#frPrintable *{visibility:visible!important}#frPrintable{position:absolute;inset:0;width:100%;font-size:10pt}#frPrintable table{width:100%;border-collapse:collapse}#frPrintable th,#frPrintable td{border:1px solid #555;padding:5px}#frPrintable tr{break-inside:avoid;page-break-inside:avoid}.fr-screen-controls{display:none!important}@page{size:A4;margin:15mm}}`;
+      document.head.appendChild(featureCss);
+
+      let attendanceServerNow = null;
+      let attendanceClockTimer = null;
+      function attendanceClockText() {
+        if (!attendanceServerNow)
+          return "";
+        return new Intl.DateTimeFormat("vi-VN", {
+          timeZone: "Asia/Ho_Chi_Minh",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        }).format(attendanceServerNow);
+      }
+      function formatAttendanceMinutes(minutes) {
+        if (minutes == null)
+          return "—"; return `${Math.floor(minutes / 60)} giờ ${minutes % 60} phút`;
+      }
+      async function loadAttendanceTab() {
+        const state = document.getElementById("attendanceState");
+        const button = document.getElementById("attendanceAction");
+        state.innerText = "Đang tải trạng thái chấm công...";
+        button.disabled = true;
+        const result = await wrRequest("/me/attendance/today");
+        if (!result)
+          return;
+        if (!result.res.ok) {
+          state.innerText = "Không tải được trạng thái chấm công.";
+          document.getElementById("attendanceError").innerText = wrApiError(result, "Lỗi tải dữ liệu");
+          return;
+        }
+        const d = result.body.data;
+        attendanceServerNow = new Date(d.serverNow);
+        document.getElementById("attendanceError").innerText = "";
+        const row = d.record;
+        const statusText = {
+          NOT_CHECKED_IN: "Chưa check-in",
+          CHECKED_IN: "Đang làm việc",
+          CHECKED_OUT: "Đã hoàn thành hôm nay"
+        }[d.status];
+        const overnightNote = row && row.workDate !== d.workDate ? `<p class="text-danger">Bạn đang có ca làm việc bắt đầu ngày ${escapeHtml(row.workDate)} chưa check-out.</p>` : "";
+        state.innerHTML = `<p>Ngày làm việc: <strong>${escapeHtml(d.workDate)}</strong> · Giờ máy chủ: <strong id="attendanceClock">${escapeHtml(attendanceClockText())}</strong></p><p>Trạng thái: <strong>${statusText}</strong></p>${overnightNote}${row ? `<p>Check-in: ${escapeHtml(row.checkInAt ? String(row.checkInAt).slice(11, 16) : "—")} · Check-out: ${escapeHtml(row.checkOutAt ? String(row.checkOutAt).slice(11, 16) : "Chưa")}</p><p>Thời lượng: ${formatAttendanceMinutes(row.durationMinutes)}</p>` : ""}`;
+        document.getElementById("attendanceReason").innerText = d.reason || "";
+        button.disabled = !(d.canCheckIn || d.canCheckOut);
+        button.innerText = d.canCheckIn ? "Check-in" : d.canCheckOut ? "Check-out" : d.reason ? "Chưa đủ điều kiện" : "Đã hoàn thành hôm nay";
+        if (attendanceClockTimer)
+          clearInterval(attendanceClockTimer);
+        attendanceClockTimer = setInterval(() => {
+          attendanceServerNow = new Date(attendanceServerNow.getTime() + 1000); const clock = document.getElementById("attendanceClock"); if (clock)
+            clock.innerText = attendanceClockText();
+        }, 1000);
+        const today = d.workDate;
+        const first = today.slice(0, 7) + "-01";
+        document.getElementById("attendanceFrom").value ||= first;
+        document.getElementById("attendanceTo").value ||= today;
+        await loadAttendanceHistory();
+      }
+      async function submitAttendance() {
+        const button = document.getElementById("attendanceAction"); button.disabled = true; document.getElementById("attendanceError").innerText = ""; const isIn = button.innerText === "Check-in"; const body = isIn ? { note: document.getElementById("attendanceNote").value } : {}; const result = await wrRequest(isIn ? "/me/attendance/check-in" : "/me/attendance/check-out", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        }); if (!result)
+          return; if (!result.res.ok)
+          document.getElementById("attendanceError").innerText = wrApiError(result, "Không thể ghi nhận chấm công."); await loadAttendanceTab();
+      }
+      function attendanceStatusText(r) {
+        if (r.status === "COMPLETED")
+          return r.isAdjusted ? "Hoàn tất (đã điều chỉnh)" : "Hoàn tất";
+        if (r.status === "MISSING_CHECKOUT") {
+          if (r.correctionStatus === "PENDING")
+            return "Quên check-out · chờ duyệt bổ sung";
+          if (r.correctionStatus === "REJECTED")
+            return `Quên check-out · bị từ chối${r.correctionReviewNote ? ": " + r.correctionReviewNote : ""}`;
+          return "Quên check-out";
+        }
+        return "Đang làm";
+      }
+      function attendanceSummaryText(s) { return `Tổng thời gian: ${formatAttendanceMinutes(s.totalMinutes)} · Số ngày làm: ${s.daysWorked} · Quên check-out: ${s.missingCheckoutDays} · Đã điều chỉnh: ${s.adjustedDays || 0} · Chờ duyệt: ${s.pendingCorrections || 0}`; }
+      async function loadAttendanceHistory() {
+        const from = document.getElementById("attendanceFrom").value, to = document.getElementById("attendanceTo").value; const box = document.getElementById("attendanceHistory"); box.innerText = "Đang tải lịch sử..."; const result = await wrRequest(`/me/attendance?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`); if (!result)
+          return; if (!result.res.ok) {
+            box.innerText = wrApiError(result, "Không tải được lịch sử.");
+            return;
+          } const d = result.body.data; document.getElementById("attendanceSummary").innerText = attendanceSummaryText(d.summary); box.innerHTML = `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Check-in</th><th>Check-out</th><th>Thời lượng</th><th>Trạng thái</th><th>Ghi chú</th><th></th></tr></thead><tbody>${d.records.length ? d.records.map(r => `<tr><td>${escapeHtml(r.workDate)}</td><td>${escapeHtml(r.checkInAt ? String(r.checkInAt).slice(11, 16) : "—")}</td><td>${escapeHtml(r.checkOutAt ? String(r.checkOutAt).slice(11, 16) : "—")}</td><td>${formatAttendanceMinutes(r.durationMinutes)}</td><td>${escapeHtml(attendanceStatusText(r))}${r.correctionStatus === "PENDING" ? `<br><small>Đề nghị: ${escapeHtml(String(r.correctionCheckOutAt || "").slice(11, 16))} — ${escapeHtml(r.correctionReason || "")}</small>` : ""}</td><td>${escapeHtml(r.note || "")}</td><td>${r.canRequestCorrection ? `<button class="btn btn-sm btn-secondary" onclick="openAttendanceCorrection(${Number(r.id)},'${escapeHtml(r.workDate)}','${escapeHtml(String(r.checkInAt || "").slice(0, 16).replace(" ", "T"))}')">Bổ sung check-out</button>` : ""}</td></tr>`).join("") : `<tr><td colspan="7">Chưa có dữ liệu chấm công trong khoảng này.</td></tr>`}</tbody></table></div>`;
+      }
+      let attendanceCorrectionId = null;
+      function openAttendanceCorrection(id, workDate, checkInLocal) { attendanceCorrectionId = id; document.getElementById("acDate").innerText = workDate; const input = document.getElementById("acCheckOut"); input.min = checkInLocal; input.value = checkInLocal; document.getElementById("acReason").value = ""; document.getElementById("acError").innerText = ""; document.getElementById("attendanceCorrectionForm").style.display = "block"; }
+      function closeAttendanceCorrection() { attendanceCorrectionId = null; document.getElementById("attendanceCorrectionForm").style.display = "none"; }
+      async function submitAttendanceCorrection() {
+        const error = document.getElementById("acError"); error.innerText = ""; const result = await wrRequest(`/me/attendance/${attendanceCorrectionId}/correction`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ check_out_at: document.getElementById("acCheckOut").value, reason: document.getElementById("acReason").value })
+        }); if (!result)
+          return; if (!result.res.ok) {
+            error.innerText = wrApiError(result, "Không gửi được đề nghị bổ sung.");
+            return;
+          } closeAttendanceCorrection(); await loadAttendanceHistory();
+      }
+      // ---- Chấm công: HR / Mentor ----
+      async function loadStaffAttendanceTab() {
+        const today = new Date().toLocaleDateString("sv-SE");
+        const from = document.getElementById("saFrom"), to = document.getElementById("saTo");
+        if (!from.value)
+          from.value = today.slice(0, 7) + "-01";
+        if (!to.value)
+          to.value = today;
+        const select = document.getElementById("saIntern");
+        const keep = select.value;
+        const result = await wrRequest("/interns");
+        if (!result)
+          return;
+        if (result.res.ok && Array.isArray(result.body)) {
+          select.innerHTML = result.body.map(i => `<option value="${Number(i.id)}">${escapeHtml(i.fullName || i.name || "")} ${escapeHtml(i.studentCode ? "(" + i.studentCode + ")" : "")}</option>`).join("");
+          if (keep)
+            select.value = keep;
+        }
+        await loadStaffPendingCorrections();
+      }
+      async function loadStaffPendingCorrections() {
+        const box = document.getElementById("saPending");
+        document.getElementById("saError").innerText = "";
+        box.innerText = "Đang tải...";
+        const result = await wrRequest("/attendance/corrections/pending");
+        if (!result)
+          return;
+        if (!result.res.ok) {
+          box.innerText = "";
+          document.getElementById("saError").innerText = wrApiError(result, "Không tải được danh sách chờ duyệt.");
+          return;
+        }
+        const rows = result.body.data;
+        box.innerHTML = `<div class="table-container"><table><thead><tr><th>Thực tập sinh</th><th>Ngày</th><th>Check-in</th><th>Check-out đề nghị</th><th>Thời lượng</th><th>Lý do</th><th></th></tr></thead><tbody>${rows.length ? rows.map(r => { const mins = Math.max(0, Math.floor((new Date(String(r.correctionCheckOutAt).replace(" ", "T") + "+07:00") - new Date(String(r.checkInAt).replace(" ", "T") + "+07:00")) / 60000)); return `<tr><td>${escapeHtml(r.fullName || "")}<br>${escapeHtml(r.studentCode || "")}</td><td>${escapeHtml(r.workDate)}</td><td>${escapeHtml(String(r.checkInAt).slice(11, 16))}</td><td>${escapeHtml(String(r.correctionCheckOutAt).slice(0, 16))}</td><td>${formatAttendanceMinutes(mins)}</td><td>${escapeHtml(r.correctionReason || "")}</td><td><button class="btn btn-sm btn-primary" onclick="reviewAttendanceCorrection(${Number(r.id)},'APPROVED')">Duyệt</button> <button class="btn btn-sm btn-danger" onclick="reviewAttendanceCorrection(${Number(r.id)},'REJECTED')">Từ chối</button></td></tr>`; }).join("") : `<tr><td colspan="7">Không có đề nghị nào đang chờ duyệt.</td></tr>`}</tbody></table></div>`;
+      }
+      async function reviewAttendanceCorrection(id, decision) {
+        let note = "";
+        if (decision === "REJECTED") {
+          note = prompt("Nhập lý do từ chối:") || "";
+          if (!note.trim())
+            return;
+        }
+        const result = await wrRequest(`/attendance/${id}/correction/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decision, note })
+        });
+        if (!result)
+          return;
+        if (!result.res.ok) {
+          document.getElementById("saError").innerText = wrApiError(result, "Không xử lý được đề nghị.");
+          return;
+        }
+        await loadStaffPendingCorrections();
+        if (document.getElementById("saIntern").value)
+          await loadStaffAttendanceHistory();
+      }
+      async function loadStaffAttendanceHistory() {
+        const internId = document.getElementById("saIntern").value;
+        const box = document.getElementById("saHistory");
+        if (!internId) {
+          box.innerText = "Chưa chọn thực tập sinh.";
+          return;
+        }
+        const from = document.getElementById("saFrom").value, to = document.getElementById("saTo").value;
+        box.innerText = "Đang tải...";
+        const result = await wrRequest(`/interns/${encodeURIComponent(internId)}/attendance?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+        if (!result)
+          return;
+        if (!result.res.ok) {
+          box.innerText = wrApiError(result, "Không tải được chấm công.");
+          return;
+        }
+        const d = result.body.data;
+        document.getElementById("saSummary").innerText = attendanceSummaryText(d.summary);
+        box.innerHTML = `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Check-in</th><th>Check-out</th><th>Thời lượng</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>${d.records.length ? d.records.map(r => `<tr><td>${escapeHtml(r.workDate)}</td><td>${escapeHtml(r.checkInAt ? String(r.checkInAt).slice(11, 16) : "—")}</td><td>${escapeHtml(r.checkOutAt ? String(r.checkOutAt).slice(11, 16) : "—")}</td><td>${formatAttendanceMinutes(r.durationMinutes)}</td><td>${escapeHtml(attendanceStatusText(r))}</td><td>${escapeHtml(r.note || "")}</td></tr>`).join("") : `<tr><td colspan="6">Chưa có dữ liệu chấm công trong khoảng này.</td></tr>`}</tbody></table></div>`;
+      }
+      let finalReportOptions = { universities: [], programs: [] };
+      let editingFinalReportId = null;
+      const frCss = document.createElement("style");
+      frCss.textContent = `.fr-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px;margin-bottom:16px}.fr-field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--slate-700)}.fr-field.fr-span-2{grid-column:1/-1}.fr-field input,.fr-field select,.fr-field textarea{width:100%;padding:10px 14px;border:1px solid var(--slate-300);border-radius:8px;font-size:13.5px;font-weight:400;background:#fff;outline:none;font-family:inherit}.fr-field textarea{min-height:90px;resize:vertical}.fr-field input:focus,.fr-field select:focus,.fr-field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(3,42,184,.15)}.fr-req{color:var(--danger)}.fr-hint{font-weight:400;color:var(--slate-600);font-size:12px}.fr-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:4px}.fr-row-actions{display:flex;flex-wrap:wrap;gap:6px}.fr-sub{display:block;font-size:12px;color:var(--slate-600);margin-top:2px}.fr-badge-final{background:#e0f2fe;color:#0369a1}.fr-screen-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px}.fr-screen-controls h2{margin-right:auto}.fr-send-panel{flex-basis:100%;display:grid;gap:12px;border-top:1px solid var(--slate-200);padding-top:14px;margin-top:6px}.fr-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}.fr-chip-wrap{display:inline-flex;align-items:center;border:1px solid var(--slate-300);border-radius:20px;background:var(--slate-50);overflow:hidden}.fr-chip{border:0;background:transparent;padding:5px 10px;font-size:12.5px;cursor:pointer;color:var(--slate-800)}.fr-chip:hover{background:var(--primary-light)}.fr-chip-x{border:0;border-left:1px solid var(--slate-200);background:transparent;padding:5px 8px;cursor:pointer;color:var(--slate-600)}.fr-chip-x:hover{background:#fee2e2;color:var(--danger)}.fr-history{flex-basis:100%;font-size:13px}.fr-history ul{margin:8px 0 0 18px;display:grid;gap:6px}@media(max-width:700px){.fr-form-grid{grid-template-columns:1fr}}`;
+      document.head.appendChild(frCss);
+      function finalReportStatusBadge(r) {
+        if (r.status === "DRAFT") return `<span class="badge badge-pending">Nháp</span>`;
+        if (r.isSent || Number(r.sendCount) > 0) return `<span class="badge badge-active">Đã gửi</span>`;
+        return `<span class="badge fr-badge-final">Đã chốt</span>`;
+      }
+      function finalReportPeriod(r) {
+        const from = r.periodFrom ? formatDateOnly(r.periodFrom) : "", to = r.periodTo ? formatDateOnly(r.periodTo) : "";
+        return from || to ? `${from || "..."} – ${to || "..."}` : "Toàn bộ thời gian";
+      }
+      function finalReportRow(r) {
+        const id = Number(r.id), sendCount = Number(r.sendCount || 0), isDraft = r.status === "DRAFT";
+        const sentCell = sendCount
+          ? `${sendCount} lần<span class="fr-sub">Gần nhất: ${escapeHtml(formatDateTime(r.lastSentAt))}</span><span class="fr-sub">${escapeHtml((r.lastRecipients || []).join(", "))}</span>`
+          : isDraft ? "—" : `<span class="fr-sub">Chưa gửi</span>`;
+        const actions = `<button class="btn btn-sm btn-primary" onclick="openFinalReport(${id})">Mở</button><button class="btn btn-sm btn-secondary" onclick="downloadFinalReportCsv(${id})">CSV</button>` + (isDraft
+          ? `<button class="btn btn-sm btn-secondary" onclick="editFinalReport(${id})">Sửa</button><button class="btn btn-sm btn-primary" onclick="finalizeFinalReport(${id})">Chốt</button><button class="btn btn-sm btn-danger" onclick="deleteFinalReport(${id})">Xóa</button>`
+          : `<button class="btn btn-sm btn-primary" onclick="openFinalReport(${id}, { focusSend: true })">Gửi</button>`);
+        return `<tr><td>${escapeHtml(r.title)}</td><td>${escapeHtml(r.scopeLabel || "")}<span class="fr-sub">${escapeHtml(finalReportPeriod(r))}</span></td><td>${finalReportStatusBadge(r)}</td><td>${sentCell}</td><td>${escapeHtml(r.createdByName || "")}</td><td>${escapeHtml(formatDateTime(r.createdAt))}</td><td><div class="fr-row-actions">${actions}</div></td></tr>`;
+      }
+      function syncFinalReportDates() {
+        const from = document.getElementById("frFrom"), to = document.getElementById("frTo");
+        to.min = from.value || ""; from.max = to.value || "";
+      }
+      function validateFinalReportForm({ requireTitle = true } = {}) {
+        const err = document.getElementById("frFormError"); err.innerText = "";
+        const fail = (message, fieldId) => { err.innerText = message; document.getElementById(fieldId).focus(); return false; };
+        const p = finalReportPayload();
+        if (requireTitle && !p.title.trim()) return fail("Vui lòng nhập tiêu đề báo cáo!", "frTitle");
+        if (p.scope_type !== "ALL" && !p.scope_value) return fail("Vui lòng chọn trường hoặc chương trình!", "frScopeValue");
+        if (p.period_from && p.period_to && p.period_from > p.period_to) return fail("Ngày bắt đầu không được sau ngày kết thúc!", "frFrom");
+        return true;
+      }
+      async function loadFinalReports() {
+        const box = document.getElementById("finalReportList"); box.innerText = "Đang tải danh sách báo cáo..."; document.getElementById("finalReportError").innerText = ""; const result = await wrRequest("/final-reports"); if (!result)
+          return; if (!result.res.ok) {
+            box.innerText = wrApiError(result, "Không tải được báo cáo.");
+            return;
+          } finalReportOptions = result.body.data.options; const reports = result.body.data.reports;
+        box.innerHTML = `<div class="table-container"><table><thead><tr><th>Tiêu đề</th><th>Phạm vi</th><th>Trạng thái</th><th>Đã gửi</th><th>Người tạo</th><th>Thời điểm</th><th>Thao tác</th></tr></thead><tbody>${reports.length ? reports.map(finalReportRow).join("") : `<tr><td colspan="7">Chưa có báo cáo nào.</td></tr>`}</tbody></table></div>`;
+      }
+      function showFinalReportForm() { editingFinalReportId = null; document.getElementById("frTitle").value = ""; document.getElementById("frNote").value = ""; document.getElementById("frFrom").value = ""; document.getElementById("frTo").value = ""; document.getElementById("frScope").value = "ALL"; document.getElementById("frSaveButton").innerText = "Lưu bản nháp"; document.getElementById("frFormError").innerText = ""; document.getElementById("frPreview").innerHTML = ""; document.getElementById("finalReportForm").style.display = "block"; document.getElementById("finalReportDetail").style.display = "none"; updateFinalReportScope(); syncFinalReportDates(); }
+      async function editFinalReport(id) {
+        const result = await wrRequest(`/final-reports/${id}`); if (!result)
+          return; if (!result.res.ok) {
+            document.getElementById("finalReportError").innerText = wrApiError(result, "Không tải được bản nháp.");
+            return;
+          } const r = result.body.data; editingFinalReportId = id; document.getElementById("frTitle").value = r.title; document.getElementById("frScope").value = r.scopeType; updateFinalReportScope(); if (r.scopeValue)
+          document.getElementById("frScopeValue").value = r.scopeValue; document.getElementById("frFrom").value = r.periodFrom || ""; document.getElementById("frTo").value = r.periodTo || ""; document.getElementById("frNote").value = r.hrNote || ""; document.getElementById("frSaveButton").innerText = "Cập nhật bản nháp"; document.getElementById("frFormError").innerText = ""; document.getElementById("frPreview").innerHTML = ""; syncFinalReportDates(); document.getElementById("finalReportForm").style.display = "block"; document.getElementById("finalReportDetail").style.display = "none";
+      }
+      function updateFinalReportScope() {
+        const scope = document.getElementById("frScope").value;
+        document.getElementById("frScopeValueWrap").style.display = scope === "ALL" ? "none" : "";
+        document.getElementById("frScopeValueLabel").innerText = scope === "UNIVERSITY" ? "Trường" : "Chương trình";
+        const options = scope === "UNIVERSITY"
+          ? (finalReportOptions.universities || []).map(v => ({ value: v, label: v }))
+          : (finalReportOptions.programs || []).map(p => ({ value: String(p.id), label: p.name }));
+        document.getElementById("frScopeValue").innerHTML = options.length
+          ? options.map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("")
+          : `<option value="">— Chưa có dữ liệu —</option>`;
+      }
+      function finalReportPayload() {
+        const scope = document.getElementById("frScope").value; return {
+          title: document.getElementById("frTitle").value,
+          scope_type: scope,
+          scope_value: scope === "ALL" ? null : document.getElementById("frScopeValue").value || null,
+          period_from: document.getElementById("frFrom").value || null,
+          period_to: document.getElementById("frTo").value || null,
+          hr_note: document.getElementById("frNote").value || null
+        };
+      }
+      function renderFinalReportData(d) { return `<h3>Tổng quan</h3><p>${d.summary.totalInterns} thực tập sinh · Đã đánh giá ${d.summary.evaluated} · Chưa đánh giá ${d.summary.notEvaluated}</p><p>Điểm trung bình: kỹ năng ${d.summary.avgSkill ?? "—"} · thái độ ${d.summary.avgAttitude ?? "—"} · tổng ${d.summary.avgOverall ?? "—"}</p><p>Tổng giờ làm việc ghi nhận trong kỳ: ${formatAttendanceMinutes(d.summary.totalWorkMinutes || 0)}</p><div class="fr-chart">${Object.entries(d.summary.distribution).map(([k, v]) => `<div>${escapeHtml(k)} <span style="display:inline-block;background:#2563eb;height:12px;width:${Math.min(100, v * 20)}%"></span> ${v}</div>`).join("")}</div><div class="table-container"><table class="fr-print-table"><thead><tr><th>Thực tập sinh</th><th>Trường / ngành</th><th>Mentor</th><th>Kỹ năng</th><th>Thái độ</th><th>Điểm tổng</th><th>Tuần đúng / trễ / thiếu</th><th>Nhiệm vụ trong kỳ</th><th>Giờ làm</th></tr></thead><tbody>${d.interns.map(i => `<tr><td>${escapeHtml(i.fullName)}<br>${escapeHtml(i.studentCode || "")}</td><td>${escapeHtml(i.university || "")}<br>${escapeHtml(i.major || "")}</td><td>${escapeHtml(i.mentorName || "")}</td><td>${i.evaluated ? i.skillScore : "Chưa đánh giá"}<details><summary>Nhận xét</summary>${escapeHtml(i.skillComment || "")}</details></td><td>${i.evaluated ? i.attitudeScore : "—"}<details><summary>Nhận xét</summary>${escapeHtml(i.attitudeComment || "")}</details></td><td>${i.overallScore ?? "—"}<details><summary>Nhận xét</summary>${escapeHtml(i.overallComment || "")}</details></td><td>${i.weeklyReportStats.onTime} / ${i.weeklyReportStats.late} / ${i.weeklyReportStats.missing}</td><td>${i.taskStats.done}/${i.taskStats.total}</td><td>${formatAttendanceMinutes(i.totalWorkMinutes || 0)}</td></tr>`).join("")}</tbody></table></div><p>Ghi chú HR: ${escapeHtml(d.hrNote || "")}</p>`; }
+      async function previewFinalReport() {
+        if (!validateFinalReportForm({ requireTitle: false })) return;
+        const button = document.getElementById("frPreviewButton"); button.disabled = true; const params = new URLSearchParams({ scope_type: document.getElementById("frScope").value }); const scope = document.getElementById("frScope").value; if (scope !== "ALL")
+          params.set("scope_value", document.getElementById("frScopeValue").value); if (document.getElementById("frFrom").value)
+          params.set("from", document.getElementById("frFrom").value); if (document.getElementById("frTo").value)
+          params.set("to", document.getElementById("frTo").value); const result = await wrRequest(`/final-reports/preview?${params}`); button.disabled = false; const box = document.getElementById("frPreview"); if (!result)
+          return; if (!result.res.ok) {
+            box.innerText = wrApiError(result, "Không xem trước được báo cáo.");
+            return;
+          } box.innerHTML = renderFinalReportData(result.body.data);
+      }
+      async function saveFinalReport() {
+        if (!validateFinalReportForm()) return;
+        const button = document.getElementById("frSaveButton"); button.disabled = true; try {
+          const updating = !!editingFinalReportId;
+          const result = await wrRequest(updating ? `/final-reports/${editingFinalReportId}` : "/final-reports", {
+            method: updating ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(finalReportPayload())
+          });
+          if (!result)
+            return;
+          if (!result.res.ok) {
+            document.getElementById("frFormError").innerText = wrApiError(result, "Không lưu được báo cáo.");
+            return;
+          }
+          const id = updating ? editingFinalReportId : result.body.data.id;
+          editingFinalReportId = null;
+          document.getElementById("finalReportForm").style.display = "none";
+          await loadFinalReports();
+          await openFinalReport(id);
+        }
+          finally {
+          button.disabled = false;
+        }
+      }
+      async function openFinalReport(id, opts = {}) {
+        const result = await wrRequest(`/final-reports/${id}`); if (!result)
+          return; if (!result.res.ok) {
+            document.getElementById("finalReportError").innerText = wrApiError(result, "Không tải được báo cáo.");
+            return;
+          } const r = result.body.data; const rid = Number(r.id); const sends = r.sends || [];
+        let suggestions = [];
+        if (r.status === "FINALIZED") {
+          const q = new URLSearchParams({ scope_type: r.scopeType }); if (r.scopeType !== "ALL" && r.scopeValue) q.set("scope_value", r.scopeValue);
+          const rr = await wrRequest(`/final-reports/recipients?${q}`); if (rr && rr.res.ok) suggestions = rr.body.data.recipients || [];
+        }
+        const chips = suggestions.length ? `<div><div class="fr-hint">Gợi ý người nhận (bấm để thêm, × để xóa khỏi gợi ý):</div><div class="fr-chips">${suggestions.map(x => `<span class="fr-chip-wrap"><button type="button" class="fr-chip" data-email="${escapeHtml(x.email)}" onclick="addFinalReportRecipient(this.dataset.email)">${escapeHtml(x.email)}</button><button type="button" class="fr-chip-x" title="Xóa khỏi danh sách gợi ý" aria-label="Xóa ${escapeHtml(x.email)} khỏi gợi ý" onclick="removeFinalReportRecipient(${Number(x.id)}, this)">×</button></span>`).join("")}</div></div>` : "";
+        const sendPanel = `<div class="fr-send-panel"><label class="fr-field"><span>Gửi cho <span class="fr-hint">(nhiều email, cách nhau bằng dấu phẩy, tối đa 10)</span></span><input id="frSendTo" placeholder="ban.lanh.dao@truong.edu.vn, phong.dao.tao@truong.edu.vn"></label>${chips}<label class="fr-field">Lời nhắn<textarea id="frSendMessage" maxlength="1000"></textarea></label><div class="fr-actions"><button id="frSendButton" class="btn btn-primary" onclick="sendFinalReportEmail(${rid}, ${sends.length})">Gửi báo cáo qua email (kèm CSV)</button><span id="frSendResult" role="status"></span></div></div>`;
+        const history = r.status === "FINALIZED" ? `<div class="fr-history"><strong>Lịch sử gửi (${sends.length})</strong>${sends.length ? `<ul>${sends.map(x => `<li>${escapeHtml(formatDateTime(x.sentAt))} · ${escapeHtml(x.sentByName || "—")} → ${escapeHtml((x.recipients || []).join(", "))}${x.message ? `<span class="fr-sub">Lời nhắn: ${escapeHtml(x.message)}</span>` : ""}</li>`).join("")}</ul>` : `<p class="fr-hint">Báo cáo này chưa được gửi cho ai.</p>`}</div>` : "";
+        const draftButtons = `<button class="btn btn-secondary" onclick="editFinalReport(${rid})">Sửa nháp</button><button class="btn btn-primary" onclick="finalizeFinalReport(${rid})">Chốt báo cáo</button><button class="btn btn-danger" onclick="deleteFinalReport(${rid})">Xóa nháp</button>`;
+        document.getElementById("finalReportForm").style.display = "none"; document.getElementById("finalReportDetail").style.display = "block";
+        document.getElementById("finalReportDetailBody").innerHTML = `<div class="fr-screen-controls"><h2>${escapeHtml(r.title)}</h2>${finalReportStatusBadge(r)}<button class="btn btn-secondary" onclick="window.print()">In / Lưu PDF</button><button class="btn btn-secondary" onclick="downloadFinalReportCsv(${rid})">Tải CSV</button>${r.status === "DRAFT" ? draftButtons : sendPanel + history}</div><div id="frPrintable"><h1>${escapeHtml(r.title)}</h1><p>Ngày lập: ${escapeHtml(formatDateTime(r.data.generatedAt || r.createdAt))} · Phạm vi: ${escapeHtml(r.scopeLabel || "")} · Thời gian: ${escapeHtml(finalReportPeriod(r))}</p>${renderFinalReportData(r.data)}<p class="fr-signature">Đại diện Nhân sự</p></div>`;
+        if (opts.flash) { const out = document.getElementById("frSendResult"); if (out) { out.className = "text-success"; out.innerText = opts.flash; } }
+        const sendInput = document.getElementById("frSendTo");
+        if (opts.focusSend && sendInput) { sendInput.scrollIntoView({ behavior: "smooth", block: "center" }); sendInput.focus(); }
+        else document.getElementById("finalReportDetail").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      async function finalizeFinalReport(id, confirmIncomplete = false) {
+        if (!confirmIncomplete && !confirm("Sau khi chốt, báo cáo không thể sửa hoặc xóa. Bạn có muốn tiếp tục?"))
+          return; const button = document.activeElement; button.disabled = true; try {
+            const result = await wrRequest(`/final-reports/${id}/finalize`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(confirmIncomplete ? { confirm_incomplete: true } : {})
+            });
+            if (!result)
+              return;
+            if (!result.res.ok) {
+              if (result.res.status === 409 && result.body.code === "INCOMPLETE_EVALUATION") {
+                if (confirm(result.body.message + "\n\nVẫn chốt báo cáo này?")) {
+                  button.disabled = false;
+                  return finalizeFinalReport(id, true);
+                }
+                return;
+              }
+              document.getElementById("finalReportError").innerText = wrApiError(result, "Không chốt được báo cáo.");
+              return;
+            }
+            await loadFinalReports();
+            await openFinalReport(id);
+          }
+        finally {
+          button.disabled = false;
+        }
+      }
+      function parseFinalReportRecipients(text) { return String(text || "").split(/[,;\s]+/).map(x => x.trim()).filter(Boolean); }
+      function addFinalReportRecipient(email) {
+        const input = document.getElementById("frSendTo"); const list = parseFinalReportRecipients(input.value);
+        if (!list.some(x => x.toLowerCase() === String(email).toLowerCase())) list.push(email);
+        input.value = list.join(", "); input.focus();
+      }
+      async function removeFinalReportRecipient(recipientId, el) {
+        if (!confirm("Xóa email này khỏi danh sách gợi ý? (Không ảnh hưởng các báo cáo đã gửi)")) return;
+        const result = await wrRequest(`/final-reports/recipients/${recipientId}`, { method: "DELETE" }); if (!result) return;
+        if (!result.res.ok) { const out = document.getElementById("frSendResult"); out.className = "text-danger"; out.innerText = wrApiError(result, "Không xóa được người nhận."); return; }
+        const wrap = el.closest(".fr-chip-wrap"); if (wrap) wrap.remove();
+      }
+      async function sendFinalReportEmail(id, previousCount = 0) {
+        const out = document.getElementById("frSendResult"), button = document.getElementById("frSendButton"); out.className = "";
+        const recipients = parseFinalReportRecipients(document.getElementById("frSendTo").value);
+        if (!recipients.length) { out.className = "text-danger"; out.innerText = "Vui lòng nhập ít nhất một email người nhận!"; return; }
+        if (previousCount > 0 && !confirm(`Báo cáo này đã được gửi ${previousCount} lần. Bạn vẫn muốn gửi lại?`)) return;
+        out.innerText = "Đang gửi..."; button.disabled = true;
+        try {
+          const result = await wrRequest(`/final-reports/${id}/send`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipients, message: document.getElementById("frSendMessage").value })
+          }); if (!result) return;
+          if (!result.res.ok) { out.className = "text-danger"; out.innerText = wrApiError(result, "Không gửi được email."); return; }
+          const sentTo = result.body.data.recipients.join(", ");
+          await loadFinalReports();
+          await openFinalReport(id, { flash: `Đã gửi tới ${sentTo}` });
+        } finally { button.disabled = false; }
+      }
+      async function deleteFinalReport(id) {
+        if (!confirm("Xóa bản nháp báo cáo này?"))
+          return; const button = document.activeElement; button.disabled = true; try {
+            const result = await wrRequest(`/final-reports/${id}`, { method: "DELETE" });
+            if (!result)
+              return;
+            if (!result.res.ok) {
+              document.getElementById("finalReportError").innerText = wrApiError(result, "Không xóa được báo cáo.");
+              return;
+            }
+            document.getElementById("finalReportDetail").style.display = "none";
+            await loadFinalReports();
+          }
+        finally {
+          button.disabled = false;
+        }
+      }
+      async function downloadFinalReportCsv(id) {
+        const res = await fetch(`${API_BASE}/final-reports/${id}/export.csv`, { headers: authHeaders() }); if (res.status === 401)
+          return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!"); if (!res.ok) {
+            document.getElementById("finalReportError").innerText = "Không tải được CSV.";
+            return;
+          } const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `bao-cao-cuoi-ky-${id}.csv`; a.click(); URL.revokeObjectURL(url);
       }
     </script>
   </body>

@@ -301,44 +301,73 @@ CREATE TABLE IF NOT EXISTS `intern_evaluations` (
   CONSTRAINT `fk_evaluation_mentor` FOREIGN KEY (`mentor_id`) REFERENCES `mentors`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 19. BẢNG CHẤM CÔNG HẰNG NGÀY CỦA THỰC TẬP SINH (ATTENDANCE_LOGS)
-CREATE TABLE IF NOT EXISTS `attendance_logs` (
+-- 19. BẢNG CHẤM CÔNG THỰC TẬP SINH (ATTENDANCE_RECORDS)
+CREATE TABLE IF NOT EXISTS `attendance_records` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
   `intern_id` BIGINT NOT NULL,
   `work_date` DATE NOT NULL,
   `check_in_at` DATETIME NOT NULL,
-  `is_late` TINYINT(1) NOT NULL DEFAULT 0,
+  `check_out_at` DATETIME NULL,
+  `note` VARCHAR(255) NULL,
+  `is_adjusted` TINYINT(1) NOT NULL DEFAULT 0,
+  `correction_status` ENUM('PENDING','APPROVED','REJECTED') NULL,
+  `correction_check_out_at` DATETIME NULL,
+  `correction_reason` VARCHAR(255) NULL,
+  `correction_requested_at` DATETIME NULL,
+  `correction_reviewed_by` BIGINT NULL,
+  `correction_reviewed_at` DATETIME NULL,
+  `correction_review_note` VARCHAR(255) NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY `uq_attendance_intern_date` (`intern_id`, `work_date`),
-  INDEX `idx_attendance_date` (`work_date`),
+  CONSTRAINT `chk_attendance_checkout` CHECK (`check_out_at` IS NULL OR `check_out_at` >= `check_in_at`),
   CONSTRAINT `fk_attendance_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 20. BẢNG LỊCH LÀM VIỆC THEO NHÓM (WORK_SCHEDULES)
--- day_of_week theo ISO: 1 = Thứ Hai ... 7 = Chủ nhật; grace_minutes = thời gian du di (phút) sau giờ vào.
--- Cùng nhóm + cùng thứ không được có 2 ca chồng giờ (API /api/schedules kiểm tra, chạm đầu mút thì hợp lệ).
-CREATE TABLE IF NOT EXISTS `work_schedules` (
+-- 20. BẢNG BÁO CÁO TỔNG KẾT CUỐI KỲ (FINAL_REPORTS)
+CREATE TABLE IF NOT EXISTS `final_reports` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `group_name` VARCHAR(100) NOT NULL COLLATE utf8mb4_unicode_ci,
-  `day_of_week` TINYINT UNSIGNED NOT NULL,
-  `start_time` TIME NOT NULL,
-  `end_time` TIME NOT NULL,
-  `grace_minutes` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  `title` VARCHAR(255) NOT NULL,
+  `scope_type` ENUM('ALL','UNIVERSITY','PROGRAM') NOT NULL,
+  `scope_value` VARCHAR(255) NULL,
+  `period_from` DATE NULL,
+  `period_to` DATE NULL,
+  `status` ENUM('DRAFT','FINALIZED') NOT NULL DEFAULT 'DRAFT',
+  `hr_note` TEXT NULL,
+  `snapshot_json` LONGTEXT NULL,
   `created_by` BIGINT NULL,
+  `finalized_by` BIGINT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `finalized_at` DATETIME NULL,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT `chk_ws_day` CHECK (`day_of_week` BETWEEN 1 AND 7),
-  CONSTRAINT `chk_ws_time` CHECK (`start_time` < `end_time`),
-  CONSTRAINT `chk_ws_grace` CHECK (`grace_minutes` <= 120),
-  INDEX `idx_ws_group_day` (`group_name`, `day_of_week`),
-  CONSTRAINT `fk_ws_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+  CONSTRAINT `fk_final_report_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_final_report_finalizer` FOREIGN KEY (`finalized_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Lịch mặc định: nhóm "Mặc định", Thứ Hai - Thứ Sáu, 08:30 - 17:30 (backend cũng tự nạp khi bảng còn trống)
-INSERT INTO `work_schedules` (`group_name`, `day_of_week`, `start_time`, `end_time`, `grace_minutes`)
-SELECT 'Mặc định', d.day_of_week, '08:30:00', '17:30:00', 0
-FROM (SELECT 1 AS day_of_week UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) d
-WHERE NOT EXISTS (SELECT 1 FROM `work_schedules`);
+-- 21. LỊCH SỬ GỬI BÁO CÁO CUỐI KỲ (FINAL_REPORT_SENDS)
+CREATE TABLE IF NOT EXISTS `final_report_sends` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `report_id` BIGINT NOT NULL,
+  `sent_by` BIGINT NULL,
+  `recipients` TEXT NOT NULL,
+  `message` VARCHAR(1000) NULL,
+  `sent_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY `idx_final_report_sends_report` (`report_id`, `sent_at`),
+  CONSTRAINT `fk_final_report_send_report` FOREIGN KEY (`report_id`) REFERENCES `final_reports`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_final_report_send_user` FOREIGN KEY (`sent_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 22. EMAIL NGƯỜI NHẬN BÁO CÁO CUỐI KỲ (gợi ý theo phạm vi; scope_value rỗng = ALL)
+CREATE TABLE IF NOT EXISTS `final_report_recipients` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `email` VARCHAR(254) NOT NULL,
+  `scope_type` ENUM('ALL','UNIVERSITY','PROGRAM') NOT NULL,
+  `scope_value` VARCHAR(255) NOT NULL DEFAULT '',
+  `created_by` BIGINT NULL,
+  `last_used_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_final_report_recipient` (`email`, `scope_type`, `scope_value`),
+  CONSTRAINT `fk_final_report_recipient_user` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ==============================================================================
 -- DỮ LIỆU MẪU BAN ĐẦU (SEED DATA)

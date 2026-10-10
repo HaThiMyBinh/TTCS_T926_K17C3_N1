@@ -25,7 +25,6 @@
     "test:contract-confirm-unit": "node tests/test_contract_confirmation_unit.js",
     "test:contract-confirm-api": "node tests/test_contract_confirm_api.js",
     "test:date-unit": "node tests/test_date_unit.js",
-    "test:attendance-unit": "node tests/test_attendance_unit.js",
     "test:programs-unit": "node tests/test_programs_unit.js",
     "test:programs-api": "node tests/test_programs_api.js",
     "test:programs-safety": "node tests/test_programs_safety.js",
@@ -46,7 +45,11 @@
     "test:business-rules-api": "node tests/test_business_rules_api.js",
     "test:evaluations-unit": "node tests/test_evaluations_unit.js",
     "test:evaluations-api": "node tests/test_evaluations_api.js",
-    "test:task-attachments-unit": "node tests/test_task_attachments_unit.js"
+    "test:task-attachments-unit": "node tests/test_task_attachments_unit.js",
+    "test:attendance-unit": "node tests/test_attendance_unit.js",
+    "test:attendance-api": "node tests/test_attendance_api.js",
+    "test:final-reports-unit": "node tests/test_final_reports_unit.js",
+    "test:final-reports-api": "node tests/test_final_reports_api.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
