@@ -308,9 +308,53 @@ function renderTestEmail() {
   };
 }
 
+// --- EMAIL GỬI BÁO CÁO CUỐI KỲ (kèm file CSV) ---
+function renderFinalReportEmail({ report, message }) {
+  const data = report.data || {};
+  const summary = data.summary || {};
+  const scope = data.scope || {};
+  const scopeLabel = report.scopeLabel || (scope.type === "UNIVERSITY" ? `Trường: ${scope.value}` : scope.type === "PROGRAM" ? "Theo chương trình thực tập" : "Toàn bộ thực tập sinh");
+  const period = scope.from || scope.to ? `${scope.from || "..."} – ${scope.to || "..."}` : "Toàn bộ thời gian";
+  const hours = Math.round(((summary.totalWorkMinutes || 0) / 60) * 10) / 10;
+  const num = (v) => (v == null ? "—" : String(v));
+  const subject = `[Báo cáo cuối kỳ] ${report.title}`;
+  const previewText = `Báo cáo cuối kỳ thực tập: ${summary.evaluated || 0}/${summary.totalInterns || 0} thực tập sinh đã được đánh giá.`;
+  const row = (label, value) => `<tr><td style="padding: 6px 0; color: #475569;">${escapeHtml(label)}</td><td style="padding: 6px 0; text-align: right;"><b>${escapeHtml(value)}</b></td></tr>`;
+  const bodyHtml = `
+    <p style="margin: 0 0 16px; font-size: 15px;">Kính gửi Quý đơn vị,</p>
+    <p style="margin: 0 0 16px;">Bộ phận Nhân sự gửi kèm báo cáo tổng hợp đánh giá thực tập sinh <b>${escapeHtml(report.title)}</b> (chi tiết trong file CSV đính kèm).</p>
+    ${message ? `<p style="margin: 0 0 16px; padding: 12px 14px; background-color: #f8fafc; border-left: 3px solid ${BRAND_COLOR}; white-space: pre-line;">${escapeHtml(message)}</p>` : ""}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; margin: 8px 0 16px;">
+      ${row("Phạm vi", scopeLabel)}
+      ${row("Khoảng thời gian", period)}
+      ${row("Số thực tập sinh", num(summary.totalInterns))}
+      ${row("Đã được đánh giá", num(summary.evaluated))}
+      ${row("Điểm kỹ năng trung bình", num(summary.avgSkill))}
+      ${row("Điểm thái độ trung bình", num(summary.avgAttitude))}
+      ${row("Điểm tổng trung bình", num(summary.avgOverall))}
+      ${row("Tổng giờ làm việc ghi nhận", `${hours} giờ`)}
+    </table>
+    ${data.hrNote ? `<p style="margin: 0 0 16px; color: #334155; white-space: pre-line;"><b>Nhận xét của HR:</b><br/>${escapeHtml(data.hrNote)}</p>` : ""}
+    <p style="margin: 20px 0 0; color: #475569;">Thời gian gửi: <b>${formatVietnamDateTime()}</b><br/>Hệ thống: <b>${escapeHtml(BRAND_NAME)}</b></p>
+  `;
+  const text = [
+    "Kính gửi Quý đơn vị,", "",
+    `Báo cáo cuối kỳ thực tập: ${report.title} (chi tiết trong file CSV đính kèm).`,
+    message ? `\n${message}\n` : "",
+    `Phạm vi: ${scopeLabel}`, `Khoảng thời gian: ${period}`,
+    `Số thực tập sinh: ${num(summary.totalInterns)} (đã đánh giá: ${num(summary.evaluated)})`,
+    `Điểm trung bình: kỹ năng ${num(summary.avgSkill)}, thái độ ${num(summary.avgAttitude)}, tổng ${num(summary.avgOverall)}`,
+    `Tổng giờ làm việc ghi nhận: ${hours} giờ`,
+    data.hrNote ? `\nNhận xét của HR: ${data.hrNote}` : "",
+    "", `Thời gian gửi: ${formatVietnamDateTime()}`,
+  ].join("\n");
+  return { subject, html: wrapHtml({ title: subject, previewText, bodyHtml }), text };
+}
+
 module.exports = {
   escapeHtml,
   renderApprovedEmail,
   renderRejectedEmail,
   renderTestEmail,
+  renderFinalReportEmail,
 };

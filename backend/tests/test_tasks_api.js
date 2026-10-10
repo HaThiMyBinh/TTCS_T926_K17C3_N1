@@ -558,6 +558,8 @@ async function testReassignAndDelete(ctx, conn, tasks) {
   check("Việc đã xóa biến mất khỏi danh sách", mineB.body.data.length === 0);
 
   // Xóa hồ sơ intern thì nhiệm vụ bị xóa theo (ON DELETE CASCADE)
+  // Hồ sơ đang giữ hợp đồng đã xác nhận thì không xóa được (409), nên gỡ hợp đồng test trước khi kiểm tra CASCADE.
+  await conn.query("DELETE FROM internship_contracts WHERE intern_id = ?", [interns.c.id]);
   const delIntern = await call("DELETE", `/interns/${interns.c.id}`, hrToken);
   const [cascade] = await conn.query(
     "SELECT COUNT(*) AS n FROM intern_tasks WHERE intern_id = ?",
