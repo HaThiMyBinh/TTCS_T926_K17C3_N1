@@ -1,0 +1,180 @@
+0<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi Tiết Chuyên Cần Intern - Task 7.6</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; background-color: #f4f6f9; min-height: 100vh; color: #333; }
+
+        /* Sidebar Navigation */
+        .sidebar { width: 240px; background-color: #1e293b; color: white; padding: 20px 0; flex-shrink: 0; }
+        .sidebar h3 { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #334155; font-size: 18px; color: #38bdf8; }
+        .nav-menu { list-style: none; margin-top: 20px; }
+        .nav-menu li a { display: block; padding: 12px 20px; color: #94a3b8; text-decoration: none; font-weight: 500; transition: 0.2s; }
+        .nav-menu li a.active, .nav-menu li a:hover { background-color: #0f172a; color: #38bdf8; border-left: 4px solid #38bdf8; }
+
+        /* Main Content */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .intern-info { background-color: #e2e8f0; padding: 12px 18px; border-radius: 8px; font-size: 15px; }
+
+        /* Filter Controls */
+        .filter-section { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-item { display: flex; flex-direction: column; gap: 5px; }
+        .filter-item label { font-size: 13px; font-weight: 600; color: #475569; }
+        .filter-item input, .filter-item select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+
+        /* Table & Badges (Tô màu trạng thái) */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+        th { background-color: #f8fafc; color: #475569; font-weight: 600; }
+        
+        .badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-normal { background-color: #d1fae5; color: #065f46; } /* Đúng giờ - Xanh lá */
+        .badge-late { background-color: #fef3c7; color: #92400e; }   /* Đi muộn - Vàng */
+        .badge-early { background-color: #ffedd5; color: #9a3412; }  /* Về sớm - Cam */
+        .badge-absent { background-color: #fee2e2; color: #991b1b; } /* Vắng - Đỏ */
+        .badge-leave { background-color: #e0e7ff; color: #3730a3; }  /* Nghỉ phép - Xanh dương */
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR MENU -->
+    <div class="sidebar">
+        <h3>ADMIN PORTAL</h3>
+        <ul class="nav-menu">
+            <li><a href="index.html">Trang chủ</a></li>
+            <li><a href="attendance.html">Chấm công</a></li>
+            <li><a href="intern-attendance-detail.html" class="active">Chi tiết chuyên cần</a></li>
+            <li><a href="reports.html">Báo cáo</a></li>
+        </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="container">
+            <div class="card">
+                <div class="header">
+                    <h2>📊 Chi Tiết Chuyên Cần Intern Theo Ngày</h2>
+                    <div class="intern-info">
+                        Intern: <strong>Nguyễn Văn A</strong> | Mã: <strong>INT102</strong>
+                    </div>
+                </div>
+
+                <!-- BỘ LỌC TÌM KIẾM -->
+                <div class="filter-section">
+                    <div class="filter-item">
+                        <label for="filterMonth">Tháng:</label>
+                        <input type="month" id="filterMonth" value="2026-10" onchange="filterData()">
+                    </div>
+                    <div class="filter-item">
+                        <label for="filterStatus">Trạng thái:</label>
+                        <select id="filterStatus" onchange="filterData()">
+                            <option value="ALL">Tất cả trạng thái</option>
+                            <option value="NORMAL">Đúng giờ</option>
+                            <option value="LATE">Đi muộn</option>
+                            <option value="EARLY">Về sớm</option>
+                            <option value="ABSENT">Vắng mặt</option>
+                            <option value="LEAVE">Nghỉ phép</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- BẢNG LỊCH SỬ CHI TIẾT (TÔ MÀU TRẠNG THÁI) -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Giờ Check-in</th>
+                            <th>Giờ Check-out</th>
+                            <th>Số phút làm</th>
+                            <th>Trạng thái</th>
+                            <th>Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceDetailBody">
+                        <!-- Dữ liệu mẫu sẽ được đổ tự động -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dữ liệu giả định lập theo ngày cho Task 7.6
+        const mockAttendanceData = [
+            { date: '2026-10-10', checkIn: '08:00', checkOut: '17:30', minutes: 480, status: 'NORMAL', note: 'Đúng giờ' },
+            { date: '2026-10-09', checkIn: '08:25', checkOut: '17:30', minutes: 455, status: 'LATE', note: 'Đi muộn 25 phút' },
+            { date: '2026-10-08', checkIn: '08:00', checkOut: '16:00', minutes: 420, status: 'EARLY', note: 'Về sớm 90 phút' },
+            { date: '2026-10-07', checkIn: '-', checkOut: '-', minutes: 0, status: 'ABSENT', note: 'Không check-in' },
+            { date: '2026-10-06', checkIn: '-', checkOut: '-', minutes: 0, status: 'LEAVE', note: 'Nghỉ phép có đơn' },
+            { date: '2026-10-05', checkIn: '07:55', checkOut: '17:35', minutes: 485, status: 'NORMAL', note: 'Đúng giờ' }
+        ];
+
+        function renderTable(data) {
+            const tbody = document.getElementById('attendanceDetailBody');
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">Không có dữ liệu phù hợp</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(row => {
+                let badgeClass = '';
+                let statusLabel = '';
+
+                switch (row.status) {
+                    case 'NORMAL':
+                        badgeClass = 'badge-normal';
+                        statusLabel = 'Đúng giờ';
+                        break;
+                    case 'LATE':
+                        badgeClass = 'badge-late';
+                        statusLabel = 'Đi muộn';
+                        break;
+                    case 'EARLY':
+                        badgeClass = 'badge-early';
+                        statusLabel = 'Về sớm';
+                        break;
+                    case 'ABSENT':
+                        badgeClass = 'badge-absent';
+                        statusLabel = 'Vắng mặt';
+                        break;
+                    case 'LEAVE':
+                        badgeClass = 'badge-leave';
+                        statusLabel = 'Nghỉ phép';
+                        break;
+                }
+
+                return `
+                    <tr>
+                        <td><strong>${row.date}</strong></td>
+                        <td>${row.checkIn}</td>
+                        <td>${row.checkOut}</td>
+                        <td>${row.minutes} phút</td>
+                        <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
+                        <td>${row.note}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterData() {
+            const selectedStatus = document.getElementById('filterStatus').value;
+            let filtered = mockAttendanceData;
+
+            if (selectedStatus !== 'ALL') {
+                filtered = mockAttendanceData.filter(item => item.status === selectedStatus);
+            }
+
+            renderTable(filtered);
+        }
+
+        window.onload = () => renderTable(mockAttendanceData);
+    </script>
+</body>
+</html>
