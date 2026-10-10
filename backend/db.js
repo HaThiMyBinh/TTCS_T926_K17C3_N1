@@ -1121,12 +1121,20 @@ async function reviewApplicationAtomic({
 
 async function getAllMentors() {
   const db = requireDb();
+  // internCount: số thực tập sinh đang được mentor phụ trách (không tính hồ sơ
+  // đã "Đã kết thúc") để HR cân đối khi gán mentor.
   const [rows] = await db.query(
-    `SELECT id, full_name AS fullName, email, phone, department, specialization,
-            created_at AS createdAt
-     FROM mentors ORDER BY id DESC`,
+    `SELECT m.id, m.full_name AS fullName, m.email, m.phone, m.department,
+            m.specialization, m.created_at AS createdAt,
+            COUNT(ip.id) AS internCount
+     FROM mentors m
+     LEFT JOIN intern_profiles ip
+       ON ip.mentor_id = m.id AND ip.status <> 'Đã kết thúc'
+     GROUP BY m.id, m.full_name, m.email, m.phone, m.department,
+              m.specialization, m.created_at
+     ORDER BY m.id DESC`,
   );
-  return rows;
+  return rows.map((row) => ({ ...row, internCount: Number(row.internCount) }));
 }
 
 // Đảm bảo mỗi hồ sơ (mentor / thực tập sinh) có ĐÚNG 1 tài khoản cùng vai trò khớp email/họ tên/SĐT.
