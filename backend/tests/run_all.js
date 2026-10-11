@@ -48,6 +48,8 @@ const SUITES = [
   },
   { name: "upload-unit", file: "test_upload_unit.js", needsServer: false },
   { name: "attendance-unit", file: "test_attendance_unit.js", needsServer: false },
+  { name: "work-schedule-unit", file: "test_work_schedule_unit.js", needsServer: false },
+  { name: "attendance-report-unit", file: "test_attendance_report_unit.js", needsServer: false },
   { name: "final-reports-unit", file: "test_final_reports_unit.js", needsServer: false },
   {
     name: "contracts-unit",
@@ -109,6 +111,8 @@ const SUITES = [
     needsServer: true,
   },
   { name: "attendance-api", file: "test_attendance_api.js", needsServer: true },
+  { name: "work-schedule-api", file: "test_work_schedule_api.js", needsServer: true },
+  { name: "attendance-report-api", file: "test_attendance_report_api.js", needsServer: true },
   { name: "final-reports-api", file: "test_final_reports_api.js", needsServer: true },
   { name: "mentors", file: "test_mentors.js", needsServer: true },
   { name: "applications", file: "test_applications.js", needsServer: true },
