@@ -324,6 +324,26 @@ CREATE TABLE IF NOT EXISTS `attendance_records` (
   CONSTRAINT `fk_attendance_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 19b. BẢNG ĐƠN XIN NGHỈ CỦA THỰC TẬP SINH (LEAVE_REQUESTS)
+CREATE TABLE IF NOT EXISTS `leave_requests` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `intern_id` BIGINT NOT NULL,
+  `leave_type` ENUM('PERSONAL','SICK','STUDY','OTHER') NOT NULL DEFAULT 'PERSONAL',
+  `start_date` DATE NOT NULL,
+  `end_date` DATE NOT NULL,
+  `reason` VARCHAR(500) NOT NULL,
+  `status` ENUM('PENDING','APPROVED','REJECTED','CANCELLED') NOT NULL DEFAULT 'PENDING',
+  `reviewed_by` BIGINT NULL,
+  `reviewed_at` DATETIME NULL,
+  `review_note` VARCHAR(255) NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_leave_intern_dates` (`intern_id`, `start_date`, `end_date`),
+  INDEX `idx_leave_status_start` (`status`, `start_date`),
+  CONSTRAINT `chk_leave_dates` CHECK (`end_date` >= `start_date`),
+  CONSTRAINT `fk_leave_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 20. BẢNG BÁO CÁO TỔNG KẾT CUỐI KỲ (FINAL_REPORTS)
 CREATE TABLE IF NOT EXISTS `final_reports` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,

@@ -671,54 +671,19 @@ async function initDatabase() {
   await ensureColumn("attendance_records", "correction_reviewed_by", "BIGINT NULL");
   await ensureColumn("attendance_records", "correction_reviewed_at", "DATETIME NULL");
   await ensureColumn("attendance_records", "correction_review_note", "VARCHAR(255) NULL");
-  // US8: mẫu lịch làm việc, phạm vi áp dụng và ngày nghỉ chung.
-  await pool.query(`CREATE TABLE IF NOT EXISTS work_schedules (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(150) NOT NULL UNIQUE,
-    description TEXT NULL, mode ENUM('FIXED','FLEXIBLE') NOT NULL,
-    grace_minutes INT NOT NULL DEFAULT 15, min_daily_minutes INT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS work_schedule_days (
-    schedule_id BIGINT NOT NULL, weekday TINYINT NOT NULL, is_working TINYINT(1) NOT NULL DEFAULT 0,
-    start_time TIME NULL, end_time TIME NULL, PRIMARY KEY(schedule_id, weekday),
-    CONSTRAINT fk_work_schedule_day FOREIGN KEY(schedule_id) REFERENCES work_schedules(id) ON DELETE CASCADE
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS work_schedule_assignments (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY, schedule_id BIGINT NOT NULL,
-    target_type ENUM('DEFAULT','UNIVERSITY','PROGRAM','MENTOR','INTERN') NOT NULL,
-    target_value VARCHAR(255) NOT NULL DEFAULT '', effective_from DATE NOT NULL, effective_to DATE NULL,
-    created_by BIGINT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_schedule_assignment_lookup(target_type,target_value,effective_from,effective_to),
-    UNIQUE KEY uq_schedule_assignment_start(target_type,target_value,effective_from),
-    CONSTRAINT fk_work_schedule_assignment FOREIGN KEY(schedule_id) REFERENCES work_schedules(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_work_schedule_creator FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS work_holidays (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY, holiday_date DATE NOT NULL UNIQUE, name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
   await pool.query(`CREATE TABLE IF NOT EXISTS leave_requests (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, intern_id BIGINT NOT NULL,
-    leave_type ENUM('SICK','PERSONAL','EXAM','OTHER') NOT NULL, from_date DATE NOT NULL, to_date DATE NOT NULL,
-    reason VARCHAR(500) NOT NULL, status ENUM('PENDING','APPROVED','REJECTED','CANCELLED') NOT NULL DEFAULT 'PENDING',
-    reviewed_by BIGINT NULL, reviewed_at DATETIME NULL, review_note VARCHAR(500) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_leave_intern_dates(intern_id,from_date,to_date,status),
-    CONSTRAINT fk_leave_intern FOREIGN KEY(intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
-    CONSTRAINT fk_leave_reviewer FOREIGN KEY(reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+    leave_type ENUM('PERSONAL','SICK','STUDY','OTHER') NOT NULL DEFAULT 'PERSONAL',
+    start_date DATE NOT NULL, end_date DATE NOT NULL, reason VARCHAR(500) NOT NULL,
+    status ENUM('PENDING','APPROVED','REJECTED','CANCELLED') NOT NULL DEFAULT 'PENDING',
+    reviewed_by BIGINT NULL, reviewed_at DATETIME NULL, review_note VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_leave_intern_dates (intern_id, start_date, end_date),
+    INDEX idx_leave_status_start (status, start_date),
+    CONSTRAINT chk_leave_dates CHECK (end_date >= start_date),
+    CONSTRAINT fk_leave_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-  await pool.query("INSERT IGNORE INTO work_schedules (id,name,description,mode,grace_minutes) VALUES (1,'Lịch mặc định','Lịch làm việc mặc định toàn hệ thống','FIXED',15)");
-  await pool.query("INSERT IGNORE INTO work_schedule_days (schedule_id,weekday,is_working,start_time,end_time) VALUES (1,1,1,'08:30','17:30'),(1,2,1,'08:30','17:30'),(1,3,1,'08:30','17:30'),(1,4,1,'08:30','17:30'),(1,5,1,'08:30','17:30'),(1,6,0,NULL,NULL),(1,7,0,NULL,NULL)");
-  // Bản cũ không có khóa duy nhất nên INSERT IGNORE bên dưới thêm một dòng "Mặc định" mới sau mỗi lần khởi động.
-  // Dọn các dòng trùng (giữ dòng có id nhỏ nhất) rồi thêm khóa để không lặp lại.
-  await pool.query(`DELETE a FROM work_schedule_assignments a JOIN work_schedule_assignments b
-    ON a.target_type=b.target_type AND a.target_value=b.target_value AND a.effective_from=b.effective_from AND a.id>b.id`);
-  try {
-    await pool.query("ALTER TABLE work_schedule_assignments ADD UNIQUE KEY uq_schedule_assignment_start(target_type,target_value,effective_from)");
-  } catch (err) {
-    if (err.code !== "ER_DUP_KEYNAME") throw err; // đã có khóa (database mới hoặc đã chạy trước đó)
-  }
-  await pool.query("INSERT IGNORE INTO work_schedule_assignments (schedule_id,target_type,target_value,effective_from) VALUES (1,'DEFAULT','','1970-01-01')");
   await pool.query(`CREATE TABLE IF NOT EXISTS final_reports (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL,
     scope_type ENUM('ALL','UNIVERSITY','PROGRAM') NOT NULL, scope_value VARCHAR(255) NULL,
@@ -2451,6 +2416,56 @@ async function listPendingAttendanceCorrections(mentorId = null) {
     WHERE a.correction_status = 'PENDING'${extra} ORDER BY a.correction_requested_at ASC, a.id ASC`, params);
   return rows;
 }
+// ---------- Đơn xin nghỉ (leave_requests) ----------
+const LEAVE_COLUMNS = `l.id, l.intern_id AS internId, l.leave_type AS leaveType,
+    DATE_FORMAT(l.start_date, '%Y-%m-%d') AS startDate, DATE_FORMAT(l.end_date, '%Y-%m-%d') AS endDate,
+    DATEDIFF(l.end_date, l.start_date) + 1 AS totalDays, l.reason, l.status,
+    l.reviewed_by AS reviewedBy, DATE_FORMAT(l.reviewed_at, '%Y-%m-%d %H:%i:%s') AS reviewedAt,
+    l.review_note AS reviewNote, DATE_FORMAT(l.created_at, '%Y-%m-%d %H:%i:%s') AS createdAt,
+    ip.full_name AS fullName, ip.student_code AS studentCode, ip.mentor_id AS mentorId`;
+async function findLeaveById(id) {
+  const [rows] = await requireDb().query(`SELECT ${LEAVE_COLUMNS} FROM leave_requests l
+    JOIN intern_profiles ip ON ip.id = l.intern_id WHERE l.id = ? LIMIT 1`, [id]);
+  return rows[0] || null;
+}
+async function insertLeave({ internId, leaveType, startDate, endDate, reason }) {
+  const [result] = await requireDb().query(`INSERT INTO leave_requests (intern_id, leave_type, start_date, end_date, reason)
+    VALUES (?, ?, ?, ?, ?)`, [internId, leaveType, startDate, endDate, reason]);
+  return findLeaveById(result.insertId);
+}
+// Có đơn PENDING/APPROVED nào của thực tập sinh giao với [startDate, endDate] không.
+async function hasOverlappingLeave(internId, startDate, endDate) {
+  const [rows] = await requireDb().query(`SELECT 1 FROM leave_requests WHERE intern_id = ?
+    AND status IN ('PENDING','APPROVED') AND start_date <= ? AND end_date >= ? LIMIT 1`, [internId, endDate, startDate]);
+  return rows.length > 0;
+}
+// Danh sách đơn nghỉ có lọc + phân trang. Lọc ngày theo kiểu giao nhau: đơn có ngày nghỉ nằm trong [from, to].
+async function listLeaves({ status, from, to, internId, mentorId, limit = 20, offset = 0, order = "DESC" } = {}) {
+  const where = [];
+  const params = [];
+  if (status) { where.push("l.status = ?"); params.push(status); }
+  if (internId) { where.push("l.intern_id = ?"); params.push(internId); }
+  if (mentorId) { where.push("ip.mentor_id = ?"); params.push(mentorId); }
+  if (from) { where.push("l.end_date >= ?"); params.push(from); }
+  if (to) { where.push("l.start_date <= ?"); params.push(to); }
+  const whereSql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+  const dir = order === "ASC" ? "ASC" : "DESC";
+  const from_ = " FROM leave_requests l JOIN intern_profiles ip ON ip.id = l.intern_id";
+  const [[{ total }]] = await requireDb().query(`SELECT COUNT(*) AS total${from_}${whereSql}`, params);
+  const [rows] = await requireDb().query(`SELECT ${LEAVE_COLUMNS}${from_}${whereSql}
+    ORDER BY l.start_date ${dir}, l.id ${dir} LIMIT ? OFFSET ?`, [...params, limit, offset]);
+  return { rows, total: Number(total) };
+}
+async function reviewLeave({ id, decision, userId, note }) {
+  const [result] = await requireDb().query(`UPDATE leave_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW(), review_note = ?
+    WHERE id = ? AND status = 'PENDING'`, [decision, userId, note || null, id]);
+  return result.affectedRows;
+}
+async function cancelLeave({ id, internId }) {
+  const [result] = await requireDb().query(`UPDATE leave_requests SET status = 'CANCELLED'
+    WHERE id = ? AND intern_id = ? AND status = 'PENDING'`, [id, internId]);
+  return result.affectedRows;
+}
 async function deleteInternEvaluation(internId) {
   const [result] = await requireDb().query(
     "DELETE FROM intern_evaluations WHERE intern_id = ?",
@@ -3582,6 +3597,12 @@ module.exports = {
   requestAttendanceCorrection,
   reviewAttendanceCorrection,
   listPendingAttendanceCorrections,
+  findLeaveById,
+  insertLeave,
+  hasOverlappingLeave,
+  listLeaves,
+  reviewLeave,
+  cancelLeave,
   insertAttendance,
   checkOutAttendance,
   listAttendance,
