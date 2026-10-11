@@ -257,3 +257,21 @@ Kiểm thử toàn bộ: `cd backend && npm test -- --unit`, sau đó `cd backen
 
 ### Nâng cấp CSDL
 Bảng `attendance_records` có thêm các cột `is_adjusted`, `correction_*`. Server tự thêm cột vào database cũ khi khởi động (`ensureColumn`); `schema.sql` đã cập nhật cho database mới.
+
+### US7 / US8 – Lịch làm việc, nghỉ phép và chuyên cần
+
+**Lịch làm việc (US8, HR thiết lập, Admin chỉ xem)** – tab *Lịch làm việc*, API `/api/work-schedules`.
+- Mẫu lịch có hai chế độ: `FIXED` (giờ bắt đầu/kết thúc từng ngày + dung sai đi muộn/về sớm) và `FLEXIBLE` (chỉ cần đủ số phút tối thiểu mỗi ngày). Cấu hình riêng cho từng thứ trong tuần; có sẵn "Lịch mặc định" T2–T6 08:30–17:30 (không xóa được).
+- Gán lịch cho nhóm tại `/api/work-schedules/assignments` theo `DEFAULT`, trường, chương trình, mentor hoặc cá nhân, kèm ngày hiệu lực. Thứ tự ưu tiên: cá nhân > chương trình > mentor > trường > mặc định. Gán lịch mới cho cùng phạm vi sẽ tự kết thúc lần đang mở trước đó; khoảng ngày trùng bị từ chối (409). `/api/work-schedules/preview` cho biết số thực tập sinh bị ảnh hưởng, `/api/work-schedules/resolved` liệt kê lịch đang áp dụng của từng người, `/api/work-schedules/options` cấp danh sách cho các ô chọn.
+- Sửa một mẫu lịch đã được gán sẽ ảnh hưởng cả báo cáo các ngày đã qua; nên tạo mẫu mới và áp dụng từ ngày hiệu lực.
+- Ngày nghỉ chung: `/api/work-holidays`. Thực tập sinh xem lịch của mình ở `/api/me/work-schedule`; `GET /api/me/attendance/today` có thêm trường `schedule`. Check-in/check-out **không bị chặn** vào ngày nghỉ hay ngoài giờ, chỉ được gắn cờ trong báo cáo.
+
+**Nghỉ phép (US7)** – nghỉ nguyên ngày, loại `SICK|PERSONAL|EXAM|OTHER`.
+- Thực tập sinh: `POST/GET /api/me/leaves`, `POST /api/me/leaves/:id/cancel` (tab *Nghỉ phép*). Quy tắc: trong hợp đồng đã xác nhận (hợp đồng thiếu ngày bắt đầu/kết thúc được coi là không giới hạn), tối đa 30 ngày/đơn, nộp bù tối đa 7 ngày, không xin cho ngày đã chấm công, không chồng đơn đang chờ hoặc đã duyệt. Hủy được đơn chờ duyệt, hoặc đơn đã duyệt khi chưa tới ngày nghỉ.
+- HR/Mentor phụ trách: `GET /api/leaves/pending` và `POST /api/leaves/:id/review` (card *Đơn nghỉ phép chờ duyệt* ở tab Chấm công thực tập sinh; từ chối phải có lý do). HR xem toàn bộ đơn ở `GET /api/leaves?status=&intern_id=&from=&to=`.
+
+**Báo cáo chuyên cần (US7, HR có quyền `VIEW_REPORTS`)** – tab *Báo cáo chuyên cần*.
+- `GET /api/attendance/report?from=&to=&scope_type=ALL|UNIVERSITY|PROGRAM|MENTOR&scope_value=&intern_id=&group_by=NONE|PROGRAM|UNIVERSITY|MENTOR`, chi tiết từng ngày `GET /api/attendance/report/interns/:id/days`, xuất CSV `GET /api/attendance/report/export.csv`. Khoảng ngày tối đa 366 ngày; dữ liệu được tải theo lô, không truy vấn theo từng ngày.
+- Mỗi ngày được xếp vào một trạng thái: Có mặt, Nghỉ phép, Vắng, Vắng (chờ duyệt nghỉ), Ngày nghỉ, Ngày lễ, Ngoài hợp đồng, Chưa tới. Ngày "phải đi làm" gồm Có mặt, Nghỉ phép, Vắng. Cờ kèm theo: đi muộn, về sớm, thiếu giờ (lịch linh hoạt), thiếu check-out, đã bổ sung check-out, đi làm dù đã xin nghỉ.
+- Tỷ lệ chuyên cần = số ngày có mặt / (ngày phải đi làm − ngày nghỉ có phép); để trống nếu mẫu số bằng 0. Màu: từ 90% xanh, 75–90% vàng, dưới 75% đỏ.
+- Kiểm thử đơn vị: `npm run test:work-schedule-unit` (hàm thuần) và `npm run test:attendance-report-unit` (báo cáo, nghỉ phép, quản lý lịch với DB giả, không cần MySQL). Test API (cần MySQL và backend đang chạy): `npm run test:work-schedule-api` (lịch, gán lịch, ngày nghỉ chung, nghỉ phép, phân quyền mentor) và `npm run test:attendance-report-api` (báo cáo, lọc, nhóm, chi tiết từng ngày, CSV). Hai bộ này tự tạo dữ liệu riêng và dọn sạch sau khi chạy; `npm test` chạy tất cả.

@@ -48,6 +48,10 @@
     "test:task-attachments-unit": "node tests/test_task_attachments_unit.js",
     "test:attendance-unit": "node tests/test_attendance_unit.js",
     "test:attendance-api": "node tests/test_attendance_api.js",
+    "test:work-schedule-api": "node tests/test_work_schedule_api.js",
+    "test:attendance-report-api": "node tests/test_attendance_report_api.js",
+    "test:work-schedule-unit": "node tests/test_work_schedule_unit.js",
+    "test:attendance-report-unit": "node tests/test_attendance_report_unit.js",
     "test:final-reports-unit": "node tests/test_final_reports_unit.js",
     "test:final-reports-api": "node tests/test_final_reports_api.js"
   },
