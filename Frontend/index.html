@@ -2810,7 +2810,7 @@
         <!-- CHẤM CÔNG (INTERN) -->
         <div id="tab-my-attendance" class="tab-pane" style="display:none">
           <div class="card"><div class="card-header"><h3><i class="fa-solid fa-clock text-primary"></i> Chấm công hôm nay</h3></div>
-            <div class="card-body"><div id="attendanceState" aria-live="polite">Đang tải...</div>
+            <div class="card-body"><p id="attendanceSchedule" class="fr-hint" aria-live="polite"></p><div id="attendanceState" aria-live="polite">Đang tải...</div>
               <label for="attendanceNote">Ghi chú khi check-in (không bắt buộc)</label>
               <textarea id="attendanceNote" maxlength="255" oninput="document.getElementById('attendanceNoteCount').innerText=this.value.length+'/255'"></textarea><small id="attendanceNoteCount">0/255</small>
               <p id="attendanceReason" class="text-danger"></p><button id="attendanceAction" class="btn btn-primary attendance-action" onclick="submitAttendance()" disabled>Đang tải...</button>
@@ -2835,6 +2835,10 @@
 
         <!-- CHẤM CÔNG THỰC TẬP SINH (HR / MENTOR) -->
         <div id="tab-staff-attendance" class="tab-pane" style="display:none">
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-umbrella-beach text-primary"></i> Đơn nghỉ phép chờ duyệt</h3>
+            <button class="btn btn-sm btn-primary" onclick="loadStaffPendingLeaves()">Tải lại</button></div>
+            <div class="card-body"><p id="saLeaveError" class="text-danger" role="alert"></p><div id="saLeaves">Đang tải...</div></div>
+          </div>
           <div class="card"><div class="card-header"><h3><i class="fa-solid fa-user-clock text-primary"></i> Đề nghị bổ sung check-out chờ duyệt</h3>
             <button class="btn btn-sm btn-primary" onclick="loadStaffPendingCorrections()">Tải lại</button></div>
             <div class="card-body"><p id="saError" class="text-danger" role="alert"></p><div id="saPending">Đang tải...</div></div>
@@ -2869,6 +2873,86 @@
         </div>
 
         <!-- NỘP BÁO CÁO TUẦN (INTERN) -->
+        <div id="tab-attendance-report" class="tab-pane" style="display:none">
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-chart-column text-primary"></i> Báo cáo chuyên cần</h3></div>
+            <div class="card-body">
+              <div class="fr-form-grid">
+                <label class="fr-field"><span>Từ ngày</span><input id="arFrom" type="date" onchange="syncAttendanceReportDates()"></label>
+                <label class="fr-field"><span>Đến ngày</span><input id="arTo" type="date" onchange="syncAttendanceReportDates()"></label>
+                <label class="fr-field"><span>Phạm vi</span><select id="arScope" onchange="updateAttendanceReportScope()"><option value="ALL">Toàn bộ</option><option value="UNIVERSITY">Theo trường</option><option value="PROGRAM">Theo chương trình</option><option value="MENTOR">Theo mentor</option></select></label>
+                <label class="fr-field" id="arScopeValueWrap" style="display:none"><span id="arScopeValueLabel">Trường</span><select id="arScopeValue"></select></label>
+                <label class="fr-field"><span>Nhóm kết quả theo</span><select id="arGroupBy"><option value="NONE">Không nhóm</option><option value="PROGRAM">Chương trình</option><option value="UNIVERSITY">Trường</option><option value="MENTOR">Mentor</option></select></label>
+              </div>
+              <div class="fr-actions"><button id="arViewButton" class="btn btn-primary" onclick="loadAttendanceReport()">Xem báo cáo</button><button class="btn btn-secondary" onclick="downloadAttendanceReportCsv()">Tải CSV</button></div>
+              <div id="attendanceReportError" class="text-danger" role="alert"></div>
+            </div>
+          </div>
+          <div id="arSummary"></div>
+          <div id="arGroups"></div>
+          <div class="card"><div class="card-header"><h3>Theo thực tập sinh</h3></div><div class="card-body"><div id="attendanceReportList">Chọn khoảng ngày rồi bấm "Xem báo cáo".</div></div></div>
+          <div class="card" id="arDetailCard" style="display:none"><div class="card-header"><h3 id="arDetailTitle">Chi tiết từng ngày</h3><button class="btn btn-sm btn-light" onclick="document.getElementById('arDetailCard').style.display='none'">Đóng</button></div><div class="card-body"><div id="arDetail"></div></div></div>
+        </div>
+
+        <!-- LỊCH LÀM VIỆC (HR thiết lập, Admin chỉ xem) -->
+        <div id="tab-work-schedules" class="tab-pane" style="display:none">
+          <p id="wsError" class="text-danger" role="alert"></p>
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-calendar-week text-primary"></i> Mẫu lịch làm việc</h3>
+            <button class="btn btn-primary ws-hr-only" onclick="showWorkScheduleForm()">Tạo mẫu lịch</button></div>
+            <div class="card-body"><div id="wsList">Đang tải...</div></div>
+          </div>
+          <div class="card ws-hr-only" id="wsForm" style="display:none"><div class="card-header"><h3 id="wsFormTitle">Mẫu lịch</h3></div><div class="card-body">
+            <div class="fr-form-grid">
+              <label class="fr-field fr-span-2"><span>Tên lịch <span class="fr-req">*</span></span><input id="wsName" maxlength="150" placeholder="VD: Giờ hành chính, Giờ linh hoạt cho nhóm thiết kế"></label>
+              <label class="fr-field"><span>Chế độ</span><select id="wsMode" onchange="updateWorkScheduleMode()"><option value="FIXED">Giờ cố định (tính đi muộn, về sớm)</option><option value="FLEXIBLE">Giờ linh hoạt (chỉ cần đủ số giờ tối thiểu)</option></select></label>
+              <label class="fr-field" id="wsGraceWrap"><span>Dung sai đi muộn/về sớm (phút)</span><input id="wsGrace" type="number" min="0" max="120" value="15"></label>
+              <label class="fr-field" id="wsMinWrap" style="display:none"><span>Số phút tối thiểu mỗi ngày</span><input id="wsMinDaily" type="number" min="30" max="720" value="240"></label>
+              <label class="fr-field fr-span-2"><span>Mô tả</span><input id="wsDesc" maxlength="1000" placeholder="Không bắt buộc"></label>
+            </div>
+            <div class="table-container"><table class="ws-day-grid"><thead><tr><th>Thứ</th><th>Làm việc</th><th class="ws-time-col">Bắt đầu</th><th class="ws-time-col">Kết thúc</th></tr></thead><tbody id="wsDays"></tbody></table></div>
+            <p class="fr-hint" id="wsEditWarning" style="display:none"></p>
+            <div id="wsFormError" class="text-danger" role="alert"></div>
+            <div class="fr-actions"><button class="btn btn-secondary ws-time-col" onclick="copyFirstDayHours()">Sao chép giờ Thứ 2 cho các ngày còn lại</button><button class="btn btn-primary" id="wsSaveButton" onclick="saveWorkSchedule()">Lưu lịch</button><button class="btn btn-light" onclick="document.getElementById('wsForm').style.display='none'">Đóng</button></div>
+          </div></div>
+          <div class="card ws-hr-only"><div class="card-header"><h3>Áp dụng lịch cho nhóm</h3></div><div class="card-body">
+            <div class="fr-form-grid">
+              <label class="fr-field"><span>Lịch làm việc</span><select id="wsAsSchedule"></select></label>
+              <label class="fr-field"><span>Áp dụng cho</span><select id="wsAsType" onchange="updateAssignmentScope()"><option value="PROGRAM">Chương trình thực tập</option><option value="UNIVERSITY">Trường</option><option value="MENTOR">Nhóm của mentor</option><option value="INTERN">Một thực tập sinh (ngoại lệ)</option><option value="DEFAULT">Mặc định toàn hệ thống</option></select></label>
+              <label class="fr-field" id="wsAsValueWrap"><span id="wsAsValueLabel">Chương trình</span><select id="wsAsValue" onchange="previewAssignment()"></select></label>
+              <label class="fr-field"><span>Hiệu lực từ ngày</span><input id="wsAsFrom" type="date"></label>
+              <label class="fr-field"><span>Đến ngày <span class="fr-hint">(để trống nếu không giới hạn)</span></span><input id="wsAsTo" type="date"></label>
+            </div>
+            <p id="wsAsPreview" class="fr-hint" aria-live="polite"></p>
+            <div id="wsAsError" class="text-danger" role="alert"></div>
+            <div class="fr-actions"><button class="btn btn-primary" onclick="submitAssignment()">Áp dụng lịch</button></div>
+            <p class="fr-hint">Khi một thực tập sinh thuộc nhiều nhóm, lịch của nhóm cụ thể hơn được dùng: cá nhân, rồi chương trình, mentor, trường, cuối cùng là mặc định. Áp dụng lịch mới cho một nhóm sẽ tự kết thúc lần áp dụng đang mở trước đó vào ngày hôm trước.</p>
+          </div></div>
+          <div class="card"><div class="card-header"><h3>Lịch đang được áp dụng</h3></div><div class="card-body"><div id="wsAssignments">Đang tải...</div></div></div>
+          <div class="card"><div class="card-header"><h3>Lịch của từng thực tập sinh</h3></div><div class="card-body"><div id="wsResolved">Đang tải...</div></div></div>
+          <div class="card"><div class="card-header"><h3>Ngày nghỉ chung (nghỉ lễ)</h3></div><div class="card-body">
+            <div class="fr-form-grid ws-hr-only"><label class="fr-field"><span>Ngày</span><input id="wsHolDate" type="date"></label><label class="fr-field"><span>Tên ngày nghỉ</span><input id="wsHolName" maxlength="255" placeholder="VD: Quốc khánh"></label></div>
+            <div class="fr-actions ws-hr-only"><button class="btn btn-primary" onclick="addWorkHoliday()">Thêm ngày nghỉ</button></div>
+            <div id="wsHolError" class="text-danger" role="alert"></div>
+            <div id="wsHolidays">Đang tải...</div>
+          </div></div>
+        </div>
+
+        <!-- NGHỈ PHÉP CỦA TÔI (THỰC TẬP SINH) -->
+        <div id="tab-my-leaves" class="tab-pane" style="display:none">
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-umbrella-beach text-primary"></i> Xin nghỉ phép</h3></div><div class="card-body">
+            <div class="fr-form-grid">
+              <label class="fr-field"><span>Loại nghỉ</span><select id="lvType"><option value="SICK">Nghỉ ốm</option><option value="PERSONAL">Việc cá nhân</option><option value="EXAM">Học / thi</option><option value="OTHER">Khác</option></select></label>
+              <span></span>
+              <label class="fr-field"><span>Từ ngày</span><input id="lvFrom" type="date" onchange="document.getElementById('lvTo').min=this.value"></label>
+              <label class="fr-field"><span>Đến ngày</span><input id="lvTo" type="date"></label>
+              <label class="fr-field fr-span-2"><span>Lý do <span class="fr-req">*</span></span><textarea id="lvReason" maxlength="500" placeholder="Tối đa 500 ký tự" oninput="document.getElementById('lvReasonCount').innerText=this.value.length+'/500'"></textarea><small id="lvReasonCount" class="fr-hint">0/500</small></label>
+            </div>
+            <p class="fr-hint">Mỗi đơn tối đa 30 ngày, nằm trong thời gian hợp đồng, nộp bù được tối đa 7 ngày và không áp dụng cho ngày đã chấm công. Đơn được HR hoặc mentor phụ trách duyệt.</p>
+            <div id="lvError" class="text-danger" role="alert"></div>
+            <div class="fr-actions"><button id="lvSubmit" class="btn btn-primary" onclick="submitLeave()">Gửi đơn nghỉ</button></div>
+          </div></div>
+          <div class="card"><div class="card-header"><h3>Đơn nghỉ của tôi</h3></div><div class="card-body"><div id="lvList">Đang tải...</div></div></div>
+        </div>
+
         <div id="tab-submissions" class="tab-pane" style="display: none">
           <div id="wrNotIntern" class="card" style="display: none">
             <div class="card-body">
@@ -4958,6 +5042,9 @@
         if (tabId === "tab-my-attendance") return role === "Intern";
         if (tabId === "tab-staff-attendance") return role === "Mentor" || role === "HR";
         if (tabId === "tab-final-reports") return role === "HR";
+        if (tabId === "tab-attendance-report") return role === "HR";
+        if (tabId === "tab-work-schedules") return role === "HR" || role === "Admin";
+        if (tabId === "tab-my-leaves") return role === "Intern";
         if (tabId === "tab-candidates") {
           return role === "HR" || role === "Admin";
         }
@@ -5031,6 +5118,12 @@
           liAttendance.className = "nav-item";
           liAttendance.innerHTML = `<a class="nav-link ${currentTab === "tab-my-attendance" ? "active" : ""}" onclick="switchTab('tab-my-attendance')"><i class="fa-solid fa-clock"></i><span>Chấm công</span></a>`;
           menuEl.appendChild(liAttendance);
+
+          allowedCount++;
+          const liMyLeaves = document.createElement("li");
+          liMyLeaves.className = "nav-item";
+          liMyLeaves.innerHTML = `<a class="nav-link ${currentTab === "tab-my-leaves" ? "active" : ""}" onclick="switchTab('tab-my-leaves')"><i class="fa-solid fa-umbrella-beach"></i><span>Nghỉ phép</span></a>`;
+          menuEl.appendChild(liMyLeaves);
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -5125,6 +5218,11 @@
           liFinalReports.innerHTML = `<a class="nav-link ${currentTab === "tab-final-reports" ? "active" : ""}" onclick="switchTab('tab-final-reports')"><i class="fa-solid fa-file-lines"></i><span>Báo cáo cuối kỳ</span></a>`;
           menuEl.appendChild(liFinalReports);
 
+          const liAttendanceReport = document.createElement("li");
+          liAttendanceReport.className = "nav-item";
+          liAttendanceReport.innerHTML = `<a class="nav-link ${currentTab === "tab-attendance-report" ? "active" : ""}" onclick="switchTab('tab-attendance-report')"><i class="fa-solid fa-chart-column"></i><span>Báo cáo chuyên cần</span></a>`;
+          menuEl.appendChild(liAttendanceReport);
+
           allowedCount++;
           const liStaffAttendanceHr = document.createElement("li");
           liStaffAttendanceHr.className = "nav-item";
@@ -5138,6 +5236,12 @@
           liPrograms.className = "nav-item";
           liPrograms.innerHTML = `<a class="nav-link ${currentTab === "tab-programs" ? "active" : ""}" onclick="switchTab('tab-programs')"><i class="fa-solid fa-calendar-days"></i><span>Chương trình thực tập</span></a>`;
           menuEl.appendChild(liPrograms);
+
+          allowedCount++;
+          const liWorkSchedules = document.createElement("li");
+          liWorkSchedules.className = "nav-item";
+          liWorkSchedules.innerHTML = `<a class="nav-link ${currentTab === "tab-work-schedules" ? "active" : ""}" onclick="switchTab('tab-work-schedules')"><i class="fa-solid fa-calendar-week"></i><span>Lịch làm việc</span></a>`;
+          menuEl.appendChild(liWorkSchedules);
         }
 
         if (currentRole === "Mentor") {
@@ -5232,14 +5336,28 @@
             document.getElementById("pageTitle").innerText = "Chấm công";
             document.getElementById("pageSubtitle").innerText = "Ghi nhận thời gian làm việc theo giờ Việt Nam";
             loadAttendanceTab();
+            loadAttendanceScheduleInfo();
           } else if (tabId === "tab-staff-attendance") {
             document.getElementById("pageTitle").innerText = "Chấm công thực tập sinh";
             document.getElementById("pageSubtitle").innerText = "Xem giờ làm việc và duyệt đề nghị bổ sung check-out";
             loadStaffAttendanceTab();
+            loadStaffPendingLeaves();
           } else if (tabId === "tab-final-reports") {
             document.getElementById("pageTitle").innerText = "Báo cáo cuối kỳ";
             document.getElementById("pageSubtitle").innerText = "Tổng hợp đánh giá và xuất báo cáo cho nhà trường";
             loadFinalReports();
+          } else if (tabId === "tab-attendance-report") {
+            document.getElementById("pageTitle").innerText = "Báo cáo chuyên cần";
+            document.getElementById("pageSubtitle").innerText = "Tổng hợp đi làm, nghỉ phép và vắng mặt";
+            loadAttendanceReport();
+          } else if (tabId === "tab-work-schedules") {
+            document.getElementById("pageTitle").innerText = "Lịch làm việc";
+            document.getElementById("pageSubtitle").innerText = "Thiết lập lịch làm việc linh hoạt cho từng nhóm thực tập sinh";
+            loadWorkSchedulesTab();
+          } else if (tabId === "tab-my-leaves") {
+            document.getElementById("pageTitle").innerText = "Nghỉ phép";
+            document.getElementById("pageSubtitle").innerText = "Xin nghỉ và theo dõi trạng thái duyệt";
+            loadMyLeaves();
           } else if (tabId === "tab-my-schedule") {
             document.getElementById("pageTitle").innerText =
               "Lịch thực tập của tôi";
@@ -6117,16 +6235,14 @@
                       m.fullName.trim().toLowerCase(),
                   ) === i,
               )
-             
               .map((m) => {
-  const dept =
-    m.department && m.department !== "Chưa cập nhật"
-      ? ` — ${m.department}`
-      : "";
-  const load = ` (${Number(m.internCount) || 0} TTS)`;
-  return `<option value="${escapeHtml(m.fullName)}">${escapeHtml(m.fullName)}${escapeHtml(dept)}${escapeHtml(load)}</option>`;
-})
-.join("");
+                const dept =
+                  m.department && m.department !== "Chưa cập nhật"
+                    ? ` — ${m.department}`
+                    : "";
+                return `<option value="${escapeHtml(m.fullName)}">${escapeHtml(m.fullName)}${escapeHtml(dept)}</option>`;
+              })
+              .join("");
           if (current) select.value = current;
           if (currentTab === "tab-students") renderStudents();
         } catch (err) {
@@ -6589,17 +6705,16 @@
       function renderStudentMentorSelect(student) {
         const currentId =
           student.mentorId == null ? "" : String(student.mentorId);
-       const options = mentorsList
-  .map((mentor) => {
-    const id = String(mentor.id);
-    const department =
-      mentor.department && mentor.department !== "Chưa cập nhật"
-        ? ` — ${mentor.department}`
-        : "";
-    const load = ` (${Number(mentor.internCount) || 0} TTS)`;
-    return `<option value="${escapeHtml(id)}" ${id === currentId ? "selected" : ""}>${escapeHtml(mentor.fullName)}${escapeHtml(department)}${escapeHtml(load)}</option>`;
-  })
-  .join("");
+        const options = mentorsList
+          .map((mentor) => {
+            const id = String(mentor.id);
+            const department =
+              mentor.department && mentor.department !== "Chưa cập nhật"
+                ? ` — ${mentor.department}`
+                : "";
+            return `<option value="${escapeHtml(id)}" ${id === currentId ? "selected" : ""}>${escapeHtml(mentor.fullName)}${escapeHtml(department)}</option>`;
+          })
+          .join("");
         const legacyName =
           !currentId && student.mentorName
             ? `<small style="display:block;color:#92400e;margin-top:3px">Tên cũ chưa xác minh: ${escapeHtml(student.mentorName)}</small>`
@@ -11004,6 +11119,445 @@
             document.getElementById("finalReportError").innerText = "Không tải được CSV.";
             return;
           } const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `bao-cao-cuoi-ky-${id}.csv`; a.click(); URL.revokeObjectURL(url);
+      }
+      const arCss = document.createElement("style");
+      arCss.textContent = `.ar-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px}.ar-stat{background:#fff;border:1px solid var(--slate-200);border-radius:12px;padding:14px 16px}.ar-stat span{display:block;font-size:12px;color:var(--slate-600)}.ar-stat strong{display:block;font-size:24px;margin-top:4px}.ar-stat.clickable{cursor:pointer}.ar-stat.clickable:hover{border-color:var(--primary)}.ar-rate{display:inline-block;padding:2px 10px;border-radius:12px;font-weight:700;font-size:12.5px;white-space:nowrap}.ar-rate-good{background:#dcfce7;color:#166534}.ar-rate-mid{background:#fef3c7;color:#92400e}.ar-rate-low{background:#fee2e2;color:#991b1b}.ar-rate-none{background:var(--slate-100);color:var(--slate-600)}.ar-badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap}.ar-b-present{background:#dcfce7;color:#166534}.ar-b-leave{background:#e0f2fe;color:#075985}.ar-b-absent{background:#fee2e2;color:#991b1b}.ar-b-pending{background:#fef3c7;color:#92400e}.ar-b-muted{background:var(--slate-100);color:var(--slate-600)}.ar-muted-row{opacity:.55}th.ar-sortable{cursor:pointer;user-select:none;white-space:nowrap}th.ar-sortable:hover{color:var(--primary)}.ws-day-grid td{padding:8px 12px}.ws-day-grid input[type=time]{padding:6px 10px;border:1px solid var(--slate-300);border-radius:8px}.ws-hide{display:none!important}.ar-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.ar-col-name{min-width:190px}.ar-col-group{min-width:230px}.card-body .fr-actions{margin-bottom:12px}.card-body .fr-actions+.fr-hint{margin-top:4px}`;
+      document.head.appendChild(arCss);
+
+      // ====================== US7 + US8: chuyên cần, lịch làm việc, nghỉ phép ======================
+      const WEEKDAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+      const DAY_STATUS = {
+        PRESENT: ["Có mặt", "ar-b-present"], LEAVE: ["Nghỉ phép", "ar-b-leave"], ABSENT: ["Vắng", "ar-b-absent"],
+        ABSENT_PENDING_LEAVE: ["Vắng (chờ duyệt nghỉ)", "ar-b-pending"], DAY_OFF: ["Ngày nghỉ", "ar-b-muted"],
+        HOLIDAY: ["Ngày lễ", "ar-b-muted"], OUT_OF_CONTRACT: ["Ngoài hợp đồng", "ar-b-muted"], UPCOMING: ["Chưa tới", "ar-b-muted"],
+      };
+      const DAY_FLAGS = {
+        LATE: "Đi muộn", EARLY_LEAVE: "Về sớm", SHORT_HOURS: "Thiếu giờ", MISSING_CHECKOUT: "Thiếu check-out",
+        ADJUSTED: "Đã bổ sung check-out", WORKED_DURING_LEAVE: "Đi làm dù đã xin nghỉ",
+      };
+      const LEAVE_TYPE_LABEL = { SICK: "Nghỉ ốm", PERSONAL: "Việc cá nhân", EXAM: "Học / thi", OTHER: "Khác" };
+      const LEAVE_STATUS_LABEL = {
+        PENDING: ["Chờ duyệt", "ar-b-pending"], APPROVED: ["Đã duyệt", "ar-b-present"],
+        REJECTED: ["Từ chối", "ar-b-absent"], CANCELLED: ["Đã hủy", "ar-b-muted"],
+      };
+      let workScopeOptions = null;
+
+      function pill(label, cls) { return `<span class="ar-badge ${cls}">${escapeHtml(label)}</span>`; }
+      function postJson(body, method = "POST") {
+        return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+      }
+      function daysInclusive(from, to) {
+        return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000) + 1;
+      }
+      function weekdayLabel(date) { return WEEKDAY_LABELS[(new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7]; }
+      function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text || ""; }
+
+      // Danh sách trường / chương trình / mentor / thực tập sinh cho các ô chọn phạm vi.
+      async function loadWorkScopeOptions(force = false) {
+        if (!workScopeOptions || force) {
+          const result = await wrRequest("/work-schedules/options");
+          if (result && result.res.ok) workScopeOptions = result.body.data;
+        }
+        return workScopeOptions || { universities: [], programs: [], mentors: [], interns: [] };
+      }
+      function scopeChoices(type, options) {
+        if (type === "UNIVERSITY") return options.universities.map((v) => ({ value: v, label: v }));
+        if (type === "PROGRAM") return options.programs.map((p) => ({ value: String(p.id), label: p.name }));
+        if (type === "MENTOR") return options.mentors.map((m) => ({ value: String(m.id), label: m.name }));
+        if (type === "INTERN") return options.interns.map((i) => ({ value: String(i.id), label: `${i.name}${i.studentCode ? ` (${i.studentCode})` : ""}` }));
+        return [];
+      }
+      const SCOPE_LABEL = { UNIVERSITY: "Trường", PROGRAM: "Chương trình", MENTOR: "Mentor", INTERN: "Thực tập sinh" };
+      function fillScopeSelect(selectId, type, options) {
+        const choices = scopeChoices(type, options);
+        document.getElementById(selectId).innerHTML = choices.length
+          ? choices.map((c) => `<option value="${escapeHtml(c.value)}">${escapeHtml(c.label)}</option>`).join("")
+          : `<option value="">— Chưa có dữ liệu —</option>`;
+      }
+
+      // ---------- Báo cáo chuyên cần ----------
+      let attendanceReportData = null;
+      let attendanceReportSort = { key: "attendanceRate", dir: "asc" };
+      function syncAttendanceReportDates() {
+        const from = document.getElementById("arFrom"), to = document.getElementById("arTo");
+        to.min = from.value || ""; from.max = to.value || "";
+      }
+      async function updateAttendanceReportScope() {
+        const type = document.getElementById("arScope").value;
+        document.getElementById("arScopeValueWrap").style.display = type === "ALL" ? "none" : "";
+        if (type === "ALL") return;
+        document.getElementById("arScopeValueLabel").textContent = SCOPE_LABEL[type];
+        fillScopeSelect("arScopeValue", type, await loadWorkScopeOptions());
+      }
+      function attendanceReportQuery() {
+        const error = document.getElementById("attendanceReportError"); error.textContent = "";
+        const from = document.getElementById("arFrom").value, to = document.getElementById("arTo").value;
+        const type = document.getElementById("arScope").value, value = document.getElementById("arScopeValue").value;
+        if (!from || !to) { error.textContent = "Vui lòng chọn khoảng ngày."; return null; }
+        if (from > to) { error.textContent = "Ngày bắt đầu không được sau ngày kết thúc."; return null; }
+        if (daysInclusive(from, to) > 366) { error.textContent = "Khoảng ngày tối đa 366 ngày."; return null; }
+        if (type !== "ALL" && !value) { error.textContent = "Vui lòng chọn giá trị phạm vi."; return null; }
+        const query = new URLSearchParams({ from, to, scope_type: type, group_by: document.getElementById("arGroupBy").value });
+        if (type !== "ALL") query.set("scope_value", value);
+        return query;
+      }
+      function rateBadge(rate) {
+        if (rate == null) return `<span class="ar-rate ar-rate-none">—</span>`;
+        const cls = rate >= 90 ? "ar-rate-good" : rate >= 75 ? "ar-rate-mid" : "ar-rate-low";
+        return `<span class="ar-rate ${cls}">${rate}%</span>`;
+      }
+      function renderAttendanceSummary(s) {
+        const stat = (label, value, extra = "") => `<div class="ar-stat ${extra}"><span>${label}</span><strong>${value}</strong></div>`;
+        document.getElementById("arSummary").innerHTML = `<div class="ar-stats">${stat("Thực tập sinh", s.totalInterns)}${stat("Tỷ lệ chuyên cần chung", rateBadge(s.attendanceRate))}${stat("Ngày vắng không phép", s.absentDays)}${stat("Ngày nghỉ phép", s.leaveDays)}${stat("Lượt đi muộn", s.lateCount)}${stat("Đơn nghỉ chờ duyệt", s.pendingLeaveRequests, "clickable\" onclick=\"switchTab('tab-staff-attendance')\" title=\"Mở danh sách đơn chờ duyệt")}</div>`;
+      }
+      function renderAttendanceGroups(groups) {
+        const box = document.getElementById("arGroups");
+        if (!groups.length) { box.innerHTML = ""; return; }
+        box.innerHTML = `<div class="card"><div class="card-header"><h3>Tổng hợp theo nhóm</h3></div><div class="card-body"><div class="table-container"><table><thead><tr><th>Nhóm</th><th class="ar-num">Thực tập sinh</th><th class="ar-num">Phải đi</th><th class="ar-num">Có mặt</th><th class="ar-num">Nghỉ phép</th><th class="ar-num">Vắng</th><th class="ar-num">Muộn</th><th>Tỷ lệ</th></tr></thead><tbody>${groups.map((g) => `<tr><td>${escapeHtml(g.name)}</td><td class="ar-num">${g.totalInterns}</td><td class="ar-num">${g.requiredDays}</td><td class="ar-num">${g.presentDays}</td><td class="ar-num">${g.leaveDays}</td><td class="ar-num">${g.absentDays}</td><td class="ar-num">${g.lateCount}</td><td>${rateBadge(g.attendanceRate)}</td></tr>`).join("")}</tbody></table></div></div></div>`;
+      }
+      const AR_COLUMNS = [
+        ["name", "Thực tập sinh"], ["schedule", "Nhóm / lịch"], ["requiredDays", "Phải đi"], ["presentDays", "Có mặt"],
+        ["leaveDays", "Nghỉ phép"], ["absentDays", "Vắng"], ["pendingLeaveDays", "Chờ duyệt nghỉ"], ["lateCount", "Muộn"],
+        ["earlyLeaveCount", "Về sớm"], ["missingCheckoutCount", "Thiếu check-out"], ["totalWorkMinutes", "Giờ làm"], ["attendanceRate", "Tỷ lệ"],
+      ];
+      function attendanceSortValue(row, key) {
+        if (key === "name") return row.intern.fullName || "";
+        if (key === "schedule") return `${row.intern.programName || ""} ${row.scheduleName || ""}`;
+        return row[key];
+      }
+      function sortAttendanceReport(key) {
+        attendanceReportSort = { key, dir: attendanceReportSort.key === key && attendanceReportSort.dir === "asc" ? "desc" : "asc" };
+        renderAttendanceTable();
+      }
+      function renderAttendanceTable() {
+        const box = document.getElementById("attendanceReportList");
+        const { key, dir } = attendanceReportSort, factor = dir === "asc" ? 1 : -1;
+        const rows = [...attendanceReportData.interns].sort((a, b) => {
+          const x = attendanceSortValue(a, key), y = attendanceSortValue(b, key);
+          if (x == null && y == null) return 0;
+          if (x == null) return 1;
+          if (y == null) return -1; // giá trị trống luôn xuống cuối
+          return (typeof x === "string" ? x.localeCompare(y, "vi") : x - y) * factor;
+        });
+        const arrow = (k) => (k === key ? (dir === "asc" ? " ▲" : " ▼") : "");
+        const head = AR_COLUMNS.map(([k, label]) => `<th class="ar-sortable${k === "name" ? " ar-col-name" : k === "schedule" ? " ar-col-group" : " ar-num"}" onclick="sortAttendanceReport('${k}')">${label}${arrow(k)}</th>`).join("");
+        const body = rows.map((r) => {
+          const i = r.intern;
+          const identity = [i.studentCode, i.university].filter(Boolean).join(" · ");
+          const scheduleText = r.scheduleName ? (r.scheduleSource && r.scheduleSource !== "Mặc định" ? `${r.scheduleName} · theo ${r.scheduleSource}` : r.scheduleName) : "";
+          return `<tr><td>${escapeHtml(i.fullName)}${identity ? `<span class="fr-sub">${escapeHtml(identity)}</span>` : ""}</td><td>${escapeHtml(i.programName || "Chưa gán chương trình")}${scheduleText ? `<span class="fr-sub">${escapeHtml(scheduleText)}</span>` : ""}</td><td class="ar-num">${r.requiredDays}</td><td class="ar-num">${r.presentDays}</td><td class="ar-num">${r.leaveDays}</td><td class="ar-num">${r.absentDays}</td><td class="ar-num">${r.pendingLeaveDays}</td><td class="ar-num">${r.lateCount}</td><td class="ar-num">${r.earlyLeaveCount}</td><td class="ar-num">${r.missingCheckoutCount}</td><td class="ar-num">${escapeHtml(formatAttendanceMinutes(r.totalWorkMinutes))}</td><td class="ar-num">${rateBadge(r.attendanceRate)}</td><td><button class="btn btn-sm btn-secondary" onclick="openAttendanceReportDetail(${Number(i.id)})">Chi tiết</button></td></tr>`;
+        }).join("");
+        box.innerHTML = rows.length
+          ? `<div class="table-container"><table><thead><tr>${head}<th></th></tr></thead><tbody>${body}</tbody></table></div><p class="fr-hint">Tỷ lệ = có mặt / (ngày phải đi làm − ngày nghỉ có phép). Màu: từ 90% xanh, 75–90% vàng, dưới 75% đỏ.</p>`
+          : `<p>Không có thực tập sinh nào có ngày làm việc trong khoảng này.</p>`;
+      }
+      async function loadAttendanceReport() {
+        const today = getVietnamToday();
+        const from = document.getElementById("arFrom"), to = document.getElementById("arTo");
+        if (!to.value) to.value = today;
+        if (!from.value) from.value = `${today.slice(0, 8)}01`;
+        syncAttendanceReportDates();
+        if (!document.getElementById("arScopeValue").options.length) await updateAttendanceReportScope();
+        const query = attendanceReportQuery(); if (!query) return;
+        const button = document.getElementById("arViewButton"); button.disabled = true;
+        const list = document.getElementById("attendanceReportList"); list.textContent = "Đang tải...";
+        document.getElementById("arDetailCard").style.display = "none";
+        try {
+          const result = await wrRequest(`/attendance/report?${query}`); if (!result) return;
+          if (!result.res.ok) {
+            list.textContent = ""; document.getElementById("arSummary").innerHTML = ""; document.getElementById("arGroups").innerHTML = "";
+            setText("attendanceReportError", wrApiError(result, "Không tải được báo cáo chuyên cần."));
+            return;
+          }
+          attendanceReportData = result.body.data;
+          renderAttendanceSummary(attendanceReportData.summary);
+          renderAttendanceGroups(attendanceReportData.groups);
+          renderAttendanceTable();
+        } finally { button.disabled = false; }
+      }
+      async function openAttendanceReportDetail(internId) {
+        const query = attendanceReportQuery(); if (!query) return;
+        const card = document.getElementById("arDetailCard"), box = document.getElementById("arDetail");
+        card.style.display = ""; box.textContent = "Đang tải..."; card.scrollIntoView({ behavior: "smooth", block: "start" });
+        const result = await wrRequest(`/attendance/report/interns/${internId}/days?from=${query.get("from")}&to=${query.get("to")}`); if (!result) return;
+        if (!result.res.ok) { box.textContent = wrApiError(result, "Không tải được chi tiết."); return; }
+        const d = result.body.data;
+        setText("arDetailTitle", `Chi tiết từng ngày: ${d.intern.fullName}`);
+        const rows = d.days.map((day) => {
+          const [label, cls] = DAY_STATUS[day.status] || [day.status, "ar-b-muted"];
+          const r = day.record;
+          const time = r ? `${String(r.checkInAt).slice(11, 16)} – ${r.checkOutAt ? String(r.checkOutAt).slice(11, 16) : "chưa check-out"}` : "—";
+          const schedule = day.schedule ? (day.schedule.mode === "FIXED" ? `${day.schedule.startTime || "—"}–${day.schedule.endTime || "—"}` : "Linh hoạt") : "—";
+          const muted = ["OUT_OF_CONTRACT", "UPCOMING"].includes(day.status) ? " class=\"ar-muted-row\"" : "";
+          return `<tr${muted}><td>${escapeHtml(weekdayLabel(day.date))}, ${escapeHtml(formatDateOnly(day.date))}</td><td>${pill(label, cls)}</td><td>${escapeHtml(time)}</td><td>${escapeHtml(day.flags.map((f) => DAY_FLAGS[f] || f).join(", ")) || "—"}</td><td>${escapeHtml(schedule)}</td></tr>`;
+        }).join("");
+        box.innerHTML = `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Trạng thái</th><th>Giờ làm</th><th>Ghi chú</th><th>Giờ theo lịch</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      }
+      async function downloadAttendanceReportCsv() {
+        const query = attendanceReportQuery(); if (!query) return;
+        const res = await fetch(`${API_BASE}/attendance/report/export.csv?${query}`, { headers: authHeaders() });
+        if (res.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setText("attendanceReportError", body.message || "Không tải được CSV.");
+          return;
+        }
+        const url = URL.createObjectURL(await res.blob()); const a = document.createElement("a");
+        a.href = url; a.download = `bao-cao-chuyen-can_${query.get("from")}_${query.get("to")}.csv`; a.click(); URL.revokeObjectURL(url);
+      }
+
+      // ---------- Lịch làm việc (HR thiết lập) ----------
+      let wsSchedules = [];
+      let wsEditingId = null;
+      function wsCanEdit() { return currentRole === "HR"; }
+      function wsRenderDayRows(days) {
+        document.getElementById("wsDays").innerHTML = WEEKDAY_LABELS.map((label, i) => {
+          const d = days[i];
+          return `<tr><td>${label}</td><td><input type="checkbox" id="wsOn${i + 1}" ${d.isWorking ? "checked" : ""} onchange="updateWorkScheduleMode()" aria-label="Làm việc ${label}"></td><td class="ws-time-col"><input type="time" id="wsStart${i + 1}" value="${d.startTime || ""}" aria-label="Bắt đầu ${label}"></td><td class="ws-time-col"><input type="time" id="wsEnd${i + 1}" value="${d.endTime || ""}" aria-label="Kết thúc ${label}"></td></tr>`;
+        }).join("");
+      }
+      function updateWorkScheduleMode() {
+        const fixed = document.getElementById("wsMode").value === "FIXED";
+        document.getElementById("wsGraceWrap").style.display = fixed ? "" : "none";
+        document.getElementById("wsMinWrap").style.display = fixed ? "none" : "";
+        document.querySelectorAll("#wsForm .ws-time-col").forEach((el) => el.classList.toggle("ws-hide", !fixed));
+        for (let n = 1; n <= 7; n++) {
+          const on = document.getElementById(`wsOn${n}`).checked;
+          document.getElementById(`wsStart${n}`).disabled = !on; document.getElementById(`wsEnd${n}`).disabled = !on;
+        }
+      }
+      function copyFirstDayHours() {
+        const start = document.getElementById("wsStart1").value, end = document.getElementById("wsEnd1").value;
+        for (let n = 2; n <= 7; n++) { document.getElementById(`wsStart${n}`).value = start; document.getElementById(`wsEnd${n}`).value = end; }
+      }
+      function showWorkScheduleForm(id = null) {
+        const schedule = id ? wsSchedules.find((s) => s.id === id) : null; wsEditingId = id;
+        setText("wsFormError", ""); setText("wsFormTitle", schedule ? `Sửa mẫu lịch: ${schedule.name}` : "Tạo mẫu lịch");
+        document.getElementById("wsName").value = schedule ? schedule.name : "";
+        document.getElementById("wsDesc").value = schedule ? schedule.description : "";
+        document.getElementById("wsMode").value = schedule ? schedule.mode : "FIXED";
+        document.getElementById("wsGrace").value = schedule ? schedule.graceMinutes : 15;
+        document.getElementById("wsMinDaily").value = schedule && schedule.minDailyMinutes ? schedule.minDailyMinutes : 240;
+        const byDay = (n) => (schedule ? schedule.days.find((d) => d.weekday === n) : null) || { isWorking: n <= 5, startTime: "08:30", endTime: "17:30" };
+        wsRenderDayRows([1, 2, 3, 4, 5, 6, 7].map((n) => { const d = byDay(n); return { isWorking: d.isWorking, startTime: d.startTime || (d.isWorking ? "08:30" : ""), endTime: d.endTime || (d.isWorking ? "17:30" : "") }; }));
+        const warning = document.getElementById("wsEditWarning");
+        warning.style.display = schedule && schedule.assignmentCount ? "" : "none";
+        warning.textContent = "Lịch này đang được áp dụng cho nhóm. Thay đổi sẽ ảnh hưởng cả báo cáo các ngày đã qua; nên tạo mẫu lịch mới và áp dụng từ ngày hiệu lực để giữ nguyên số liệu cũ.";
+        updateWorkScheduleMode();
+        document.getElementById("wsForm").style.display = ""; document.getElementById("wsForm").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      function workSchedulePayload() {
+        const fixed = document.getElementById("wsMode").value === "FIXED";
+        const days = [1, 2, 3, 4, 5, 6, 7].map((n) => {
+          const on = document.getElementById(`wsOn${n}`).checked;
+          return { weekday: n, is_working: on, start_time: fixed && on ? document.getElementById(`wsStart${n}`).value : null, end_time: fixed && on ? document.getElementById(`wsEnd${n}`).value : null };
+        });
+        const payload = { name: document.getElementById("wsName").value.trim(), description: document.getElementById("wsDesc").value.trim(), mode: fixed ? "FIXED" : "FLEXIBLE", days };
+        if (fixed) payload.grace_minutes = Number(document.getElementById("wsGrace").value);
+        else payload.min_daily_minutes = Number(document.getElementById("wsMinDaily").value);
+        return payload;
+      }
+      function validateWorkSchedulePayload(p) {
+        if (!p.name) return "Vui lòng nhập tên lịch.";
+        if (!p.days.some((d) => d.is_working)) return "Lịch phải có ít nhất một ngày làm việc.";
+        if (p.mode === "FIXED") {
+          if (!Number.isInteger(p.grace_minutes) || p.grace_minutes < 0 || p.grace_minutes > 120) return "Dung sai phải từ 0 đến 120 phút.";
+          for (const d of p.days.filter((x) => x.is_working)) {
+            if (!d.start_time || !d.end_time) return `Vui lòng nhập giờ bắt đầu và kết thúc cho ${WEEKDAY_LABELS[d.weekday - 1]}.`;
+            if (d.end_time <= d.start_time) return `Giờ kết thúc phải sau giờ bắt đầu (${WEEKDAY_LABELS[d.weekday - 1]}).`;
+          }
+        } else if (!Number.isInteger(p.min_daily_minutes) || p.min_daily_minutes < 30 || p.min_daily_minutes > 720) return "Số phút tối thiểu phải từ 30 đến 720.";
+        return "";
+      }
+      async function saveWorkSchedule() {
+        const payload = workSchedulePayload(), problem = validateWorkSchedulePayload(payload);
+        if (problem) { setText("wsFormError", problem); return; }
+        const button = document.getElementById("wsSaveButton"); button.disabled = true; setText("wsFormError", "");
+        try {
+          const result = await wrRequest(wsEditingId ? `/work-schedules/${wsEditingId}` : "/work-schedules", postJson(payload, wsEditingId ? "PUT" : "POST"));
+          if (!result) return;
+          if (!result.res.ok) { setText("wsFormError", wrApiError(result, "Không lưu được lịch.")); return; }
+          document.getElementById("wsForm").style.display = "none";
+          await loadWorkSchedulesTab();
+        } finally { button.disabled = false; }
+      }
+      async function deleteWorkSchedule(id) {
+        const schedule = wsSchedules.find((s) => s.id === id);
+        if (!confirm(`Xóa mẫu lịch "${schedule ? schedule.name : id}"?`)) return;
+        const result = await wrRequest(`/work-schedules/${id}`, { method: "DELETE" }); if (!result) return;
+        if (!result.res.ok) { setText("wsError", wrApiError(result, "Không xóa được lịch.")); return; }
+        await loadWorkSchedulesTab();
+      }
+      function renderWorkScheduleList() {
+        const edit = wsCanEdit();
+        document.getElementById("wsList").innerHTML = `<div class="table-container"><table><thead><tr><th>Tên lịch</th><th>Chế độ</th><th>Tóm tắt</th><th>Đang áp dụng</th>${edit ? "<th>Thao tác</th>" : ""}</tr></thead><tbody>${wsSchedules.map((s) => `<tr><td>${escapeHtml(s.name)}${s.id === 1 ? '<span class="fr-sub">Lịch mặc định của hệ thống</span>' : ""}${s.description ? `<span class="fr-sub">${escapeHtml(s.description)}</span>` : ""}</td><td>${s.mode === "FIXED" ? "Giờ cố định" : "Giờ linh hoạt"}</td><td>${escapeHtml(s.summary)}${s.mode === "FIXED" ? `<span class="fr-sub">Dung sai ${s.graceMinutes} phút</span>` : ""}</td><td>${s.assignmentCount} lần áp dụng</td>${edit ? `<td><div class="fr-row-actions"><button class="btn btn-sm btn-secondary" onclick="showWorkScheduleForm(${s.id})">Sửa</button>${s.id === 1 ? "" : `<button class="btn btn-sm btn-danger" onclick="deleteWorkSchedule(${s.id})">Xóa</button>`}</div></td>` : ""}</tr>`).join("")}</tbody></table></div>`;
+      }
+      function assignmentStatus(a, today) {
+        if (a.effectiveFrom > today) return pill("Sắp áp dụng", "ar-b-pending");
+        if (a.effectiveTo && a.effectiveTo < today) return pill("Đã kết thúc", "ar-b-muted");
+        return pill("Đang áp dụng", "ar-b-present");
+      }
+      function renderAssignments(rows) {
+        const today = getVietnamToday(), edit = wsCanEdit();
+        document.getElementById("wsAssignments").innerHTML = `<div class="table-container"><table><thead><tr><th>Phạm vi</th><th>Lịch</th><th>Hiệu lực</th><th>Trạng thái</th>${edit ? "<th></th>" : ""}</tr></thead><tbody>${rows.map((a) => {
+          const target = a.targetType === "INTERN" ? `Cá nhân (ID ${a.targetValue})` : a.targetLabel;
+          return `<tr><td>${escapeHtml(target)}</td><td>${escapeHtml(a.scheduleName)}<span class="fr-sub">${escapeHtml(a.scheduleSummary)}</span></td><td>${escapeHtml(a.effectiveFrom === "1970-01-01" ? "Từ trước đến nay" : formatDateOnly(a.effectiveFrom))} – ${a.effectiveTo ? escapeHtml(formatDateOnly(a.effectiveTo)) : "không giới hạn"}</td><td>${assignmentStatus(a, today)}</td>${edit ? `<td>${a.targetType === "DEFAULT" ? "" : `<button class="btn btn-sm btn-danger" onclick="removeAssignment(${a.id})">Xóa</button>`}</td>` : ""}</tr>`;
+        }).join("")}</tbody></table></div>`;
+      }
+      function renderResolvedSchedules(rows) {
+        document.getElementById("wsResolved").innerHTML = rows.length
+          ? `<div class="table-container"><table><thead><tr><th>Thực tập sinh</th><th>Trường</th><th>Lịch áp dụng</th><th>Theo</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${escapeHtml(r.intern.fullName)}<span class="fr-sub">${escapeHtml(r.intern.studentCode || "")}</span></td><td>${escapeHtml(r.intern.university || "")}</td><td>${r.schedule ? `${escapeHtml(r.schedule.name)}<span class="fr-sub">${escapeHtml(r.schedule.summary)}</span>` : "—"}</td><td>${r.source ? escapeHtml(r.source.label) : "—"}</td></tr>`).join("")}</tbody></table></div>`
+          : "<p>Chưa có thực tập sinh nào đang hoặc sắp thực tập (cần hợp đồng đã xác nhận).</p>";
+      }
+      function renderHolidays(rows) {
+        const edit = wsCanEdit();
+        document.getElementById("wsHolidays").innerHTML = rows.length
+          ? `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Tên</th>${edit ? "<th></th>" : ""}</tr></thead><tbody>${rows.map((h) => `<tr><td>${escapeHtml(weekdayLabel(h.holidayDate))}, ${escapeHtml(formatDateOnly(h.holidayDate))}</td><td>${escapeHtml(h.name)}</td>${edit ? `<td><button class="btn btn-sm btn-danger" onclick="removeWorkHoliday(${h.id})">Xóa</button></td>` : ""}</tr>`).join("")}</tbody></table></div>`
+          : "<p>Chưa có ngày nghỉ chung nào. Ngày nghỉ chung không bị tính là vắng mặt trong báo cáo chuyên cần.</p>";
+      }
+      async function loadWorkSchedulesTab() {
+        document.querySelectorAll("#tab-work-schedules .ws-hr-only").forEach((el) => el.classList.toggle("ws-hide", !wsCanEdit()));
+        setText("wsError", "");
+        const [schedules, assignments, resolved, holidays, options] = await Promise.all([
+          wrRequest("/work-schedules"), wrRequest("/work-schedules/assignments"), wrRequest("/work-schedules/resolved"),
+          wrRequest("/work-holidays"), loadWorkScopeOptions(true),
+        ]);
+        const failed = [schedules, assignments, resolved, holidays].find((r) => r && !r.res.ok);
+        if (failed) { setText("wsError", wrApiError(failed, "Không tải được dữ liệu lịch làm việc.")); }
+        if (!schedules || !assignments || !resolved || !holidays) return;
+        if (schedules.res.ok) { wsSchedules = schedules.body.data; renderWorkScheduleList(); }
+        if (assignments.res.ok) renderAssignments(assignments.body.data);
+        if (resolved.res.ok) renderResolvedSchedules(resolved.body.data);
+        if (holidays.res.ok) renderHolidays(holidays.body.data);
+        const select = document.getElementById("wsAsSchedule"), keep = select.value;
+        select.innerHTML = wsSchedules.map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+        if (keep) select.value = keep;
+        if (!document.getElementById("wsAsFrom").value) document.getElementById("wsAsFrom").value = getVietnamToday();
+        void options;
+        await updateAssignmentScope();
+      }
+      async function updateAssignmentScope() {
+        const type = document.getElementById("wsAsType").value;
+        document.getElementById("wsAsValueWrap").style.display = type === "DEFAULT" ? "none" : "";
+        if (type !== "DEFAULT") {
+          setText("wsAsValueLabel", SCOPE_LABEL[type]);
+          fillScopeSelect("wsAsValue", type, await loadWorkScopeOptions());
+        }
+        await previewAssignment();
+      }
+      async function previewAssignment() {
+        const type = document.getElementById("wsAsType").value, value = document.getElementById("wsAsValue").value, box = document.getElementById("wsAsPreview");
+        if (type !== "DEFAULT" && !value) { box.textContent = ""; return; }
+        const query = new URLSearchParams({ target_type: type }); if (type !== "DEFAULT") query.set("target_value", value);
+        const result = await wrRequest(`/work-schedules/preview?${query}`); if (!result || !result.res.ok) { box.textContent = ""; return; }
+        const p = result.body.data;
+        const names = p.interns.slice(0, 5).map((i) => i.fullName).join(", ");
+        box.textContent = p.count
+          ? `Thuộc phạm vi này: ${p.count} thực tập sinh đang hoặc sắp thực tập${names ? ` (${names}${p.count > 5 ? ", ..." : ""})` : ""}.${p.overriddenCount ? ` ${p.overriddenCount} người đang dùng lịch của nhóm cụ thể hơn nên chưa bị ảnh hưởng.` : ""}`
+          : "Chưa có thực tập sinh đang hoặc sắp thực tập thuộc phạm vi này.";
+      }
+      async function submitAssignment() {
+        const type = document.getElementById("wsAsType").value, value = document.getElementById("wsAsValue").value;
+        const scheduleId = document.getElementById("wsAsSchedule").value, from = document.getElementById("wsAsFrom").value, to = document.getElementById("wsAsTo").value;
+        setText("wsAsError", "");
+        if (!scheduleId) return setText("wsAsError", "Vui lòng chọn lịch làm việc.");
+        if (type !== "DEFAULT" && !value) return setText("wsAsError", "Vui lòng chọn phạm vi áp dụng.");
+        if (!from) return setText("wsAsError", "Vui lòng chọn ngày hiệu lực.");
+        if (to && to < from) return setText("wsAsError", "Ngày kết thúc không được trước ngày hiệu lực.");
+        const body = { schedule_id: Number(scheduleId), target_type: type, effective_from: from };
+        if (type !== "DEFAULT") body.target_value = value;
+        if (to) body.effective_to = to;
+        const result = await wrRequest("/work-schedules/assignments", postJson(body)); if (!result) return;
+        if (!result.res.ok) return setText("wsAsError", wrApiError(result, "Không áp dụng được lịch."));
+        document.getElementById("wsAsTo").value = "";
+        await loadWorkSchedulesTab();
+      }
+      async function removeAssignment(id) {
+        if (!confirm("Xóa lần áp dụng lịch này? Nhóm sẽ quay về lịch của phạm vi rộng hơn.")) return;
+        const result = await wrRequest(`/work-schedules/assignments/${id}`, { method: "DELETE" }); if (!result) return;
+        if (!result.res.ok) return setText("wsError", wrApiError(result, "Không xóa được."));
+        await loadWorkSchedulesTab();
+      }
+      async function addWorkHoliday() {
+        const date = document.getElementById("wsHolDate").value, name = document.getElementById("wsHolName").value.trim();
+        setText("wsHolError", "");
+        if (!date || !name) return setText("wsHolError", "Vui lòng nhập ngày và tên ngày nghỉ.");
+        const result = await wrRequest("/work-holidays", postJson({ holiday_date: date, name })); if (!result) return;
+        if (!result.res.ok) return setText("wsHolError", wrApiError(result, "Không thêm được ngày nghỉ."));
+        document.getElementById("wsHolName").value = "";
+        await loadWorkSchedulesTab();
+      }
+      async function removeWorkHoliday(id) {
+        const result = await wrRequest(`/work-holidays/${id}`, { method: "DELETE" }); if (!result) return;
+        if (!result.res.ok) return setText("wsHolError", wrApiError(result, "Không xóa được ngày nghỉ."));
+        await loadWorkSchedulesTab();
+      }
+
+      // ---------- Lịch của thực tập sinh trên tab Chấm công ----------
+      async function loadAttendanceScheduleInfo() {
+        const el = document.getElementById("attendanceSchedule"); el.textContent = "";
+        const result = await wrRequest("/me/work-schedule"); if (!result || !result.res.ok) return;
+        const d = result.body.data;
+        let text = `Lịch làm việc của bạn: ${d.schedule.summary} (theo: ${d.source.label}).`;
+        if (d.today.holiday) text += ` Hôm nay là ngày nghỉ chung (${d.today.holiday}); bạn vẫn có thể chấm công nếu làm việc.`;
+        else if (!d.today.rule.isWorkingDay) text += " Hôm nay là ngày nghỉ theo lịch; bạn vẫn có thể chấm công nếu làm việc.";
+        el.textContent = text;
+      }
+
+      // ---------- Nghỉ phép: thực tập sinh ----------
+      async function loadMyLeaves() {
+        const box = document.getElementById("lvList"); box.textContent = "Đang tải...";
+        const today = getVietnamToday();
+        const from = document.getElementById("lvFrom"), to = document.getElementById("lvTo");
+        if (!from.value) { from.value = today; to.value = today; to.min = today; }
+        const result = await wrRequest("/me/leaves"); if (!result) return;
+        if (!result.res.ok) { box.textContent = wrApiError(result, "Không tải được đơn nghỉ."); return; }
+        const rows = result.body.data;
+        box.innerHTML = rows.length ? `<div class="table-container"><table><thead><tr><th>Loại</th><th>Thời gian</th><th>Số ngày</th><th>Lý do</th><th>Trạng thái</th><th></th></tr></thead><tbody>${rows.map((l) => {
+          const [label, cls] = LEAVE_STATUS_LABEL[l.status] || [l.status, "ar-b-muted"];
+          const cancellable = l.status === "PENDING" || (l.status === "APPROVED" && l.fromDate > today);
+          return `<tr><td>${escapeHtml(LEAVE_TYPE_LABEL[l.leaveType] || l.leaveType)}</td><td>${escapeHtml(formatDateOnly(l.fromDate))}${l.toDate !== l.fromDate ? ` – ${escapeHtml(formatDateOnly(l.toDate))}` : ""}</td><td class="ar-num">${daysInclusive(l.fromDate, l.toDate)}</td><td>${escapeHtml(l.reason)}${l.reviewNote ? `<span class="fr-sub">Phản hồi: ${escapeHtml(l.reviewNote)}</span>` : ""}</td><td>${pill(label, cls)}</td><td>${cancellable ? `<button class="btn btn-sm btn-secondary" onclick="cancelMyLeave(${Number(l.id)})">Hủy đơn</button>` : ""}</td></tr>`;
+        }).join("")}</tbody></table></div>` : "<p>Bạn chưa có đơn nghỉ nào.</p>";
+      }
+      async function submitLeave() {
+        const from = document.getElementById("lvFrom").value, to = document.getElementById("lvTo").value, reason = document.getElementById("lvReason").value.trim();
+        setText("lvError", "");
+        if (!from || !to) return setText("lvError", "Vui lòng chọn ngày nghỉ.");
+        if (from > to) return setText("lvError", "Ngày bắt đầu không được sau ngày kết thúc.");
+        if (daysInclusive(from, to) > 30) return setText("lvError", "Mỗi đơn nghỉ không quá 30 ngày.");
+        if (!reason) return setText("lvError", "Vui lòng nhập lý do nghỉ.");
+        const button = document.getElementById("lvSubmit"); button.disabled = true;
+        try {
+          const result = await wrRequest("/me/leaves", postJson({ leave_type: document.getElementById("lvType").value, from_date: from, to_date: to, reason })); if (!result) return;
+          if (!result.res.ok) return setText("lvError", wrApiError(result, "Không gửi được đơn nghỉ."));
+          document.getElementById("lvReason").value = ""; document.getElementById("lvReasonCount").innerText = "0/500";
+          await loadMyLeaves();
+        } finally { button.disabled = false; }
+      }
+      async function cancelMyLeave(id) {
+        if (!confirm("Bạn muốn hủy đơn nghỉ này?")) return;
+        const result = await wrRequest(`/me/leaves/${id}/cancel`, { method: "POST" }); if (!result) return;
+        if (!result.res.ok) return setText("lvError", wrApiError(result, "Không hủy được đơn nghỉ."));
+        await loadMyLeaves();
+      }
+
+      // ---------- Nghỉ phép: HR / Mentor duyệt ----------
+      async function loadStaffPendingLeaves() {
+        const box = document.getElementById("saLeaves"); setText("saLeaveError", ""); box.textContent = "Đang tải...";
+        const result = await wrRequest("/leaves/pending"); if (!result) return;
+        if (!result.res.ok) { box.textContent = ""; setText("saLeaveError", wrApiError(result, "Không tải được đơn nghỉ chờ duyệt.")); return; }
+        const rows = result.body.data;
+        box.innerHTML = rows.length ? `<div class="table-container"><table><thead><tr><th>Thực tập sinh</th><th>Loại</th><th>Thời gian</th><th>Số ngày</th><th>Lý do</th><th></th></tr></thead><tbody>${rows.map((l) => `<tr><td>${escapeHtml(l.fullName || "")}<span class="fr-sub">${escapeHtml(l.studentCode || "")}</span></td><td>${escapeHtml(LEAVE_TYPE_LABEL[l.leaveType] || l.leaveType)}</td><td>${escapeHtml(formatDateOnly(l.fromDate))}${l.toDate !== l.fromDate ? ` – ${escapeHtml(formatDateOnly(l.toDate))}` : ""}</td><td class="ar-num">${daysInclusive(l.fromDate, l.toDate)}</td><td>${escapeHtml(l.reason)}</td><td><div class="fr-row-actions"><button class="btn btn-sm btn-primary" onclick="reviewLeave(${Number(l.id)}, 'APPROVED')">Duyệt</button><button class="btn btn-sm btn-danger" onclick="reviewLeave(${Number(l.id)}, 'REJECTED')">Từ chối</button></div></td></tr>`).join("")}</tbody></table></div>` : "<p>Không có đơn nghỉ nào đang chờ duyệt.</p>";
+      }
+      async function reviewLeave(id, decision) {
+        let note = "";
+        if (decision === "REJECTED") {
+          note = prompt("Nhập lý do từ chối:") || "";
+          if (!note.trim()) return;
+        }
+        const result = await wrRequest(`/leaves/${id}/review`, postJson({ decision, note })); if (!result) return;
+        if (!result.res.ok) { setText("saLeaveError", wrApiError(result, "Không xử lý được đơn nghỉ.")); return; }
+        await loadStaffPendingLeaves();
       }
     </script>
   </body>

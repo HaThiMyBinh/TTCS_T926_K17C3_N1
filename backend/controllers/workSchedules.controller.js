@@ -1,65 +1,24 @@
 const service = require("../services/workSchedules.service");
-const { HttpError } = require("../errors");
+const { makeEndpoint } = require("./endpoint");
+const endpoint = makeEndpoint("WORK_SCHEDULE");
 
-function sendError(res, err) {
-  const status = err instanceof HttpError ? err.status : 500;
-  if (status === 500) console.error("[WORK SCHEDULES]", err);
+module.exports = {
+  list: endpoint(() => service.list(), "Lấy danh sách lịch làm việc thành công!"),
+  get: endpoint((req) => service.get(req.params.id), "Lấy lịch làm việc thành công!"),
+  create: endpoint((req) => service.create(req.body), "Tạo lịch làm việc thành công!", 201),
+  update: endpoint((req) => service.update(req.params.id, req.body), "Cập nhật lịch làm việc thành công!"),
+  remove: endpoint((req) => service.remove(req.params.id), "Đã xóa lịch làm việc!"),
 
-  const message =
-    status === 500 ? "Lỗi server, vui lòng thử lại sau!" : err.message;
-  return res.status(status).json({ success: false, message, error: message });
-}
+  assignments: endpoint(() => service.assignments(), "Lấy danh sách áp dụng lịch thành công!"),
+  assign: endpoint((req) => service.assign(req.user, req.body), "Đã áp dụng lịch làm việc!", 201),
+  removeAssignment: endpoint((req) => service.removeAssignment(req.params.id), "Đã xóa lần áp dụng lịch!"),
+  preview: endpoint((req) => service.preview(req.query), "Xem trước phạm vi áp dụng thành công!"),
+  resolved: endpoint(() => service.resolved(), "Lấy lịch đang áp dụng thành công!"),
+  options: endpoint(() => service.options(), "Lấy danh sách phạm vi thành công!"),
 
-async function run(res, work, message, status = 200) {
-  try {
-    return res
-      .status(status)
-      .json({ success: true, message, data: await work() });
-  } catch (err) {
-    return sendError(res, err);
-  }
-}
+  holidays: endpoint(() => service.holidays(), "Lấy danh sách ngày nghỉ thành công!"),
+  addHoliday: endpoint((req) => service.addHoliday(req.body), "Đã thêm ngày nghỉ!", 201),
+  removeHoliday: endpoint((req) => service.removeHoliday(req.params.id), "Đã xóa ngày nghỉ!"),
 
-const list = (req, res) =>
-  run(
-    res,
-    () => service.list(req.query),
-    "Lấy danh sách lịch làm việc thành công!",
-  );
-
-const get = (req, res) =>
-  run(
-    res,
-    () => service.get(req.params.id),
-    "Lấy lịch làm việc thành công!",
-  );
-
-const create = (req, res) =>
-  run(
-    res,
-    () => service.create(req.body, req.user),
-    "Tạo lịch làm việc thành công!",
-    201,
-  );
-
-const update = (req, res) =>
-  run(
-    res,
-    () => service.update(req.params.id, req.body),
-    "Cập nhật lịch làm việc thành công!",
-  );
-
-async function remove(req, res) {
-  try {
-    await service.remove(req.params.id);
-    return res.json({
-      success: true,
-      message: "Đã xóa lịch làm việc!",
-      data: null,
-    });
-  } catch (err) {
-    return sendError(res, err);
-  }
-}
-
-module.exports = { list, get, create, update, remove };
+  mine: endpoint((req) => service.mine(req.user), "Lấy lịch làm việc của bạn thành công!"),
+};
