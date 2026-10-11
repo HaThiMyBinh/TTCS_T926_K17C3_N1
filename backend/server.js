@@ -14,13 +14,15 @@ const internsRouter = require("./routes/interns.routes");
 const contractsRouter = require("./routes/contracts.routes");
 const programsRouter = require("./routes/programs.routes");
 const scheduleRouter = require("./routes/schedule.routes");
-const workSchedulesRouter = require("./routes/workSchedules.routes");
 const tasksRouter = require("./routes/tasks.routes");
 const weeklyReportsRouter = require("./routes/weeklyReports.routes");
 const evaluationsRouter = require("./routes/evaluations.routes");
 const attendanceRouter = require("./routes/attendance.routes");
 const leavesRouter = require("./routes/leaves.routes");
 const finalReportsRouter = require("./routes/finalReports.routes");
+const workSchedulesRouter = require("./routes/workSchedules.routes");
+const leavesRouter = require("./routes/leaves.routes");
+const attendanceReportRouter = require("./routes/attendanceReport.routes");
 const {
   applicationEvents,
   REVIEWED_EVENT,
@@ -61,13 +63,15 @@ app.use("/api", internsRouter);
 app.use("/api", contractsRouter);
 app.use("/api", programsRouter);
 app.use("/api", scheduleRouter);
-app.use("/api", workSchedulesRouter);
 app.use("/api", tasksRouter);
 app.use("/api", weeklyReportsRouter);
 app.use("/api", evaluationsRouter);
 app.use("/api", attendanceRouter);
 app.use("/api", leavesRouter);
 app.use("/api", finalReportsRouter);
+app.use("/api", workSchedulesRouter);
+app.use("/api", leavesRouter);
+app.use("/api", attendanceReportRouter);
 
 app.get("/login", (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "login.html"));

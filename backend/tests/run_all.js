@@ -110,6 +110,8 @@ const SUITES = [
     needsServer: true,
   },
   { name: "attendance-api", file: "test_attendance_api.js", needsServer: true },
+  { name: "work-schedule-api", file: "test_work_schedule_api.js", needsServer: true },
+  { name: "attendance-report-api", file: "test_attendance_report_api.js", needsServer: true },
   { name: "final-reports-api", file: "test_final_reports_api.js", needsServer: true },
   { name: "mentors", file: "test_mentors.js", needsServer: true },
   { name: "applications", file: "test_applications.js", needsServer: true },
