@@ -6117,14 +6117,16 @@
                       m.fullName.trim().toLowerCase(),
                   ) === i,
               )
+             
               .map((m) => {
-                const dept =
-                  m.department && m.department !== "Chưa cập nhật"
-                    ? ` — ${m.department}`
-                    : "";
-                return `<option value="${escapeHtml(m.fullName)}">${escapeHtml(m.fullName)}${escapeHtml(dept)}</option>`;
-              })
-              .join("");
+  const dept =
+    m.department && m.department !== "Chưa cập nhật"
+      ? ` — ${m.department}`
+      : "";
+  const load = ` (${Number(m.internCount) || 0} TTS)`;
+  return `<option value="${escapeHtml(m.fullName)}">${escapeHtml(m.fullName)}${escapeHtml(dept)}${escapeHtml(load)}</option>`;
+})
+.join("");
           if (current) select.value = current;
           if (currentTab === "tab-students") renderStudents();
         } catch (err) {
@@ -6587,16 +6589,17 @@
       function renderStudentMentorSelect(student) {
         const currentId =
           student.mentorId == null ? "" : String(student.mentorId);
-        const options = mentorsList
-          .map((mentor) => {
-            const id = String(mentor.id);
-            const department =
-              mentor.department && mentor.department !== "Chưa cập nhật"
-                ? ` — ${mentor.department}`
-                : "";
-            return `<option value="${escapeHtml(id)}" ${id === currentId ? "selected" : ""}>${escapeHtml(mentor.fullName)}${escapeHtml(department)}</option>`;
-          })
-          .join("");
+       const options = mentorsList
+  .map((mentor) => {
+    const id = String(mentor.id);
+    const department =
+      mentor.department && mentor.department !== "Chưa cập nhật"
+        ? ` — ${mentor.department}`
+        : "";
+    const load = ` (${Number(mentor.internCount) || 0} TTS)`;
+    return `<option value="${escapeHtml(id)}" ${id === currentId ? "selected" : ""}>${escapeHtml(mentor.fullName)}${escapeHtml(department)}${escapeHtml(load)}</option>`;
+  })
+  .join("");
         const legacyName =
           !currentId && student.mentorName
             ? `<small style="display:block;color:#92400e;margin-top:3px">Tên cũ chưa xác minh: ${escapeHtml(student.mentorName)}</small>`
