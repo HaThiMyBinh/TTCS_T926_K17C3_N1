@@ -47,6 +47,7 @@
     "test:evaluations-api": "node tests/test_evaluations_api.js",
     "test:task-attachments-unit": "node tests/test_task_attachments_unit.js",
     "test:attendance-unit": "node tests/test_attendance_unit.js",
+    "test:leaves-unit": "node tests/test_leaves_unit.js",
     "test:attendance-api": "node tests/test_attendance_api.js",
     "test:final-reports-unit": "node tests/test_final_reports_unit.js",
     "test:final-reports-api": "node tests/test_final_reports_api.js"

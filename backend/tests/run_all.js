@@ -48,6 +48,7 @@ const SUITES = [
   },
   { name: "upload-unit", file: "test_upload_unit.js", needsServer: false },
   { name: "attendance-unit", file: "test_attendance_unit.js", needsServer: false },
+  { name: "leaves-unit", file: "test_leaves_unit.js", needsServer: false },
   { name: "final-reports-unit", file: "test_final_reports_unit.js", needsServer: false },
   {
     name: "contracts-unit",
