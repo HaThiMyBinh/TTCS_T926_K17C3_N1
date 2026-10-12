@@ -22,6 +22,7 @@ const leavesRouter = require("./routes/leaves.routes");
 const finalReportsRouter = require("./routes/finalReports.routes");
 const workSchedulesRouter = require("./routes/workSchedules.routes");
 const leavesRouter = require("./routes/leaves.routes");
+const notificationsRouter = require("./routes/notifications.routes");
 const attendanceReportRouter = require("./routes/attendanceReport.routes");
 const {
   applicationEvents,
@@ -71,6 +72,7 @@ app.use("/api", leavesRouter);
 app.use("/api", finalReportsRouter);
 app.use("/api", workSchedulesRouter);
 app.use("/api", leavesRouter);
+app.use("/api", notificationsRouter);
 app.use("/api", attendanceReportRouter);
 
 app.get("/login", (req, res) => {
