@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR - Quản Lý Đơn Xin Nghỉ - Task 9.6</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; background-color: #f4f6f9; min-height: 100vh; color: #333; }
+
+        /* Sidebar Navigation Menu */
+        .sidebar { width: 240px; background-color: #1e293b; color: white; padding: 20px 0; flex-shrink: 0; }
+        .sidebar h3 { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #334155; font-size: 18px; color: #38bdf8; }
+        .nav-menu { list-style: none; margin-top: 20px; }
+        .nav-menu li a { display: block; padding: 12px 20px; color: #94a3b8; text-decoration: none; font-weight: 500; transition: 0.2s; }
+        .nav-menu li a.active, .nav-menu li a:hover { background-color: #0f172a; color: #38bdf8; border-left: 4px solid #38bdf8; }
+
+        /* Main Content Area */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .card { background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header h2 { font-size: 20px; color: #1e293b; }
+
+        /* Filter Section */
+        .filter-section { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; background-color: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .filter-item { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px; }
+        .filter-item label { font-size: 13px; font-weight: 600; color: #475569; }
+        .filter-item input, .filter-item select { padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
+        .filter-item input:focus, .filter-item select:focus { border-color: #38bdf8; }
+        .btn-filter { padding: 9px 18px; background-color: #0284c7; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; height: 38px; }
+        .btn-filter:hover { background-color: #0369a1; }
+
+        /* Table & Status Badges */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+        th { background-color: #f1f5f9; color: #475569; font-weight: 600; }
+        
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-pending { background-color: #fef3c7; color: #d97706; }  /* Chờ duyệt - Vàng */
+        .badge-approved { background-color: #d1fae5; color: #059669; } /* Đã duyệt - Xanh lá */
+        .badge-rejected { background-color: #fee2e2; color: #dc2626; } /* Từ chối - Đỏ */
+
+        /* Pagination */
+        .pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; }
+        .pagination-info { font-size: 14px; color: #64748b; }
+        .pagination-controls { display: flex; gap: 8px; }
+        .btn-page { padding: 6px 12px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-page.active { background: #0284c7; color: white; border-color: #0284c7; }
+
+        /* Loading & Error States */
+        .state-container { text-align: center; padding: 40px 20px; color: #64748b; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #0284c7; border-radius: 50%; width: 36px; height: 36px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .error-box { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR MENU -->
+    <div class="sidebar">
+        <h3>HR PORTAL</h3>
+        <ul class="nav-menu">
+            <li><a href="index.html">Trang chủ</a></li>
+            <li><a href="attendance.html">Quản lý chấm công</a></li>
+            <li><a href="hr-leave-requests.html" class="active">Danh sách đơn nghỉ</a></li>
+            <li><a href="reports.html">Báo cáo tổng hợp</a></li>
+        </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="container">
+            <div class="card">
+                <div class="header">
+                    <h2>📋 Danh Sách Đơn Xin Nghỉ Của Intern</h2>
+                </div>
+
+                <!-- THÔNG BÁO LỖI (401/403/500) -->
+                <div id="errorContainer" class="error-box"></div>
+
+                <!-- BỘ LỌC TÌM KIẾM -->
+                <div class="filter-section">
+                    <div class="filter-item">
+                        <label for="filterSearch">Tìm kiếm Intern:</label>
+                        <input type="text" id="filterSearch" placeholder="Nhập tên hoặc mã intern...">
+                    </div>
+                    <div class="filter-item">
+                        <label for="filterStatus">Trạng thái:</label>
+                        <select id="filterStatus">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="PENDING">Chờ duyệt</option>
+                            <option value="APPROVED">Đã duyệt</option>
+                            <option value="REJECTED">Đã từ chối</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="filterStartDate">Từ ngày:</label>
+                        <input type="date" id="filterStartDate">
+                    </div>
+                    <div class="filter-item">
+                        <label for="filterEndDate">Đến ngày:</label>
+                        <input type="date" id="filterEndDate">
+                    </div>
+                    <button class="btn-filter" onclick="handleFilter()">Lọc dữ liệu</button>
+                </div>
+
+                <!-- BẢNG HIỂN THỊ DANH SÁCH -->
+                <div id="tableContainer">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã Intern</th>
+                                <th>Họ và Tên</th>
+                                <th>Từ ngày</th>
+                                <th>Đến ngày</th>
+                                <th>Lý do</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày tạo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaveTableBody">
+                            <!-- Render bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- PHÂN TRANG -->
+                <div class="pagination" id="paginationSection">
+                    <div class="pagination-info" id="paginationInfo">Hiển thị 0 - 0 của 0 đơn</div>
+                    <div class="pagination-controls" id="paginationControls">
+                        <!-- Render bằng JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        const pageSize = 5;
+
+        // Dữ liệu giả định (Mock Data) dùng khi chưa kết nối Server
+        const mockLeaves = [
+            { id: 1, internCode: 'INT101', internName: 'Nguyễn Văn A', startDate: '2026-10-12', endDate: '2026-10-13', reason: 'Bận việc gia đình', status: 'PENDING', createdAt: '2026-10-10' },
+            { id: 2, internCode: 'INT102', internName: 'Trần Thị B', startDate: '2026-10-15', endDate: '2026-10-15', reason: 'Khám sức khỏe định kỳ', status: 'APPROVED', createdAt: '2026-10-09' },
+            { id: 3, internCode: 'INT103', internName: 'Lê Hoàng C', startDate: '2026-10-11', endDate: '2026-10-11', reason: 'Sốt cao nghỉ ốm', status: 'APPROVED', createdAt: '2026-10-08' },
+            { id: 4, internCode: 'INT104', internName: 'Phạm Minh D', startDate: '2026-10-18', endDate: '2026-10-20', reason: 'Đi du lịch cá nhân', status: 'REJECTED', createdAt: '2026-10-07' },
+            { id: 5, internCode: 'INT105', internName: 'Vũ Quốc E', startDate: '2026-10-14', endDate: '2026-10-14', reason: 'Trùng lịch thi đại học', status: 'PENDING', createdAt: '2026-10-06' },
+            { id: 6, internCode: 'INT106', internName: 'Đặng Thảo F', startDate: '2026-10-22', endDate: '2026-10-23', reason: 'Giải quyết công việc riêng', status: 'PENDING', createdAt: '2026-10-05' }
+        ];
+
+        async function fetchLeaves() {
+            const tableBody = document.getElementById('leaveTableBody');
+            const errorBox = document.getElementById('errorContainer');
+            
+            errorBox.style.display = 'none';
+            
+            // 1. Hiển thị Trạng thái Loading
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        <div class="state-container">
+                            <div class="spinner"></div>
+                            <p>Đang tải danh sách đơn nghỉ...</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            const search = document.getElementById('filterSearch').value.trim();
+            const status = document.getElementById('filterStatus').value;
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+
+            // Xây dựng Query Params
+            const params = new URLSearchParams({
+                page: currentPage,
+                limit: pageSize,
+                ...(search && { search }),
+                ...(status && { status }),
+                ...(startDate && { startDate }),
+                ...(endDate && { endDate })
+            });
+
+            try {
+                // Nối GET /api/leaves
+                const response = await fetch(`/api/leaves?${params.toString()}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+                });
+
+                // 2. Xử lý các mã lỗi HTTP (401 / 403 / 500)
+                if (response.status === 401) {
+                    throw new Error('401: Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại!');
+                } else if (response.status === 403) {
+                    throw new Error('403: Bạn không có quyền xem danh sách đơn nghỉ của HR!');
+                } else if (response.status >= 500) {
+                    throw new Error('500: Lỗi hệ thống máy chủ. Vui lòng thử lại sau!');
+                } else if (!response.ok) {
+                    throw new Error('Không thể tải dữ liệu đơn xin nghỉ!');
+                }
+
+                const data = await response.json();
+                renderTable(data.items, data.total);
+
+            } catch (error) {
+                // Fallback dùng dữ liệu giả lập (Mock) khi API chưa khả dụng
+                console.warn("API Call Failed, fallbacking to Mock Data:", error.message);
+                
+                if (error.message.includes('401') || error.message.includes('403') || error.message.includes('500')) {
+                    showError(error.message);
+                    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#dc2626;">Đã xảy ra lỗi kết nối</td></tr>`;
+                } else {
+                    // Tự lọc mock data để demo đầy đủ tính năng
+                    let filtered = mockLeaves.filter(item => {
+                        const matchSearch = !search || item.internName.toLowerCase().includes(search.toLowerCase()) || item.internCode.toLowerCase().includes(search.toLowerCase());
+                        const matchStatus = !status || item.status === status;
+                        return matchSearch && matchStatus;
+                    });
+
+                    const total = filtered.length;
+                    const startIdx = (currentPage - 1) * pageSize;
+                    const paginatedItems = filtered.slice(startIdx, startIdx + pageSize);
+
+                    setTimeout(() => renderTable(paginatedItems, total), 400); // Giả lập độ trễ mạng
+                }
+            }
+        }
+
+        function renderTable(items, total) {
+            const tableBody = document.getElementById('leaveTableBody');
+
+            // 3. Xử lý Trạng thái Rỗng (Empty)
+            if (!items || items.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="state-container">
+                                📁 Không tìm thấy đơn xin nghỉ nào phù hợp.
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                renderPagination(0);
+                return;
+            }
+
+            tableBody.innerHTML = items.map(item => {
+                let badgeClass = 'badge-pending';
+                let statusText = 'Chờ duyệt';
+                
+                if (item.status === 'APPROVED') { badgeClass = 'badge-approved'; statusText = 'Đã duyệt'; }
+                if (item.status === 'REJECTED') { badgeClass = 'badge-rejected'; statusText = 'Đã từ chối'; }
+
+                return `
+                    <tr>
+                        <td><strong>${item.internCode}</strong></td>
+                        <td>${item.internName}</td>
+                        <td>${item.startDate}</td>
+                        <td>${item.endDate}</td>
+                        <td>${item.reason}</td>
+                        <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                        <td>${item.createdAt}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            renderPagination(total);
+        }
+
+        function renderPagination(total) {
+            const info = document.getElementById('paginationInfo');
+            const controls = document.getElementById('paginationControls');
+            
+            const totalPages = Math.ceil(total / pageSize) || 1;
+            const start = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            const end = Math.min(currentPage * pageSize, total);
+
+            info.innerText = `Hiển thị ${start} - ${end} của ${total} đơn`;
+
+            let buttonsHTML = `<button class="btn-page" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">Trước</button>`;
+            
+            for (let i = 1; i <= totalPages; i++) {
+                buttonsHTML += `<button class="btn-page ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+            }
+
+            buttonsHTML += `<button class="btn-page" ${currentPage === totalPages || total === 0 ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">Sau</button>`;
+            controls.innerHTML = buttonsHTML;
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            fetchLeaves();
+        }
+
+        function handleFilter() {
+            currentPage = 1;
+            fetchLeaves();
+        }
+
+        function showError(msg) {
+            const errorBox = document.getElementById('errorContainer');
+            errorBox.innerText = msg;
+            errorBox.style.display = 'block';
+        }
+
+        window.onload = () => fetchLeaves();
+    </script>
+</body>
+</html>
