@@ -22,17 +22,17 @@ const TABLES = [
   "candidate_profiles",
   "mentors",
   "intern_profiles",
-  "final_reports",
   "application_documents",
   "internship_contracts",
   "internship_programs",
   "intern_schedules",
   "intern_tasks",
-  "attendance_records",
   "task_attachments",
   "weekly_reports",
   "weekly_report_attachments",
   "weekly_report_feedback",
+  "attendance_logs",
+  "intern_allowances",
 ];
 const FILE_TABLES = [
   "application_documents",
@@ -45,6 +45,7 @@ const DATE_ONLY_COLUMNS = new Set([
   "end_date",
   "due_date",
   "week_start",
+  "work_date",
 ]);
 const COLUMN_NAME_REGEX = /^[A-Za-z0-9_]+$/;
 

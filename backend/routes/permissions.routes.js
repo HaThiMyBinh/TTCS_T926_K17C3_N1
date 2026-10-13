@@ -20,9 +20,9 @@ const VALID_PERMISSIONS = [
 router.get("/permissions", (req, res) => {
   try {
     const permissions = readJson(PERMISSIONS_FILE, {});
-    if (!permissions.HR) permissions.HR = ["VIEW_REPORTS"];
+    if (!permissions.HR) permissions.HR = [];
     if (!permissions.Mentor) permissions.Mentor = ["ASSIGN_TASKS"];
-    if (!permissions.Intern) permissions.Intern = ["SUBMIT_WORK"];
+    if (!permissions.Intern) permissions.Intern = [];
     res.json(permissions);
   } catch (err) {
     console.error(err);
