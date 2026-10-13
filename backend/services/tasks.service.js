@@ -351,6 +351,12 @@ async function createTask(user, body) {
     createdByMentorId: mentor.id,
     ...value,
   });
+  const { toInterns, viDate } = require("./internNotify.service");
+  await toInterns([internId], {
+    type: "TASK_ASSIGNED", title: "Nhiệm vụ mới",
+    message: `Mentor giao: "${value.title}"${value.dueDate ? ` – hạn ${viDate(value.dueDate)}` : ""}.`.slice(0, 500),
+    targetTab: "tab-my-tasks", refId: id,
+  });
   return loadTaskDto(id);
 }
 

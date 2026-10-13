@@ -4,7 +4,7 @@ const { HttpError } = require("../errors");
 
 function sendError(res, err, tag) {
   if (err instanceof HttpError) {
-    return res.status(err.status).json({ success: false, message: err.message, error: err.message });
+    return res.status(err.status).json({ success: false, message: err.message, error: err.message, ...(err.extra || {}) });
   }
   console.error(`[${tag}]`, err);
   const message = "Lỗi server, vui lòng thử lại sau!";

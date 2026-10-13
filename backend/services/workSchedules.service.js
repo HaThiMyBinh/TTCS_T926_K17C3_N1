@@ -86,7 +86,8 @@ async function assign(user, body) {
   if (!body || typeof body !== "object" || Object.keys(body).some((k) => !allowed.includes(k)))
     throw new HttpError(400, "Dữ liệu áp dụng lịch có trường không hợp lệ!");
   const scheduleId = w.assertId(body.schedule_id, "Vui lòng chọn lịch làm việc!");
-  if (!(await db.findWorkSchedule(scheduleId))) throw new HttpError(404, "Không tìm thấy lịch làm việc!");
+  const schedule = await db.findWorkSchedule(scheduleId);
+  if (!schedule) throw new HttpError(404, "Không tìm thấy lịch làm việc!");
   const targetValue = validateTarget(body.target_type, body.target_value);
   if (body.target_type !== "DEFAULT" && !(await db.workScheduleTargetExists(body.target_type, targetValue)))
     throw new HttpError(404, "Không tìm thấy trường/chương trình/mentor/thực tập sinh được chọn!");
@@ -94,6 +95,7 @@ async function assign(user, body) {
   const hasTo = body.effective_to != null && body.effective_to !== "";
   const effectiveTo = hasTo ? requireDate(body.effective_to, "Ngày kết thúc không hợp lệ!") : null;
   if (effectiveTo && effectiveTo < effectiveFrom) throw new HttpError(400, "Ngày kết thúc không được trước ngày hiệu lực!");
+  const affected = await affectedIdsOf(body.target_type, targetValue); // tính trước khi tạo để biết ai thật sự bị ảnh hưởng
   let result;
   try {
     result = await db.createWorkScheduleAssignment(
@@ -106,11 +108,21 @@ async function assign(user, body) {
   }
   if (result.conflict)
     throw new HttpError(409, "Phạm vi này đã có lịch áp dụng trùng khoảng ngày. Hãy chọn ngày hiệu lực khác hoặc xóa lịch cũ trước!");
+  await notifyScheduleAffected(affected, `Lịch làm việc "${schedule.name}" được áp dụng cho bạn từ ${require("./internNotify.service").viDate(effectiveFrom)}. Xem chi tiết ở mục Chấm công.`);
   return { id: result.id };
 }
 async function removeAssignment(rawId) {
-  if (!(await db.deleteWorkScheduleAssignment(w.assertId(rawId))))
+  const id = w.assertId(rawId);
+  let target = null;
+  try {
+    target = (await db.listWorkScheduleAssignments()).find((a) => Number(a.id) === id) || null;
+  } catch (err) {
+    console.error("[WORK-SCHEDULE] Không đọc được lần áp dụng lịch:", err.message);
+  }
+  const affected = target ? await affectedIdsOf(target.targetType, target.targetValue) : [];
+  if (!(await db.deleteWorkScheduleAssignment(id)))
     throw new HttpError(404, "Không tìm thấy lần áp dụng lịch hoặc đây là lịch mặc định (không xóa được)!");
+  if (target) await notifyScheduleAffected(affected, `Lịch làm việc "${target.scheduleName}" không còn áp dụng cho bạn. Xem lịch hiện tại ở mục Chấm công.`);
   return null;
 }
 
@@ -124,15 +136,27 @@ async function addHoliday(body) {
   const holidayDate = requireDate(body.holiday_date);
   const name = String(body.name || "").trim();
   if (!name || name.length > 255) throw new HttpError(400, "Tên ngày nghỉ phải từ 1 đến 255 ký tự!");
+  let id;
   try {
-    return { id: await db.addWorkHoliday(holidayDate, name) };
+    id = await db.addWorkHoliday(holidayDate, name);
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") throw new HttpError(409, "Ngày nghỉ này đã tồn tại!");
     throw err;
   }
+  await notifyScheduleAffected(await allActiveInternIds(), `${require("./internNotify.service").viDate(holidayDate)} là ngày nghỉ chung: ${name}.`);
+  return { id };
 }
 async function removeHoliday(rawId) {
-  if (!(await db.deleteWorkHoliday(w.assertId(rawId)))) throw new HttpError(404, "Không tìm thấy ngày nghỉ!");
+  const id = w.assertId(rawId);
+  let holiday = null;
+  try {
+    holiday = (await db.listWorkHolidays()).find((h) => Number(h.id) === id) || null;
+  } catch (err) {
+    console.error("[WORK-SCHEDULE] Không đọc được ngày nghỉ:", err.message);
+  }
+  if (!(await db.deleteWorkHoliday(id))) throw new HttpError(404, "Không tìm thấy ngày nghỉ!");
+  if (holiday)
+    await notifyScheduleAffected(await allActiveInternIds(), `Ngày nghỉ chung ${require("./internNotify.service").viDate(holiday.holidayDate)} (${holiday.name}) đã được hủy, bạn vẫn làm việc theo lịch.`);
   return null;
 }
 
@@ -154,7 +178,11 @@ async function mine(user) {
 async function loadActiveInterns() {
   const today = getVietnamToday();
   const interns = await db.getAllStudents();
-  const contracts = await db.listConfirmedContractsForInterns(interns.map((i) => i.id));
+  const ids = interns.map((i) => i.id);
+  const [contracts, memberships] = await Promise.all([
+    db.listConfirmedContractsForInterns(ids),
+    db.listProgramMembershipsForInterns(ids),
+  ]);
   const active = [];
   for (const intern of interns) {
     const own = contracts.filter((c) => Number(c.internId) === Number(intern.id) && (!c.endDate || c.endDate >= today));
@@ -162,14 +190,14 @@ async function loadActiveInterns() {
     const date = own.some((c) => w.contractCovers(c, today))
       ? today
       : own.map((c) => c.startDate).filter(Boolean).sort()[0] || today;
-    active.push({ intern, date, contracts: own });
+    active.push({ intern, date, contracts: own, memberships: memberships.filter((m) => Number(m.internId) === Number(intern.id)) });
   }
-  return { active, contracts, ctx: await db.loadWorkScheduleContext() };
+  return { active, memberships, ctx: await db.loadWorkScheduleContext() };
 }
 async function resolved() {
   const { active, ctx } = await loadActiveInterns();
-  return active.map(({ intern, date, contracts }) => {
-    const found = w.resolveScheduleFromContext(ctx, intern, date, w.findContractProgram(contracts, date));
+  return active.map(({ intern, date, memberships }) => {
+    const found = w.resolveScheduleFromContext(ctx, intern, date, w.findMembershipProgram(memberships, date));
     return {
       intern: { id: intern.id, fullName: intern.fullName, studentCode: intern.studentCode, university: intern.university },
       date,
@@ -192,18 +220,49 @@ async function options() {
     interns: interns.map((i) => ({ id: i.id, name: i.fullName, studentCode: i.studentCode })),
   };
 }
+// Thực tập sinh thuộc một phạm vi áp dụng lịch, và trong số đó ai "bị ghi đè" (đang dùng lịch của phạm vi cụ thể hơn
+// nên lần áp dụng này không có tác dụng với họ).
+async function targetMembers(type, value) {
+  const { active, memberships, ctx } = await loadActiveInterns();
+  const rank = (t) => w.PRIORITY.indexOf(t);
+  const members = active.filter(({ intern }) => w.internMatchesTarget(intern, memberships, type, value));
+  const overridden = members.filter(({ intern, date, memberships: own }) => {
+    const found = w.resolveScheduleFromContext(ctx, intern, date, w.findMembershipProgram(own, date));
+    return found && rank(found.source.type) < rank(type);
+  });
+  return { members, overridden };
+}
+// Thông báo cho những thực tập sinh thực sự bị ảnh hưởng bởi thay đổi lịch làm việc; không bao giờ ném lỗi.
+async function notifyScheduleAffected(affectedIds, message) {
+  await require("./internNotify.service").toInterns(affectedIds, {
+    type: "WORK_SCHEDULE_CHANGED", title: "Lịch làm việc có thay đổi",
+    message: String(message).slice(0, 500), targetTab: "tab-my-attendance",
+  });
+}
+async function affectedIdsOf(type, value) {
+  try {
+    const { members, overridden } = await targetMembers(type, value);
+    const skip = new Set(overridden.map(({ intern }) => intern.id));
+    return members.filter(({ intern }) => !skip.has(intern.id)).map(({ intern }) => intern.id);
+  } catch (err) {
+    console.error("[WORK-SCHEDULE] Không xác định được người bị ảnh hưởng:", err.message);
+    return [];
+  }
+}
+async function allActiveInternIds() {
+  try {
+    return (await loadActiveInterns()).active.map(({ intern }) => intern.id);
+  } catch (err) {
+    console.error("[WORK-SCHEDULE] Không xác định được người bị ảnh hưởng:", err.message);
+    return [];
+  }
+}
+
 async function preview(query = {}) {
   if (Object.keys(query).some((k) => !["target_type", "target_value"].includes(k)))
     throw new HttpError(400, "Tham số xem trước không hợp lệ!");
   const value = validateTarget(query.target_type, query.target_value);
-  const { active, contracts, ctx } = await loadActiveInterns();
-  const rank = (type) => w.PRIORITY.indexOf(type);
-  const members = active.filter(({ intern }) => w.internMatchesTarget(intern, contracts, query.target_type, value));
-  // "Bị ghi đè": thực tập sinh đang dùng lịch của phạm vi cụ thể hơn nên lần áp dụng này không có tác dụng với họ.
-  const overridden = members.filter(({ intern, date, contracts: own }) => {
-    const found = w.resolveScheduleFromContext(ctx, intern, date, w.findContractProgram(own, date));
-    return found && rank(found.source.type) < rank(query.target_type);
-  });
+  const { members, overridden } = await targetMembers(query.target_type, value);
   return {
     count: members.length,
     overriddenCount: overridden.length,

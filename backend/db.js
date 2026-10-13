@@ -1082,11 +1082,14 @@ async function reviewApplicationAtomic({
 async function getAllMentors() {
   const db = requireDb();
   const [rows] = await db.query(
-    `SELECT id, full_name AS fullName, email, phone, department, specialization,
-            created_at AS createdAt
-     FROM mentors ORDER BY id DESC`,
+    `SELECT m.id, m.full_name AS fullName, m.email, m.phone, m.department, m.specialization,
+            m.created_at AS createdAt,
+            (SELECT COUNT(*) FROM intern_profiles ip WHERE ip.mentor_id = m.id
+               AND (ip.status IS NULL OR ip.status = ?)) AS activeInterns
+     FROM mentors m ORDER BY m.id DESC`,
+    [DEFAULT_INTERN_STATUS],
   );
-  return rows;
+  return rows.map((r) => ({ ...r, activeInterns: Number(r.activeInterns) }));
 }
 
 // Đảm bảo mỗi hồ sơ (mentor / thực tập sinh) có ĐÚNG 1 tài khoản cùng vai trò khớp email/họ tên/SĐT.
@@ -1938,6 +1941,51 @@ const CONTRACT_COLUMNS =
   "uploaded_at AS uploadedAt, updated_at AS updatedAt, " +
   "confirmation_status AS confirmationStatus, confirmed_at AS confirmedAt, " +
   "confirmed_by AS confirmedBy";
+
+// ---------- Mentor ↔ thực tập sinh (xem / gán từ phía mentor) ----------
+async function listMentorInterns(mentorId) {
+  const [rows] = await requireDb().query(
+    `SELECT id, student_code AS studentCode, full_name AS fullName, email, university, status
+     FROM intern_profiles WHERE mentor_id = ? ORDER BY full_name, id`, [mentorId]);
+  return rows;
+}
+// Thực tập sinh chưa thuộc mentor này (chưa có mentor lên đầu) để HR chọn thêm / chuyển sang.
+async function listInternsNotOfMentor(mentorId) {
+  const [rows] = await requireDb().query(
+    `SELECT id, student_code AS studentCode, full_name AS fullName, university, status,
+            mentor_id AS mentorId, mentor_name AS mentorName
+     FROM intern_profiles WHERE mentor_id IS NULL OR mentor_id <> ?
+     ORDER BY (mentor_id IS NULL) DESC, full_name, id`, [mentorId]);
+  return rows;
+}
+// Phòng ban của các chương trình mà từng thực tập sinh thuộc về: Map<internId, string[]>.
+async function listProgramDepartmentsForInterns(internIds) {
+  const map = new Map();
+  if (!internIds.length) return map;
+  const [rows] = await requireDb().query(
+    `SELECT pi.intern_id AS internId, d.name AS departmentName
+     FROM program_interns pi JOIN internship_programs p ON p.id = pi.program_id
+     JOIN departments d ON d.id = p.department_id WHERE pi.intern_id IN (?)`, [internIds]);
+  for (const r of rows) map.set(Number(r.internId), [...(map.get(Number(r.internId)) || []), r.departmentName]);
+  return map;
+}
+// Gán một mentor cho nhiều thực tập sinh trong một transaction; người đã thuộc mentor này được tính là không đổi.
+async function assignMentorToInterns(mentorId, internIds) {
+  return withTransaction(async (conn) => {
+    const [mentorRows] = await conn.query("SELECT full_name FROM mentors WHERE id = ? FOR UPDATE", [mentorId]);
+    if (!mentorRows.length) return { outcome: "MENTOR_NOT_FOUND" };
+    const mentorName = mentorRows[0].full_name;
+    const [found] = await conn.query(
+      "SELECT id, full_name AS fullName, email, mentor_id AS mentorId FROM intern_profiles WHERE id IN (?) ORDER BY id FOR UPDATE", [internIds]);
+    const foundIds = new Set(found.map((r) => Number(r.id)));
+    const missing = internIds.filter((id) => !foundIds.has(id));
+    if (missing.length) return { outcome: "INTERN_NOT_FOUND", missing };
+    const changed = found.filter((r) => Number(r.mentorId) !== Number(mentorId));
+    if (changed.length)
+      await conn.query("UPDATE intern_profiles SET mentor_id = ?, mentor_name = ? WHERE id IN (?)", [mentorId, mentorName, changed.map((r) => r.id)]);
+    return { outcome: "UPDATED", mentorName, changed, unchanged: found.length - changed.length };
+  });
+}
 
 async function findInternProfileById(id) {
   const [rows] = await requireDb().query(
@@ -2911,6 +2959,92 @@ async function listPrograms({ departmentId, status } = {}) {
   return rows;
 }
 
+// ---------- Chương trình & phân công mentor (US12) ----------
+// Thành viên chương trình do HR tự xếp (bảng program_interns), không phụ thuộc hợp đồng.
+async function listProgramInterns(programId) {
+  const [rows] = await requireDb().query(
+    `SELECT ip.id, ip.student_code AS studentCode, ip.full_name AS fullName, ip.email, ip.university, ip.status,
+            ip.mentor_id AS mentorId, ip.mentor_name AS mentorName
+     FROM program_interns pi JOIN intern_profiles ip ON ip.id = pi.intern_id
+     WHERE pi.program_id = ? ORDER BY ip.full_name, ip.id`,
+    [programId],
+  );
+  return rows;
+}
+// Thực tập sinh chưa thuộc chương trình (để HR chọn thêm vào).
+async function listInternsNotInProgram(programId) {
+  const [rows] = await requireDb().query(
+    `SELECT ip.id, ip.student_code AS studentCode, ip.full_name AS fullName, ip.university
+     FROM intern_profiles ip
+     WHERE NOT EXISTS (SELECT 1 FROM program_interns pi WHERE pi.program_id = ? AND pi.intern_id = ip.id)
+     ORDER BY ip.full_name, ip.id`,
+    [programId],
+  );
+  return rows;
+}
+// Thêm nhiều thực tập sinh vào chương trình; không vượt quá sức chứa (capacity) của chương trình.
+async function addProgramInterns(programId, internIds, userId) {
+  return withTransaction(async (conn) => {
+    const [programs] = await conn.query("SELECT capacity FROM internship_programs WHERE id = ? FOR UPDATE", [programId]);
+    if (!programs.length) return { outcome: "PROGRAM_NOT_FOUND" };
+    const [found] = await conn.query("SELECT id FROM intern_profiles WHERE id IN (?)", [internIds]);
+    const foundIds = new Set(found.map((r) => Number(r.id)));
+    const missing = internIds.filter((id) => !foundIds.has(id));
+    if (missing.length) return { outcome: "INTERN_NOT_FOUND", missing };
+    const [current] = await conn.query("SELECT intern_id FROM program_interns WHERE program_id = ?", [programId]);
+    const members = new Set(current.map((r) => Number(r.intern_id)));
+    const toAdd = internIds.filter((id) => !members.has(id));
+    const capacity = programs[0].capacity;
+    if (capacity != null && members.size + toAdd.length > Number(capacity))
+      return { outcome: "CAPACITY_EXCEEDED", capacity: Number(capacity), current: members.size };
+    if (toAdd.length)
+      await conn.query("INSERT INTO program_interns (program_id, intern_id, assigned_by) VALUES ?", [toAdd.map((id) => [programId, id, userId || null])]);
+    return { outcome: "ADDED", added: toAdd, already: internIds.length - toAdd.length };
+  });
+}
+async function removeProgramIntern(programId, internId) {
+  const [r] = await requireDb().query("DELETE FROM program_interns WHERE program_id = ? AND intern_id = ?", [programId, internId]);
+  return r.affectedRows;
+}
+
+// Gán (hoặc gỡ, mentorId = null) mentor cho nhiều thực tập sinh của một chương trình trong một transaction.
+// internIds = null nghĩa là toàn bộ thực tập sinh của chương trình.
+async function assignProgramInternsMentor(programId, mentorId, internIds) {
+  try {
+    return await withTransaction(async (conn) => {
+      let mentorName = "";
+      if (mentorId != null) {
+        const [mentorRows] = await conn.query("SELECT full_name FROM mentors WHERE id = ? FOR UPDATE", [mentorId]);
+        if (mentorRows.length === 0) return { outcome: "MENTOR_NOT_FOUND" };
+        mentorName = mentorRows[0].full_name;
+      }
+      const [members] = await conn.query(
+        `SELECT ip.id, ip.full_name AS fullName, ip.email, ip.mentor_id AS mentorId
+         FROM program_interns pi JOIN intern_profiles ip ON ip.id = pi.intern_id
+         WHERE pi.program_id = ? ORDER BY ip.id FOR UPDATE`,
+        [programId],
+      );
+      if (members.length === 0) return { outcome: "NO_INTERNS" };
+      let targets = members;
+      if (internIds) {
+        const inProgram = new Set(members.map((m) => Number(m.id)));
+        const missing = internIds.filter((id) => !inProgram.has(id));
+        if (missing.length) return { outcome: "INTERN_NOT_IN_PROGRAM", missing };
+        const wanted = new Set(internIds);
+        targets = members.filter((m) => wanted.has(Number(m.id)));
+      }
+      const same = (m) => (m.mentorId == null ? null : Number(m.mentorId)) === (mentorId == null ? null : Number(mentorId));
+      const changed = targets.filter((m) => !same(m));
+      if (changed.length)
+        await conn.query("UPDATE intern_profiles SET mentor_id = ?, mentor_name = ? WHERE id IN (?)", [mentorId, mentorName, changed.map((m) => m.id)]);
+      return { outcome: "UPDATED", mentorName, changed, unchanged: targets.length - changed.length };
+    });
+  } catch (err) {
+    if (mentorId != null && err.code === "ER_NO_REFERENCED_ROW_2") return { outcome: "MENTOR_NOT_FOUND" };
+    throw err;
+  }
+}
+
 async function findProgramById(id) {
   const [rows] = await requireDb().query(
     `${PROGRAM_SELECT} WHERE p.id = ? LIMIT 1`,
@@ -3104,6 +3238,10 @@ module.exports = {
   deleteMentor,
   getAllStudents,
   getStudentsForMentorEmail,
+  listMentorInterns,
+  listInternsNotOfMentor,
+  listProgramDepartmentsForInterns,
+  assignMentorToInterns,
   getInternFilterOptions,
   countInterns,
   assignInternMentor,
@@ -3137,6 +3275,11 @@ module.exports = {
   deleteDepartment,
   listPrograms,
   findProgramById,
+  listProgramInterns,
+  listInternsNotInProgram,
+  addProgramInterns,
+  removeProgramIntern,
+  assignProgramInternsMentor,
   saveProgramAtomic,
   deleteProgram,
   findMentorById,

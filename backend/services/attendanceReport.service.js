@@ -75,7 +75,7 @@ function classifyAttendanceDay({ date, today, inContract, isHoliday, dayRule, re
 }
 
 // Tính chuyên cần của một thực tập sinh trong khoảng ngày (hàm thuần).
-function computeInternAttendance({ intern, contracts, records, leaves, ctx, holidays, from, to, today }) {
+function computeInternAttendance({ intern, contracts, memberships = [], records, leaves, ctx, holidays, from, to, today }) {
   const recordByDate = new Map(records.map((r) => [r.workDate, r]));
   const days = [];
   let lastSchedule = null;
@@ -84,7 +84,7 @@ function computeInternAttendance({ intern, contracts, records, leaves, ctx, holi
     let dayRule = { isWorkingDay: false };
     let schedule = null;
     if (inContract) {
-      const found = w.resolveScheduleFromContext(ctx, intern, date, w.findContractProgram(contracts, date));
+      const found = w.resolveScheduleFromContext(ctx, intern, date, w.findMembershipProgram(memberships, date));
       if (found) {
         dayRule = w.getDayRule(found.schedule, date);
         schedule = {
@@ -117,7 +117,7 @@ function computeInternAttendance({ intern, contracts, records, leaves, ctx, holi
   const requiredDays = days.filter((d) => REQUIRED_STATUSES.includes(d.status)).length;
   const presentDays = count("PRESENT");
   const leaveDays = count("LEAVE");
-  const overlapping = contracts
+  const overlapping = memberships
     .filter((c) => (!c.startDate || c.startDate <= to) && (!c.endDate || c.endDate >= from))
     .sort((a, b) => String(b.confirmedAt || "").localeCompare(String(a.confirmedAt || "")) || b.id - a.id);
   const program = overlapping[0] && (ctx.programs || []).find((p) => Number(p.id) === Number(overlapping[0].programId));
@@ -186,11 +186,15 @@ async function computeReports(range, { onlyIntern = null } = {}) {
   if (range.internId) interns = interns.filter((i) => Number(i.id) === range.internId);
   if (range.scopeType === "UNIVERSITY") interns = interns.filter((i) => i.university === range.scopeValue);
   if (range.scopeType === "MENTOR") interns = interns.filter((i) => String(i.mentorId) === range.scopeValue);
-  const contracts = await db.listConfirmedContractsForInterns(interns.map((i) => i.id));
+  const [contracts, memberships] = await Promise.all([
+    db.listConfirmedContractsForInterns(interns.map((i) => i.id)),
+    db.listProgramMembershipsForInterns(interns.map((i) => i.id)),
+  ]);
   const contractsOf = (id) => contracts.filter((c) => Number(c.internId) === Number(id));
+  const membershipsOf = (id) => memberships.filter((m) => Number(m.internId) === Number(id));
   if (range.scopeType === "PROGRAM") {
     interns = interns.filter((i) =>
-      contractsOf(i.id).some(
+      membershipsOf(i.id).some(
         (c) => String(c.programId) === range.scopeValue &&
           (!c.startDate || c.startDate <= range.to) && (!c.endDate || c.endDate >= range.from),
       ),
@@ -209,6 +213,7 @@ async function computeReports(range, { onlyIntern = null } = {}) {
       computeInternAttendance({
         intern,
         contracts: contractsOf(intern.id),
+        memberships: membershipsOf(intern.id),
         records: records.filter((r) => Number(r.internId) === Number(intern.id)),
         leaves: leaves.filter((l) => Number(l.internId) === Number(intern.id)),
         ctx, holidays, from: range.from, to: range.to, today,

@@ -327,10 +327,13 @@ async function buildScheduleDto(intern, todayOverride) {
   const contracts = await db.listContractsByInternId(intern.id);
   const activeContract = selectConfirmedContract(contracts);
 
-  // Chỉ theo chương trình được liên kết trực tiếp trên hợp đồng.
-  const program = activeContract?.programId
-    ? await db.findProgramById(activeContract.programId)
-    : null;
+  // Chương trình do HR xếp (xếp gần nhất) được ưu tiên; nếu chưa có thì dùng chương trình gắn trên hợp đồng.
+  const memberships = await db.listProgramMembershipsForInterns([intern.id]);
+  const latestMembership = [...memberships].sort(
+    (a, b) => String(b.confirmedAt || "").localeCompare(String(a.confirmedAt || "")) || b.id - a.id,
+  )[0];
+  const programId = latestMembership ? latestMembership.programId : activeContract?.programId;
+  const program = programId ? await db.findProgramById(programId) : null;
 
   // Khoảng hợp đồng đã xác nhận được ưu tiên; nếu thiếu ngày thì dùng ngày của chương trình liên kết.
   let overallStart = activeContract?.startDate || program?.start_date || null;
@@ -580,6 +583,11 @@ function conflictOnDuplicate(error) {
   throw error;
 }
 
+function milestoneRange(m) {
+  const { viDate } = require("./internNotify.service");
+  return m.start_date && m.end_date ? ` (${viDate(m.start_date)} – ${viDate(m.end_date)})` : "";
+}
+
 async function manageMilestones(
   user,
   rawInternId,
@@ -601,6 +609,7 @@ async function manageMilestones(
     } catch (error) {
       conflictOnDuplicate(error);
     }
+    await require("./internNotify.service").scheduleChanged(id, `Đã thêm mốc "${milestone.title}"${milestoneRange(milestone)}.`);
     return db.listScheduleMilestones(id);
   }
   if (action === "update") {
@@ -626,14 +635,20 @@ async function manageMilestones(
     } catch (error) {
       conflictOnDuplicate(error);
     }
+    await require("./internNotify.service").scheduleChanged(
+      id,
+      `Mốc "${changes.title || found.title}" vừa được cập nhật${changesDates ? " (có thay đổi ngày)" : ""}. Xem lịch thực tập để biết chi tiết.`,
+    );
     return db.listScheduleMilestones(id);
   }
   if (action === "delete") {
     const milestoneId = Number(rawMilestoneId);
     if (!/^\d+$/.test(String(rawMilestoneId)))
       throw new HttpError(400, "Mã mốc không hợp lệ!");
+    const doomed = await db.findMilestoneById(milestoneId);
     if (!(await db.deleteScheduleMilestone(id, milestoneId)))
       throw new HttpError(404, "Không tìm thấy mốc lịch!");
+    await require("./internNotify.service").scheduleChanged(id, `Mốc "${doomed ? doomed.title : "lịch thực tập"}" đã được xóa khỏi lịch thực tập.`);
     return db.listScheduleMilestones(id);
   }
   const dates = await getScheduleForInternId(id);
@@ -659,6 +674,7 @@ async function manageMilestones(
   } catch (error) {
     conflictOnDuplicate(error);
   }
+  await require("./internNotify.service").scheduleChanged(id, `Lịch thực tập mẫu đã được tạo cho bạn (${defaults.length} mốc).`);
   return db.listScheduleMilestones(id);
 }
 

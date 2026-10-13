@@ -8,6 +8,8 @@ const {
 const { trimOrDefault } = require("../utils/request");
 const { normalizeInternFilters } = require("../utils/internFilters");
 const contractsService = require("../services/contracts.service");
+const { notifyMentorAssignment } = require("../services/mentorAssignment.service");
+const warn = require("../services/assignmentWarnings.service");
 const router = express.Router();
 // --- QUẢN LÝ HỒ SƠ THỰC TẬP SINH (INTERNS / STUDENTS) ---
 
@@ -117,6 +119,17 @@ router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
   }
 
   try {
+    const confirmed = warn.parseConfirm(req.body.confirm_warnings);
+    const before = await db.findInternProfileById(Number(rawId)).catch(() => null);
+    // Cảnh báo mềm (thực tập sinh không còn thực tập / lệch phòng ban) chỉ khi thật sự đổi mentor.
+    if (mentorId != null && before && Number(before.mentorId) !== mentorId) {
+      const mentor = await db.findMentorById(mentorId);
+      if (mentor)
+        warn.requireConfirmation(
+          warn.assignmentWarnings({ mentor, interns: [before], programDepartments: await db.listProgramDepartmentsForInterns([before.id]) }),
+          confirmed,
+        );
+    }
     const result = await db.assignInternMentor(Number(rawId), mentorId);
     if (result.outcome === "INTERN_NOT_FOUND") {
       return res.status(404).json({ error: "Không tìm thấy thực tập sinh!" });
@@ -124,6 +137,9 @@ router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
     if (result.outcome === "MENTOR_NOT_FOUND") {
       return res.status(404).json({ error: "Không tìm thấy mentor!" });
     }
+    await notifyMentorAssignment({
+      before, internId: Number(rawId), mentorId, mentorName: result.student.mentorName,
+    });
     return res.json({
       message: "Cập nhật phân công mentor thành công!",
       student: result.student,
