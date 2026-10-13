@@ -149,6 +149,8 @@ async function getToday(user) {
   const record = row
     ? formatRow(row, today, parseSqlDateTime(serverNow))
     : null;
+  let schedule = null;
+  try { schedule = await require("./scheduleRules.service").resolveScheduleForIntern(intern.id, today); } catch (_) { schedule = null; }
   return {
     status,
     record,
@@ -161,6 +163,7 @@ async function getToday(user) {
     canCheckOut,
     can_check_out: canCheckOut,
     reason,
+    schedule,
   };
 }
 async function checkPeriod(internId, today) {
@@ -429,4 +432,6 @@ module.exports = {
   getInternAttendance,
   listPendingCorrections,
   reviewCorrection,
+  resolveStaff,
+  assertCanAccess,
 };

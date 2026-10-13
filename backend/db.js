@@ -671,6 +671,78 @@ async function initDatabase() {
   await ensureColumn("attendance_records", "correction_reviewed_by", "BIGINT NULL");
   await ensureColumn("attendance_records", "correction_reviewed_at", "DATETIME NULL");
   await ensureColumn("attendance_records", "correction_review_note", "VARCHAR(255) NULL");
+  // US8: mẫu lịch làm việc, phạm vi áp dụng và ngày nghỉ chung.
+  await pool.query(`CREATE TABLE IF NOT EXISTS work_schedules (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(150) NOT NULL UNIQUE,
+    description TEXT NULL, mode ENUM('FIXED','FLEXIBLE') NOT NULL,
+    grace_minutes INT NOT NULL DEFAULT 15, min_daily_minutes INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS work_schedule_days (
+    schedule_id BIGINT NOT NULL, weekday TINYINT NOT NULL, is_working TINYINT(1) NOT NULL DEFAULT 0,
+    start_time TIME NULL, end_time TIME NULL, PRIMARY KEY(schedule_id, weekday),
+    CONSTRAINT fk_work_schedule_day FOREIGN KEY(schedule_id) REFERENCES work_schedules(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS work_schedule_assignments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, schedule_id BIGINT NOT NULL,
+    target_type ENUM('DEFAULT','UNIVERSITY','PROGRAM','MENTOR','INTERN') NOT NULL,
+    target_value VARCHAR(255) NOT NULL DEFAULT '', effective_from DATE NOT NULL, effective_to DATE NULL,
+    created_by BIGINT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_schedule_assignment_lookup(target_type,target_value,effective_from,effective_to),
+    UNIQUE KEY uq_schedule_assignment_start(target_type,target_value,effective_from),
+    CONSTRAINT fk_work_schedule_assignment FOREIGN KEY(schedule_id) REFERENCES work_schedules(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_work_schedule_creator FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS work_holidays (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, holiday_date DATE NOT NULL UNIQUE, name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS program_interns (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, program_id BIGINT NOT NULL, intern_id BIGINT NOT NULL, assigned_by BIGINT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_program_intern (program_id,intern_id), INDEX idx_program_intern_intern (intern_id),
+    CONSTRAINT fk_pi_program FOREIGN KEY(program_id) REFERENCES internship_programs(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pi_intern FOREIGN KEY(intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pi_user FOREIGN KEY(assigned_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS leave_requests (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, intern_id BIGINT NOT NULL,
+    leave_type ENUM('SICK','PERSONAL','EXAM','OTHER') NOT NULL, from_date DATE NOT NULL, to_date DATE NOT NULL,
+    reason VARCHAR(500) NOT NULL, status ENUM('PENDING','APPROVED','REJECTED','CANCELLED') NOT NULL DEFAULT 'PENDING',
+    reviewed_by BIGINT NULL, reviewed_at DATETIME NULL, review_note VARCHAR(500) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_leave_intern_dates(intern_id,from_date,to_date,status),
+    CONSTRAINT fk_leave_intern FOREIGN KEY(intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_leave_reviewer FOREIGN KEY(reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT NOT NULL, type VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL, message VARCHAR(500) NOT NULL, target_tab VARCHAR(80) NULL,
+    ref_id BIGINT NULL, is_read TINYINT(1) NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    dedupe_key VARCHAR(120) NULL,
+    INDEX idx_notifications_user (user_id,is_read,created_at),
+    UNIQUE KEY uq_notification_dedupe (user_id,dedupe_key),
+    CONSTRAINT fk_notification_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  // Bảng đã tạo từ phiên bản cũ: bổ sung cột / khóa chống trùng cho thông báo nhắc lịch
+  await ensureColumn("notifications", "dedupe_key", "VARCHAR(120) NULL");
+  const [dedupeIdx] = await pool.query(
+    "SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'notifications' AND INDEX_NAME = 'uq_notification_dedupe' LIMIT 1",
+    [config.database],
+  );
+  if (!dedupeIdx.length) await pool.query("ALTER TABLE notifications ADD UNIQUE KEY uq_notification_dedupe (user_id, dedupe_key)");
+  await pool.query("INSERT IGNORE INTO work_schedules (id,name,description,mode,grace_minutes) VALUES (1,'Lịch mặc định','Lịch làm việc mặc định toàn hệ thống','FIXED',15)");
+  await pool.query("INSERT IGNORE INTO work_schedule_days (schedule_id,weekday,is_working,start_time,end_time) VALUES (1,1,1,'08:30','17:30'),(1,2,1,'08:30','17:30'),(1,3,1,'08:30','17:30'),(1,4,1,'08:30','17:30'),(1,5,1,'08:30','17:30'),(1,6,0,NULL,NULL),(1,7,0,NULL,NULL)");
+  // Bản cũ không có khóa duy nhất nên INSERT IGNORE bên dưới thêm một dòng "Mặc định" mới sau mỗi lần khởi động.
+  // Dọn các dòng trùng (giữ dòng có id nhỏ nhất) rồi thêm khóa để không lặp lại.
+  await pool.query(`DELETE a FROM work_schedule_assignments a JOIN work_schedule_assignments b
+    ON a.target_type=b.target_type AND a.target_value=b.target_value AND a.effective_from=b.effective_from AND a.id>b.id`);
+  try {
+    await pool.query("ALTER TABLE work_schedule_assignments ADD UNIQUE KEY uq_schedule_assignment_start(target_type,target_value,effective_from)");
+  } catch (err) {
+    if (err.code !== "ER_DUP_KEYNAME") throw err; // đã có khóa (database mới hoặc đã chạy trước đó)
+  }
+  await pool.query("INSERT IGNORE INTO work_schedule_assignments (schedule_id,target_type,target_value,effective_from) VALUES (1,'DEFAULT','','1970-01-01')");
   await pool.query(`CREATE TABLE IF NOT EXISTS final_reports (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL,
     scope_type ENUM('ALL','UNIVERSITY','PROGRAM') NOT NULL, scope_value VARCHAR(255) NULL,
@@ -699,27 +771,6 @@ async function initDatabase() {
     UNIQUE KEY uq_final_report_recipient (email, scope_type, scope_value),
     CONSTRAINT fk_final_report_recipient_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-
-  // Lịch làm việc linh hoạt theo nhóm (US8): mỗi dòng là 1 ca của 1 nhóm trong 1 thứ của tuần.
-  // day_of_week theo ISO: 1 = Thứ Hai ... 7 = Chủ nhật. grace_minutes = thời gian du di (phút) sau giờ vào.
-  // Cùng nhóm + cùng thứ không được có 2 ca chồng giờ (service kiểm tra trong transaction có khóa).
-  await pool.query(`CREATE TABLE IF NOT EXISTS work_schedules (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    group_name VARCHAR(100) NOT NULL COLLATE utf8mb4_unicode_ci,
-    day_of_week TINYINT UNSIGNED NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    grace_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 0,
-    created_by BIGINT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT chk_ws_day CHECK (day_of_week BETWEEN 1 AND 7),
-    CONSTRAINT chk_ws_time CHECK (start_time < end_time),
-    CONSTRAINT chk_ws_grace CHECK (grace_minutes <= 120),
-    INDEX idx_ws_group_day (group_name, day_of_week),
-    CONSTRAINT fk_ws_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-  await seedDefaultWorkSchedules(pool);
 
   await seedDepartmentsFromMentors(pool);
 
@@ -1122,11 +1173,14 @@ async function reviewApplicationAtomic({
 async function getAllMentors() {
   const db = requireDb();
   const [rows] = await db.query(
-    `SELECT id, full_name AS fullName, email, phone, department, specialization,
-            created_at AS createdAt
-     FROM mentors ORDER BY id DESC`,
+    `SELECT m.id, m.full_name AS fullName, m.email, m.phone, m.department, m.specialization,
+            m.created_at AS createdAt,
+            (SELECT COUNT(*) FROM intern_profiles ip WHERE ip.mentor_id = m.id
+               AND (ip.status IS NULL OR ip.status = ?)) AS activeInterns
+     FROM mentors m ORDER BY m.id DESC`,
+    [DEFAULT_INTERN_STATUS],
   );
-  return rows;
+  return rows.map((r) => ({ ...r, activeInterns: Number(r.activeInterns) }));
 }
 
 // Đảm bảo mỗi hồ sơ (mentor / thực tập sinh) có ĐÚNG 1 tài khoản cùng vai trò khớp email/họ tên/SĐT.
@@ -1979,6 +2033,51 @@ const CONTRACT_COLUMNS =
   "confirmation_status AS confirmationStatus, confirmed_at AS confirmedAt, " +
   "confirmed_by AS confirmedBy";
 
+// ---------- Mentor ↔ thực tập sinh (xem / gán từ phía mentor) ----------
+async function listMentorInterns(mentorId) {
+  const [rows] = await requireDb().query(
+    `SELECT id, student_code AS studentCode, full_name AS fullName, email, university, status
+     FROM intern_profiles WHERE mentor_id = ? ORDER BY full_name, id`, [mentorId]);
+  return rows;
+}
+// Thực tập sinh chưa thuộc mentor này (chưa có mentor lên đầu) để HR chọn thêm / chuyển sang.
+async function listInternsNotOfMentor(mentorId) {
+  const [rows] = await requireDb().query(
+    `SELECT id, student_code AS studentCode, full_name AS fullName, university, status,
+            mentor_id AS mentorId, mentor_name AS mentorName
+     FROM intern_profiles WHERE mentor_id IS NULL OR mentor_id <> ?
+     ORDER BY (mentor_id IS NULL) DESC, full_name, id`, [mentorId]);
+  return rows;
+}
+// Phòng ban của các chương trình mà từng thực tập sinh thuộc về: Map<internId, string[]>.
+async function listProgramDepartmentsForInterns(internIds) {
+  const map = new Map();
+  if (!internIds.length) return map;
+  const [rows] = await requireDb().query(
+    `SELECT pi.intern_id AS internId, d.name AS departmentName
+     FROM program_interns pi JOIN internship_programs p ON p.id = pi.program_id
+     JOIN departments d ON d.id = p.department_id WHERE pi.intern_id IN (?)`, [internIds]);
+  for (const r of rows) map.set(Number(r.internId), [...(map.get(Number(r.internId)) || []), r.departmentName]);
+  return map;
+}
+// Gán một mentor cho nhiều thực tập sinh trong một transaction; người đã thuộc mentor này được tính là không đổi.
+async function assignMentorToInterns(mentorId, internIds) {
+  return withTransaction(async (conn) => {
+    const [mentorRows] = await conn.query("SELECT full_name FROM mentors WHERE id = ? FOR UPDATE", [mentorId]);
+    if (!mentorRows.length) return { outcome: "MENTOR_NOT_FOUND" };
+    const mentorName = mentorRows[0].full_name;
+    const [found] = await conn.query(
+      "SELECT id, full_name AS fullName, email, mentor_id AS mentorId FROM intern_profiles WHERE id IN (?) ORDER BY id FOR UPDATE", [internIds]);
+    const foundIds = new Set(found.map((r) => Number(r.id)));
+    const missing = internIds.filter((id) => !foundIds.has(id));
+    if (missing.length) return { outcome: "INTERN_NOT_FOUND", missing };
+    const changed = found.filter((r) => Number(r.mentorId) !== Number(mentorId));
+    if (changed.length)
+      await conn.query("UPDATE intern_profiles SET mentor_id = ?, mentor_name = ? WHERE id IN (?)", [mentorId, mentorName, changed.map((r) => r.id)]);
+    return { outcome: "UPDATED", mentorName, changed, unchanged: found.length - changed.length };
+  });
+}
+
 async function findInternProfileById(id) {
   const [rows] = await requireDb().query(
     `SELECT id, student_code AS studentCode, full_name AS fullName, email,
@@ -2444,9 +2543,9 @@ async function listFinalReportInterns({ scopeType, scopeValue, from, to }) {
     params.push(scopeValue);
   }
   if (scopeType === "PROGRAM") {
-    filters.push("EXISTS (SELECT 1 FROM internship_contracts c WHERE c.intern_id=ip.id AND c.confirmation_status='CONFIRMED' AND c.program_id=?)");
+    filters.push("EXISTS (SELECT 1 FROM program_interns pi0 WHERE pi0.intern_id=ip.id AND pi0.program_id=?)");
     params.push(scopeValue);
-    programClause = " AND c.program_id = ?";
+    programClause = " AND pi.program_id = ?";
     cpParams.push(scopeValue);
   }
   if (from) {
@@ -2482,10 +2581,10 @@ async function listFinalReportInterns({ scopeType, scopeValue, from, to }) {
     LEFT JOIN intern_evaluations ev ON ev.intern_id=ip.id
     LEFT JOIN (SELECT intern_id, MIN(start_date) AS startDate, CASE WHEN SUM(end_date IS NULL)>0 THEN NULL ELSE MAX(end_date) END AS endDate
       FROM internship_contracts WHERE confirmation_status='CONFIRMED' GROUP BY intern_id) p ON p.intern_id=ip.id
-    LEFT JOIN (SELECT c.intern_id, GROUP_CONCAT(DISTINCT pr.name ORDER BY pr.name SEPARATOR ', ') AS programName,
+    LEFT JOIN (SELECT pi.intern_id, GROUP_CONCAT(DISTINCT pr.name ORDER BY pr.name SEPARATOR ', ') AS programName,
         GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ') AS departmentName
-      FROM internship_contracts c JOIN internship_programs pr ON pr.id=c.program_id LEFT JOIN departments d ON d.id=pr.department_id
-      WHERE c.confirmation_status='CONFIRMED'${programClause} GROUP BY c.intern_id) cp ON cp.intern_id=ip.id
+      FROM program_interns pi JOIN internship_programs pr ON pr.id=pi.program_id LEFT JOIN departments d ON d.id=pr.department_id
+      WHERE 1=1${programClause} GROUP BY pi.intern_id) cp ON cp.intern_id=ip.id
     LEFT JOIN (SELECT intern_id, COUNT(*) AS taskCount, SUM(status='DONE') AS completedTaskCount FROM intern_tasks WHERE 1=1${taskPeriod} GROUP BY intern_id) ts ON ts.intern_id=ip.id
     LEFT JOIN (SELECT intern_id, SUM(TIMESTAMPDIFF(MINUTE,check_in_at,check_out_at)) AS totalWorkMinutes FROM attendance_records WHERE check_out_at IS NOT NULL${attPeriod} GROUP BY intern_id) att ON att.intern_id=ip.id
     WHERE ${filters.join(" AND ")} ORDER BY ip.full_name, ip.id`, [...cpParams, ...taskParams, ...attParams, ...params]);
@@ -3071,6 +3170,92 @@ async function listPrograms({ departmentId, status } = {}) {
   return rows;
 }
 
+// ---------- Chương trình & phân công mentor (US12) ----------
+// Thành viên chương trình do HR tự xếp (bảng program_interns), không phụ thuộc hợp đồng.
+async function listProgramInterns(programId) {
+  const [rows] = await requireDb().query(
+    `SELECT ip.id, ip.student_code AS studentCode, ip.full_name AS fullName, ip.email, ip.university, ip.status,
+            ip.mentor_id AS mentorId, ip.mentor_name AS mentorName
+     FROM program_interns pi JOIN intern_profiles ip ON ip.id = pi.intern_id
+     WHERE pi.program_id = ? ORDER BY ip.full_name, ip.id`,
+    [programId],
+  );
+  return rows;
+}
+// Thực tập sinh chưa thuộc chương trình (để HR chọn thêm vào).
+async function listInternsNotInProgram(programId) {
+  const [rows] = await requireDb().query(
+    `SELECT ip.id, ip.student_code AS studentCode, ip.full_name AS fullName, ip.university
+     FROM intern_profiles ip
+     WHERE NOT EXISTS (SELECT 1 FROM program_interns pi WHERE pi.program_id = ? AND pi.intern_id = ip.id)
+     ORDER BY ip.full_name, ip.id`,
+    [programId],
+  );
+  return rows;
+}
+// Thêm nhiều thực tập sinh vào chương trình; không vượt quá sức chứa (capacity) của chương trình.
+async function addProgramInterns(programId, internIds, userId) {
+  return withTransaction(async (conn) => {
+    const [programs] = await conn.query("SELECT capacity FROM internship_programs WHERE id = ? FOR UPDATE", [programId]);
+    if (!programs.length) return { outcome: "PROGRAM_NOT_FOUND" };
+    const [found] = await conn.query("SELECT id FROM intern_profiles WHERE id IN (?)", [internIds]);
+    const foundIds = new Set(found.map((r) => Number(r.id)));
+    const missing = internIds.filter((id) => !foundIds.has(id));
+    if (missing.length) return { outcome: "INTERN_NOT_FOUND", missing };
+    const [current] = await conn.query("SELECT intern_id FROM program_interns WHERE program_id = ?", [programId]);
+    const members = new Set(current.map((r) => Number(r.intern_id)));
+    const toAdd = internIds.filter((id) => !members.has(id));
+    const capacity = programs[0].capacity;
+    if (capacity != null && members.size + toAdd.length > Number(capacity))
+      return { outcome: "CAPACITY_EXCEEDED", capacity: Number(capacity), current: members.size };
+    if (toAdd.length)
+      await conn.query("INSERT INTO program_interns (program_id, intern_id, assigned_by) VALUES ?", [toAdd.map((id) => [programId, id, userId || null])]);
+    return { outcome: "ADDED", added: toAdd, already: internIds.length - toAdd.length };
+  });
+}
+async function removeProgramIntern(programId, internId) {
+  const [r] = await requireDb().query("DELETE FROM program_interns WHERE program_id = ? AND intern_id = ?", [programId, internId]);
+  return r.affectedRows;
+}
+
+// Gán (hoặc gỡ, mentorId = null) mentor cho nhiều thực tập sinh của một chương trình trong một transaction.
+// internIds = null nghĩa là toàn bộ thực tập sinh của chương trình.
+async function assignProgramInternsMentor(programId, mentorId, internIds) {
+  try {
+    return await withTransaction(async (conn) => {
+      let mentorName = "";
+      if (mentorId != null) {
+        const [mentorRows] = await conn.query("SELECT full_name FROM mentors WHERE id = ? FOR UPDATE", [mentorId]);
+        if (mentorRows.length === 0) return { outcome: "MENTOR_NOT_FOUND" };
+        mentorName = mentorRows[0].full_name;
+      }
+      const [members] = await conn.query(
+        `SELECT ip.id, ip.full_name AS fullName, ip.email, ip.mentor_id AS mentorId
+         FROM program_interns pi JOIN intern_profiles ip ON ip.id = pi.intern_id
+         WHERE pi.program_id = ? ORDER BY ip.id FOR UPDATE`,
+        [programId],
+      );
+      if (members.length === 0) return { outcome: "NO_INTERNS" };
+      let targets = members;
+      if (internIds) {
+        const inProgram = new Set(members.map((m) => Number(m.id)));
+        const missing = internIds.filter((id) => !inProgram.has(id));
+        if (missing.length) return { outcome: "INTERN_NOT_IN_PROGRAM", missing };
+        const wanted = new Set(internIds);
+        targets = members.filter((m) => wanted.has(Number(m.id)));
+      }
+      const same = (m) => (m.mentorId == null ? null : Number(m.mentorId)) === (mentorId == null ? null : Number(mentorId));
+      const changed = targets.filter((m) => !same(m));
+      if (changed.length)
+        await conn.query("UPDATE intern_profiles SET mentor_id = ?, mentor_name = ? WHERE id IN (?)", [mentorId, mentorName, changed.map((m) => m.id)]);
+      return { outcome: "UPDATED", mentorName, changed, unchanged: targets.length - changed.length };
+    });
+  } catch (err) {
+    if (mentorId != null && err.code === "ER_NO_REFERENCED_ROW_2") return { outcome: "MENTOR_NOT_FOUND" };
+    throw err;
+  }
+}
+
 async function findProgramById(id) {
   const [rows] = await requireDb().query(
     `${PROGRAM_SELECT} WHERE p.id = ? LIMIT 1`,
@@ -3204,190 +3389,6 @@ async function deleteProgram(id) {
   });
 }
 
-// ---------- Lịch làm việc theo nhóm (work_schedules) ----------
-const DEFAULT_WORK_GROUP = "Mặc định";
-const DEFAULT_WORK_START = "08:30:00";
-const DEFAULT_WORK_END = "17:30:00";
-const DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5];
-
-const WORK_SCHEDULE_COLUMNS = `id, group_name, day_of_week, start_time, end_time,
-  grace_minutes, created_by, created_at, updated_at`;
-
-// Lịch mặc định (nhóm "Mặc định", Thứ Hai - Thứ Sáu, 08:30 - 17:30) chỉ nạp khi bảng còn trống,
-// nên HR xóa/sửa lịch này sau đó sẽ không bị khởi động lại ghi đè.
-async function seedDefaultWorkSchedules(targetPool = requireDb()) {
-  const [[row]] = await targetPool.query(
-    "SELECT COUNT(*) AS total FROM work_schedules",
-  );
-  if (Number(row.total) > 0) return 0;
-  const values = DEFAULT_WORK_DAYS.map((day) => [
-    DEFAULT_WORK_GROUP,
-    day,
-    DEFAULT_WORK_START,
-    DEFAULT_WORK_END,
-    0,
-  ]);
-  await targetPool.query(
-    `INSERT INTO work_schedules (group_name, day_of_week, start_time, end_time, grace_minutes)
-     VALUES ?`,
-    [values],
-  );
-  return values.length;
-}
-
-async function listWorkSchedules({ groupName, dayOfWeek } = {}) {
-  const where = [];
-  const values = [];
-  if (groupName) {
-    where.push("group_name = ?");
-    values.push(groupName);
-  }
-  if (dayOfWeek) {
-    where.push("day_of_week = ?");
-    values.push(dayOfWeek);
-  }
-  const whereSql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
-  const [rows] = await requireDb().query(
-    `SELECT ${WORK_SCHEDULE_COLUMNS} FROM work_schedules${whereSql}
-     ORDER BY group_name, day_of_week, start_time, id`,
-    values,
-  );
-  return rows;
-}
-
-async function findWorkScheduleById(id) {
-  const [rows] = await requireDb().query(
-    `SELECT ${WORK_SCHEDULE_COLUMNS} FROM work_schedules WHERE id = ? LIMIT 1`,
-    [id],
-  );
-  return rows[0] || null;
-}
-
-// Các ca áp dụng cho 1 nhóm vào 1 thứ; nhóm chưa có lịch riêng thì dùng lịch mặc định.
-async function getWorkScheduleForGroupDay(groupName, dayOfWeek) {
-  const query = (name) =>
-    requireDb().query(
-      `SELECT ${WORK_SCHEDULE_COLUMNS} FROM work_schedules
-       WHERE group_name = ? AND day_of_week = ? ORDER BY start_time, id`,
-      [name, dayOfWeek],
-    );
-  const [own] = await query(groupName);
-  if (own.length) return own;
-  const [fallback] = await query(DEFAULT_WORK_GROUP);
-  return fallback;
-}
-
-// Tạo (id = null) hoặc sửa 1 ca. Khóa theo (nhóm, thứ) để 2 request đồng thời không cùng lọt
-// qua bước kiểm tra chồng giờ. Hai ca chỉ chạm đầu mút (17:00 - 17:00) không tính là trùng.
-async function saveWorkScheduleAtomic(value, { id = null, createdBy = null } = {}) {
-  const conn = await requireDb().getConnection();
-  const lockName = `work_schedule:${value.groupName.toLowerCase()}:${value.dayOfWeek}`;
-  let lockAcquired = false;
-  let transactionOpen = false;
-
-  try {
-    const [lockRows] = await conn.query(
-      "SELECT GET_LOCK(CONCAT('ws:', MD5(?)), 10) AS acquired",
-      [lockName],
-    );
-    lockAcquired = Number(lockRows[0]?.acquired) === 1;
-    if (!lockAcquired) return { outcome: "LOCK_TIMEOUT" };
-
-    await conn.beginTransaction();
-    transactionOpen = true;
-
-    if (id != null) {
-      const [existing] = await conn.query(
-        "SELECT id FROM work_schedules WHERE id = ? FOR UPDATE",
-        [id],
-      );
-      if (existing.length === 0) {
-        await conn.rollback();
-        transactionOpen = false;
-        return { outcome: "NOT_FOUND" };
-      }
-    }
-
-    const [overlaps] = await conn.query(
-      `SELECT id FROM work_schedules
-       WHERE group_name = ? AND day_of_week = ?
-         AND start_time < ? AND end_time > ?
-         AND (? IS NULL OR id <> ?)
-       LIMIT 1 FOR UPDATE`,
-      [
-        value.groupName,
-        value.dayOfWeek,
-        value.endTime,
-        value.startTime,
-        id,
-        id,
-      ],
-    );
-    if (overlaps.length > 0) {
-      await conn.rollback();
-      transactionOpen = false;
-      return { outcome: "OVERLAP" };
-    }
-
-    if (id == null) {
-      const [result] = await conn.query(
-        `INSERT INTO work_schedules
-          (group_name, day_of_week, start_time, end_time, grace_minutes, created_by)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          value.groupName,
-          value.dayOfWeek,
-          value.startTime,
-          value.endTime,
-          value.graceMinutes,
-          createdBy,
-        ],
-      );
-      id = result.insertId;
-    } else {
-      await conn.query(
-        `UPDATE work_schedules
-         SET group_name = ?, day_of_week = ?, start_time = ?, end_time = ?, grace_minutes = ?
-         WHERE id = ?`,
-        [
-          value.groupName,
-          value.dayOfWeek,
-          value.startTime,
-          value.endTime,
-          value.graceMinutes,
-          id,
-        ],
-      );
-    }
-
-    await conn.commit();
-    transactionOpen = false;
-    return { outcome: "SAVED", id };
-  } catch (err) {
-    if (transactionOpen) await conn.rollback();
-    throw err;
-  } finally {
-    if (lockAcquired) {
-      try {
-        await conn.query("SELECT RELEASE_LOCK(CONCAT('ws:', MD5(?)))", [
-          lockName,
-        ]);
-      } catch {
-        // Đóng kết nối hỏng cũng tự nhả khóa.
-      }
-    }
-    conn.release();
-  }
-}
-
-async function deleteWorkSchedule(id) {
-  const [result] = await requireDb().query(
-    "DELETE FROM work_schedules WHERE id = ?",
-    [id],
-  );
-  return result.affectedRows > 0;
-}
-
 // Số liệu tổng quan cho tab Báo cáo & Thống kê: toàn bộ lấy từ dữ liệu thật trong DB.
 async function getOverviewStats() {
   const db = requireDb();
@@ -3426,6 +3427,310 @@ async function getOverviewStats() {
   };
 }
 
+// US7/US8 data access. The schedule resolver returns the most specific active assignment.
+// ---------- Lịch làm việc ----------
+function mapWorkSchedule(row, days) {
+  return {
+    id: Number(row.id),
+    name: row.name,
+    description: row.description || "",
+    mode: row.mode,
+    graceMinutes: Number(row.grace_minutes),
+    minDailyMinutes: row.min_daily_minutes == null ? null : Number(row.min_daily_minutes),
+    assignmentCount: Number(row.assignmentCount || 0),
+    days: days.map((d) => ({
+      weekday: Number(d.weekday),
+      isWorking: !!d.isWorking,
+      startTime: d.startTime,
+      endTime: d.endTime,
+    })),
+  };
+}
+const WORK_SCHEDULE_DAY_COLUMNS = `schedule_id AS scheduleId, weekday, is_working AS isWorking,
+  TIME_FORMAT(start_time,'%H:%i') AS startTime, TIME_FORMAT(end_time,'%H:%i') AS endTime`;
+async function listWorkSchedules() {
+  const pool = requireDb();
+  const [rows] = await pool.query(`SELECT s.*,
+    (SELECT COUNT(*) FROM work_schedule_assignments a WHERE a.schedule_id = s.id) AS assignmentCount
+    FROM work_schedules s ORDER BY s.name`);
+  const [days] = await pool.query(`SELECT ${WORK_SCHEDULE_DAY_COLUMNS} FROM work_schedule_days ORDER BY schedule_id, weekday`);
+  return rows.map((row) => mapWorkSchedule(row, days.filter((d) => Number(d.scheduleId) === Number(row.id))));
+}
+async function findWorkSchedule(id) {
+  const pool = requireDb();
+  const [rows] = await pool.query(`SELECT s.*,
+    (SELECT COUNT(*) FROM work_schedule_assignments a WHERE a.schedule_id = s.id) AS assignmentCount
+    FROM work_schedules s WHERE s.id = ? LIMIT 1`, [id]);
+  if (!rows[0]) return null;
+  const [days] = await pool.query(`SELECT ${WORK_SCHEDULE_DAY_COLUMNS} FROM work_schedule_days WHERE schedule_id = ? ORDER BY weekday`, [id]);
+  return mapWorkSchedule(rows[0], days);
+}
+async function saveWorkSchedule(id, input) {
+  const conn = await requireDb().getConnection();
+  try {
+    await conn.beginTransaction();
+    const minDaily = input.mode === "FLEXIBLE" ? input.minDailyMinutes : null;
+    const values = [input.name, input.description, input.mode, input.graceMinutes ?? 15, minDaily];
+    let scheduleId = id;
+    if (id) {
+      await conn.query("UPDATE work_schedules SET name=?, description=?, mode=?, grace_minutes=?, min_daily_minutes=? WHERE id=?", [...values, id]);
+    } else {
+      const [result] = await conn.query("INSERT INTO work_schedules (name,description,mode,grace_minutes,min_daily_minutes) VALUES (?,?,?,?,?)", values);
+      scheduleId = result.insertId;
+    }
+    if (input.days) {
+      await conn.query("DELETE FROM work_schedule_days WHERE schedule_id=?", [scheduleId]);
+      for (const d of input.days) {
+        const hasHours = d.isWorking && input.mode === "FIXED";
+        await conn.query("INSERT INTO work_schedule_days (schedule_id,weekday,is_working,start_time,end_time) VALUES (?,?,?,?,?)",
+          [scheduleId, d.weekday, d.isWorking ? 1 : 0, hasHours ? d.startTime : null, hasHours ? d.endTime : null]);
+      }
+    }
+    await conn.commit();
+    return findWorkSchedule(scheduleId);
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+// Lịch mặc định (id=1) và lịch đang được áp dụng không xóa được.
+async function deleteWorkSchedule(id) {
+  const [result] = await requireDb().query(`DELETE FROM work_schedules WHERE id=? AND id<>1
+    AND NOT EXISTS (SELECT 1 FROM work_schedule_assignments a WHERE a.schedule_id = work_schedules.id)`, [id]);
+  return result.affectedRows;
+}
+async function listWorkScheduleAssignments() {
+  const [rows] = await requireDb().query(`SELECT a.id, a.schedule_id AS scheduleId, s.name AS scheduleName,
+    a.target_type AS targetType, a.target_value AS targetValue,
+    DATE_FORMAT(a.effective_from,'%Y-%m-%d') AS effectiveFrom, DATE_FORMAT(a.effective_to,'%Y-%m-%d') AS effectiveTo,
+    a.created_by AS createdBy
+    FROM work_schedule_assignments a JOIN work_schedules s ON s.id = a.schedule_id
+    ORDER BY FIELD(a.target_type,'DEFAULT','UNIVERSITY','PROGRAM','MENTOR','INTERN'), a.target_value, a.effective_from DESC`);
+  return rows;
+}
+// planChange(existingRows) -> { conflict, close: [{ id, effectiveTo }] } (hàm thuần, xem planAssignmentChange).
+async function createWorkScheduleAssignment(input, planChange) {
+  const conn = await requireDb().getConnection();
+  try {
+    await conn.beginTransaction();
+    const [existing] = await conn.query(`SELECT id, DATE_FORMAT(effective_from,'%Y-%m-%d') AS effectiveFrom,
+      DATE_FORMAT(effective_to,'%Y-%m-%d') AS effectiveTo FROM work_schedule_assignments
+      WHERE target_type=? AND target_value=? FOR UPDATE`, [input.targetType, input.targetValue]);
+    const plan = planChange(existing);
+    if (plan.conflict) {
+      await conn.rollback();
+      return { conflict: true };
+    }
+    for (const item of plan.close)
+      await conn.query("UPDATE work_schedule_assignments SET effective_to=? WHERE id=?", [item.effectiveTo, item.id]);
+    const [result] = await conn.query(`INSERT INTO work_schedule_assignments
+      (schedule_id,target_type,target_value,effective_from,effective_to,created_by) VALUES (?,?,?,?,?,?)`,
+      [input.scheduleId, input.targetType, input.targetValue, input.effectiveFrom, input.effectiveTo || null, input.createdBy || null]);
+    await conn.commit();
+    return { id: result.insertId };
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+async function deleteWorkScheduleAssignment(id) {
+  const [result] = await requireDb().query("DELETE FROM work_schedule_assignments WHERE id=? AND target_type<>'DEFAULT'", [id]);
+  return result.affectedRows;
+}
+async function workScheduleTargetExists(type, value) {
+  const queries = {
+    UNIVERSITY: "SELECT 1 FROM intern_profiles WHERE university = ? LIMIT 1",
+    PROGRAM: "SELECT 1 FROM internship_programs WHERE id = ? LIMIT 1",
+    MENTOR: "SELECT 1 FROM mentors WHERE id = ? LIMIT 1",
+    INTERN: "SELECT 1 FROM intern_profiles WHERE id = ? LIMIT 1",
+  };
+  if (!queries[type]) return false;
+  const [rows] = await requireDb().query(queries[type], [value]);
+  return rows.length > 0;
+}
+async function listWorkHolidays() {
+  const [rows] = await requireDb().query("SELECT id, DATE_FORMAT(holiday_date,'%Y-%m-%d') AS holidayDate, name FROM work_holidays ORDER BY holiday_date");
+  return rows;
+}
+async function addWorkHoliday(date, name) {
+  const [result] = await requireDb().query("INSERT INTO work_holidays (holiday_date,name) VALUES (?,?)", [date, name]);
+  return result.insertId;
+}
+async function deleteWorkHoliday(id) {
+  const [result] = await requireDb().query("DELETE FROM work_holidays WHERE id=?", [id]);
+  return result.affectedRows;
+}
+// Toàn bộ dữ liệu cần để tính lịch áp dụng trong bộ nhớ (các bảng nhỏ, tải một lần).
+async function loadWorkScheduleContext() {
+  const pool = requireDb();
+  const [schedules, assignments, [programs], [mentors]] = await Promise.all([
+    listWorkSchedules(),
+    listWorkScheduleAssignments(),
+    pool.query("SELECT id, name FROM internship_programs"),
+    pool.query("SELECT id, full_name AS name FROM mentors"),
+  ]);
+  return { schedules, assignments, programs, mentors };
+}
+// Hợp đồng đã xác nhận (ngày có thể null = không giới hạn đầu/cuối).
+async function listConfirmedContractsForInterns(internIds) {
+  if (!internIds.length) return [];
+  const [rows] = await requireDb().query(`SELECT id, intern_id AS internId, program_id AS programId,
+    DATE_FORMAT(start_date,'%Y-%m-%d') AS startDate, DATE_FORMAT(end_date,'%Y-%m-%d') AS endDate, confirmed_at AS confirmedAt
+    FROM internship_contracts WHERE confirmation_status='CONFIRMED' AND intern_id IN (?)`, [internIds]);
+  return rows;
+}
+// Thành viên chương trình do HR xếp (program_interns), cùng hình dạng với hợp đồng để dùng chung hàm tìm chương trình:
+// startDate/endDate là ngày của chương trình (null = không giới hạn), confirmedAt là thời điểm HR xếp.
+async function listProgramMembershipsForInterns(internIds) {
+  if (!internIds.length) return [];
+  const [rows] = await requireDb().query(`SELECT pi.id, pi.intern_id AS internId, pi.program_id AS programId,
+    DATE_FORMAT(p.start_date,'%Y-%m-%d') AS startDate, DATE_FORMAT(p.end_date,'%Y-%m-%d') AS endDate,
+    DATE_FORMAT(pi.created_at,'%Y-%m-%d %H:%i:%s') AS confirmedAt
+    FROM program_interns pi JOIN internship_programs p ON p.id = pi.program_id WHERE pi.intern_id IN (?)`, [internIds]);
+  return rows;
+}
+async function listAttendanceForInterns(internIds, from, to) {
+  if (!internIds.length) return [];
+  const [rows] = await requireDb().query(`SELECT ${ATTENDANCE_COLUMNS} FROM attendance_records a
+    WHERE a.intern_id IN (?) AND a.work_date BETWEEN ? AND ? ORDER BY a.work_date`, [internIds, from, to]);
+  return rows;
+}
+
+// ---------- Nghỉ phép ----------
+const LEAVE_COLUMNS = `l.id, l.intern_id AS internId, l.leave_type AS leaveType,
+  DATE_FORMAT(l.from_date,'%Y-%m-%d') AS fromDate, DATE_FORMAT(l.to_date,'%Y-%m-%d') AS toDate,
+  l.reason, l.status, l.reviewed_by AS reviewedBy, DATE_FORMAT(l.reviewed_at,'%Y-%m-%d %H:%i:%s') AS reviewedAt,
+  l.review_note AS reviewNote, DATE_FORMAT(l.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt`;
+async function listLeaves(internId, from, to) {
+  const ranged = Boolean(from && to);
+  const [rows] = await requireDb().query(`SELECT ${LEAVE_COLUMNS} FROM leave_requests l WHERE l.intern_id = ?
+    ${ranged ? "AND l.to_date >= ? AND l.from_date <= ?" : ""} ORDER BY l.from_date DESC, l.id DESC`,
+    ranged ? [internId, from, to] : [internId]);
+  return rows;
+}
+async function listLeavesForInterns(internIds, from, to) {
+  if (!internIds.length) return [];
+  const [rows] = await requireDb().query(`SELECT ${LEAVE_COLUMNS} FROM leave_requests l
+    WHERE l.intern_id IN (?) AND l.status IN ('PENDING','APPROVED') AND l.to_date >= ? AND l.from_date <= ?`, [internIds, from, to]);
+  return rows;
+}
+async function listLeavesForStaff({ status = null, internId = null, from = null, to = null, mentorId = null, limit = 200 } = {}) {
+  const where = [];
+  const params = [];
+  if (status) { where.push("l.status = ?"); params.push(status); }
+  if (internId) { where.push("l.intern_id = ?"); params.push(internId); }
+  if (from) { where.push("l.to_date >= ?"); params.push(from); }
+  if (to) { where.push("l.from_date <= ?"); params.push(to); }
+  if (mentorId) { where.push("ip.mentor_id = ?"); params.push(mentorId); }
+  const [rows] = await requireDb().query(`SELECT ${LEAVE_COLUMNS}, ip.full_name AS fullName, ip.student_code AS studentCode
+    FROM leave_requests l JOIN intern_profiles ip ON ip.id = l.intern_id
+    ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY l.created_at DESC, l.id DESC LIMIT ?`, [...params, limit]);
+  return rows;
+}
+async function listPendingLeaves(mentorId = null) {
+  return listLeavesForStaff({ status: "PENDING", mentorId });
+}
+async function createLeave(input) {
+  const [result] = await requireDb().query("INSERT INTO leave_requests (intern_id,leave_type,from_date,to_date,reason) VALUES (?,?,?,?,?)",
+    [input.internId, input.leaveType, input.fromDate, input.toDate, input.reason]);
+  return result.insertId;
+}
+// Email các tài khoản HR đang hoạt động (dùng để báo có đơn nghỉ phép mới)
+async function listActiveHrEmails() {
+  const [rows] = await requireDb().query(
+    `SELECT u.email FROM users u JOIN roles r ON u.role_id = r.id
+     WHERE r.role_name = 'HR' AND u.status = 'ACTIVE'`,
+  );
+  return rows.map((r) => r.email);
+}
+// ---------- Thông báo trong app (chuông) ----------
+async function listActiveHrUserIds() {
+  const [rows] = await requireDb().query(
+    `SELECT u.id FROM users u JOIN roles r ON u.role_id = r.id WHERE r.role_name = 'HR' AND u.status = 'ACTIVE'`);
+  return rows.map((r) => r.id);
+}
+async function findMentorUserId(mentorId) {
+  if (!mentorId) return null;
+  const [rows] = await requireDb().query(
+    `SELECT u.id FROM mentors m JOIN users u ON LOWER(u.email) = LOWER(m.email) WHERE m.id = ? LIMIT 1`, [mentorId]);
+  return rows[0] ? rows[0].id : null;
+}
+async function createNotifications(userIds, n) {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  if (!ids.length) return 0;
+  // dedupeKey: cùng (tài khoản, khóa) chỉ tạo một lần (dùng cho thông báo nhắc lịch); trả về số dòng thực sự được tạo.
+  const dedupe = n.dedupeKey || null;
+  const [result] = await requireDb().query(
+    `INSERT ${dedupe ? "IGNORE " : ""}INTO notifications (user_id,type,title,message,target_tab,ref_id,dedupe_key) VALUES ?`,
+    [ids.map((id) => [id, n.type, n.title, n.message, n.targetTab || null, n.refId || null, dedupe])]);
+  return result.affectedRows;
+}
+// Tài khoản (users) của các hồ sơ thực tập sinh, ghép theo email.
+async function findUserIdsByInternIds(internIds) {
+  if (!internIds.length) return [];
+  const [rows] = await requireDb().query(
+    `SELECT ip.id AS internId, u.id AS userId FROM intern_profiles ip
+     JOIN users u ON LOWER(u.email) = LOWER(ip.email) WHERE ip.id IN (?)`, [internIds]);
+  return rows;
+}
+// Mốc lịch thực tập chưa hoàn thành bắt đầu trong [from, to] của thực tập sinh đang thực tập.
+async function listMilestonesStartingBetween(from, to) {
+  const [rows] = await requireDb().query(
+    `SELECT s.id, s.intern_id AS internId, s.title, DATE_FORMAT(s.start_date,'%Y-%m-%d') AS startDate
+     FROM intern_schedules s JOIN intern_profiles ip ON ip.id = s.intern_id
+     WHERE s.status <> 'COMPLETED' AND s.start_date BETWEEN ? AND ? AND (ip.status IS NULL OR ip.status = ?)`,
+    [from, to, DEFAULT_INTERN_STATUS]);
+  return rows;
+}
+// Nhiệm vụ chưa xong đến hạn trong [from, to] của thực tập sinh đang thực tập.
+async function listTasksDueBetween(from, to) {
+  const [rows] = await requireDb().query(
+    `SELECT t.id, t.intern_id AS internId, t.title, DATE_FORMAT(t.due_date,'%Y-%m-%d') AS dueDate
+     FROM intern_tasks t JOIN intern_profiles ip ON ip.id = t.intern_id
+     WHERE t.status <> 'DONE' AND t.due_date BETWEEN ? AND ? AND (ip.status IS NULL OR ip.status = ?)`,
+    [from, to, DEFAULT_INTERN_STATUS]);
+  return rows;
+}
+async function listNotifications(userId, limit = 30) {
+  const [rows] = await requireDb().query(
+    `SELECT id, type, title, message, target_tab AS targetTab, ref_id AS refId, is_read AS isRead,
+            DATE_FORMAT(created_at,'%Y-%m-%d %H:%i:%s') AS createdAt
+     FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT ?`, [userId, limit]);
+  return rows.map((r) => ({ ...r, isRead: !!r.isRead }));
+}
+async function countUnreadNotifications(userId) {
+  const [rows] = await requireDb().query("SELECT COUNT(*) AS c FROM notifications WHERE user_id = ? AND is_read = 0", [userId]);
+  return Number(rows[0].c);
+}
+async function markNotificationRead(id, userId) {
+  const [r] = await requireDb().query("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", [id, userId]);
+  return r.affectedRows;
+}
+async function markAllNotificationsRead(userId) {
+  const [r] = await requireDb().query("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0", [userId]);
+  return r.affectedRows;
+}
+async function findLeave(id) {
+  const [rows] = await requireDb().query(`SELECT ${LEAVE_COLUMNS}, ip.mentor_id AS mentorId
+    FROM leave_requests l JOIN intern_profiles ip ON ip.id = l.intern_id WHERE l.id = ?`, [id]);
+  return rows[0] || null;
+}
+// today: ngày hiện tại theo giờ Việt Nam (YYYY-MM-DD), truyền từ service để không phụ thuộc múi giờ MySQL.
+async function cancelLeave(id, internId, today) {
+  const [result] = await requireDb().query(`UPDATE leave_requests SET status='CANCELLED'
+    WHERE id=? AND intern_id=? AND (status='PENDING' OR (status='APPROVED' AND from_date > ?))`, [id, internId, today]);
+  return result.affectedRows;
+}
+async function reviewLeave(id, decision, userId, note) {
+  const [result] = await requireDb().query(`UPDATE leave_requests SET status=?, reviewed_by=?, reviewed_at=NOW(), review_note=?
+    WHERE id=? AND status='PENDING'`, [decision, userId, note || null, id]);
+  return result.affectedRows;
+}
+
 module.exports = {
   initDatabase,
   getPool,
@@ -3448,6 +3753,10 @@ module.exports = {
   deleteMentor,
   getAllStudents,
   getStudentsForMentorEmail,
+  listMentorInterns,
+  listInternsNotOfMentor,
+  listProgramDepartmentsForInterns,
+  assignMentorToInterns,
   getInternFilterOptions,
   countInterns,
   assignInternMentor,
@@ -3481,6 +3790,11 @@ module.exports = {
   deleteDepartment,
   listPrograms,
   findProgramById,
+  listProgramInterns,
+  listInternsNotInProgram,
+  addProgramInterns,
+  removeProgramIntern,
+  assignProgramInternsMentor,
   saveProgramAtomic,
   deleteProgram,
   findMentorById,
@@ -3538,6 +3852,40 @@ module.exports = {
   deleteFinalReportRecipient,
   findInternEvaluation,
   upsertInternEvaluation,
+  listWorkSchedules,
+  findWorkSchedule,
+  saveWorkSchedule,
+  deleteWorkSchedule,
+  listWorkScheduleAssignments,
+  createWorkScheduleAssignment,
+  deleteWorkScheduleAssignment,
+  workScheduleTargetExists,
+  listWorkHolidays,
+  addWorkHoliday,
+  deleteWorkHoliday,
+  loadWorkScheduleContext,
+  listConfirmedContractsForInterns,
+  listProgramMembershipsForInterns,
+  listAttendanceForInterns,
+  listLeaves,
+  listLeavesForInterns,
+  listLeavesForStaff,
+  listPendingLeaves,
+  createLeave,
+  listActiveHrEmails,
+  listActiveHrUserIds,
+  findMentorUserId,
+  createNotifications,
+  findUserIdsByInternIds,
+  listMilestonesStartingBetween,
+  listTasksDueBetween,
+  listNotifications,
+  countUnreadNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  findLeave,
+  cancelLeave,
+  reviewLeave,
   deleteInternEvaluation,
   listEvaluationsForMentor,
   listScheduleMilestones,
@@ -3546,12 +3894,5 @@ module.exports = {
   updateScheduleMilestone,
   deleteScheduleMilestone,
   findMilestoneById,
-  seedDefaultWorkSchedules,
-  listWorkSchedules,
-  findWorkScheduleById,
-  getWorkScheduleForGroupDay,
-  saveWorkScheduleAtomic,
-  deleteWorkSchedule,
-  DEFAULT_WORK_GROUP,
   getOverviewStats,
 };

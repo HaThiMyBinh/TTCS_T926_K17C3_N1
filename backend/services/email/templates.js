@@ -351,10 +351,42 @@ function renderFinalReportEmail({ report, message }) {
   return { subject, html: wrapHtml({ title: subject, previewText, bodyHtml }), text };
 }
 
+// --- EMAIL BÁO HR: THỰC TẬP SINH VỪA GỬI ĐƠN NGHỈ PHÉP ---
+const LEAVE_TYPE_LABEL = { SICK: "Nghỉ ốm", PERSONAL: "Việc cá nhân", EXAM: "Học / thi", OTHER: "Khác" };
+function renderLeaveRequestEmail({ intern, leave }) {
+  const name = intern.fullName || intern.full_name || "Thực tập sinh";
+  const range = leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} – ${leave.toDate}`;
+  const days = Math.floor((Date.parse(`${leave.toDate}T00:00:00Z`) - Date.parse(`${leave.fromDate}T00:00:00Z`)) / 86400000) + 1;
+  const typeLabel = LEAVE_TYPE_LABEL[leave.leaveType] || leave.leaveType;
+  const subject = `[Đơn nghỉ phép] ${name} xin nghỉ ${range}`;
+  const previewText = `${name} vừa gửi đơn nghỉ phép ${days} ngày (${range}).`;
+  const row = (label, value) => `<tr><td style="padding: 6px 0; color: #475569;">${escapeHtml(label)}</td><td style="padding: 6px 0; text-align: right;"><b>${escapeHtml(value)}</b></td></tr>`;
+  const bodyHtml = `
+    <p style="margin: 0 0 16px; font-size: 15px;">Xin chào bộ phận Nhân sự,</p>
+    <p style="margin: 0 0 16px;">Thực tập sinh <b>${escapeHtml(name)}</b> vừa đăng ký nghỉ phép và đang chờ duyệt.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; margin: 8px 0 16px;">
+      ${row("Loại nghỉ", typeLabel)}
+      ${row("Thời gian nghỉ", range)}
+      ${row("Số ngày", String(days))}
+    </table>
+    <p style="margin: 0 0 16px; padding: 12px 14px; background-color: #f8fafc; border-left: 3px solid ${BRAND_COLOR}; white-space: pre-line;"><b>Lý do:</b> ${escapeHtml(leave.reason)}</p>
+    <p style="margin: 0;">Vui lòng đăng nhập hệ thống, vào tab <b>Chấm công thực tập sinh</b> để duyệt hoặc từ chối đơn.</p>
+    <p style="margin: 20px 0 0; color: #475569;">Thời gian gửi: <b>${formatVietnamDateTime()}</b></p>
+  `;
+  const text = [
+    "Xin chào bộ phận Nhân sự,", "",
+    `Thực tập sinh ${name} vừa đăng ký nghỉ phép (đang chờ duyệt).`,
+    `Loại nghỉ: ${typeLabel}`, `Thời gian nghỉ: ${range} (${days} ngày)`, `Lý do: ${leave.reason}`,
+    "", "Vui lòng vào tab \"Chấm công thực tập sinh\" để duyệt hoặc từ chối.",
+  ].join("\n");
+  return { subject, html: wrapHtml({ title: subject, previewText, bodyHtml }), text };
+}
+
 module.exports = {
   escapeHtml,
   renderApprovedEmail,
   renderRejectedEmail,
   renderTestEmail,
   renderFinalReportEmail,
+  renderLeaveRequestEmail,
 };
