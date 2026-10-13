@@ -98,6 +98,85 @@
         color: var(--slate-600);
       }
 
+      /* THANH LỌC (nhãn nhỏ phía trên ô nhập) + CHIP TỔNG HỢP */
+      .filter-bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-bottom: 16px; }
+      .filter-field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--slate-600); }
+      .filter-field input, .filter-field select { height: 40px; min-width: 150px; padding: 0 12px; border: 1px solid var(--slate-300); border-radius: 8px; background: #fff; font-size: 13.5px; font-weight: 400; color: var(--slate-800); font-family: inherit; outline: none; }
+      .filter-field select { min-width: 220px; }
+      .filter-field input:focus, .filter-field select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(3, 42, 184, 0.15); }
+      .filter-bar .btn { height: 40px; padding: 0 18px; }
+      .summary-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+      .summary-chip { display: flex; flex-direction: column; gap: 2px; min-width: 120px; padding: 10px 14px; border: 1px solid var(--slate-200); border-radius: 10px; background: var(--slate-50); }
+      .summary-chip small { font-size: 11.5px; color: var(--slate-600); }
+      .summary-chip strong { font-size: 16px; color: var(--slate-800); }
+      .summary-chip.warn { background: #fef3c7; border-color: #fde68a; }
+      .summary-chip.warn strong { color: #92400e; }
+
+      /* THẺ CHẤM CÔNG HÔM NAY: cỡ chữ thống nhất, thông tin dạng ô */
+      .att-schedule { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 10px 14px; margin-bottom: 16px; background: var(--primary-light); border-radius: 10px; font-size: 13.5px; color: var(--slate-800); }
+      .att-schedule:empty { display: none; }
+      .att-schedule i { color: var(--primary); }
+      .att-schedule .att-schedule-note { flex-basis: 100%; color: var(--slate-600); font-size: 12.5px; }
+      .att-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+      .att-cell { padding: 10px 14px; border: 1px solid var(--slate-200); border-radius: 10px; background: var(--slate-50); }
+      .att-cell small { display: block; font-size: 12px; color: var(--slate-600); margin-bottom: 2px; }
+      .att-cell strong { font-size: 15px; color: var(--slate-800); }
+      .att-note { margin-bottom: 4px; }
+      .att-note textarea { min-height: 64px; }
+      .att-note small { align-self: flex-end; font-size: 12px; color: var(--slate-600); }
+
+      /* KHỐI LƯỢNG MENTOR */
+      .load-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+      .load-badge.high { background: #fee2e2; color: #b91c1c; }
+      .load-badge.low { background: #fef3c7; color: #92400e; }
+      .load-badge.ok { background: #dcfce7; color: #166534; }
+
+      /* BẢNG CHƯƠNG TRÌNH: cột gọn, nút thao tác một hàng */
+      .programs-table { min-width: 960px; }
+      .programs-table th:nth-child(1) { width: 20%; }
+      .programs-table th:nth-child(2) { width: 15%; }
+      .programs-table th:nth-child(3) { width: 24%; }
+      .programs-table th:nth-child(4), .programs-table th:nth-child(5) { width: 8%; }
+      .programs-table td:first-child { font-weight: 600; color: var(--slate-800); }
+      .programs-table .program-time-badge { display: table; margin: 6px 0 0; }
+      .programs-table .program-period { white-space: nowrap; }
+      .program-actions { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+      .btn-soft, .btn-soft-gray, .btn-soft-danger { border: 0; cursor: pointer; border-radius: 8px; font-weight: 600; }
+      .btn-soft { background: var(--primary-light, #e0e7ff); color: var(--primary); }
+      .btn-soft:hover { background: #c7d2fe; }
+      .btn-soft-gray { background: var(--slate-100); color: var(--slate-700); }
+      .btn-soft-gray:hover { background: var(--slate-200); }
+      .btn-soft-danger { background: #fee2e2; color: #b91c1c; }
+      .btn-soft-danger:hover { background: #fecaca; }
+
+      /* TRANG BÁO CÁO & THỐNG KÊ: các nút mở báo cáo */
+      .report-hub { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px; }
+      .report-hub-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 18px 20px; border: 1px solid var(--slate-200); border-radius: 12px; background: #fff; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
+      .report-hub-card:hover { border-color: var(--primary); box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12); transform: translateY(-1px); }
+      .report-hub-card i { font-size: 22px; color: var(--primary); }
+      .report-hub-card strong { font-size: 15px; color: var(--slate-900, #0f172a); }
+      .report-hub-card span { font-size: 13px; color: var(--slate-600); }
+      .report-back { margin-bottom: 12px; }
+
+      /* CHUÔNG THÔNG BÁO */
+      .notif-bell { position: relative; }
+      .notif-trigger { position: relative; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--slate-200); background: #fff; color: var(--slate-600); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+      .notif-trigger:hover { border-color: var(--primary); color: var(--primary); }
+      .notif-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; display: none; }
+      .notif-badge.show { display: block; }
+      .notif-dropdown { position: absolute; right: 0; top: 48px; width: 360px; max-width: 92vw; background: #fff; border: 1px solid var(--slate-200); border-radius: 12px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18); display: none; z-index: 1000; overflow: hidden; }
+      .notif-dropdown.open { display: block; }
+      .notif-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--slate-200); font-weight: 700; }
+      .notif-head button { border: 0; background: none; color: var(--primary); cursor: pointer; font-size: 12.5px; }
+      .notif-list { max-height: 380px; overflow-y: auto; }
+      .notif-item { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--slate-100); background: #fff; padding: 12px 16px; cursor: pointer; }
+      .notif-item:hover { background: var(--slate-100); }
+      .notif-item.unread { background: #eff6ff; }
+      .notif-item strong { display: block; font-size: 13.5px; }
+      .notif-item span { display: block; font-size: 13px; color: var(--slate-600); margin-top: 2px; }
+      .notif-item small { display: block; font-size: 11.5px; color: var(--slate-600); margin-top: 4px; }
+      .notif-empty { padding: 24px 16px; text-align: center; color: var(--slate-600); font-size: 13.5px; }
+
       /* MENU TÀI KHOẢN NGƯỜI DÙNG (Avatar + Dropdown) */
       .user-menu {
         position: relative;
@@ -1840,6 +1919,17 @@
             <i class="fa-solid fa-paper-plane"></i> Form Ứng Tuyển Online
           </a>
 
+          <!-- CHUÔNG THÔNG BÁO -->
+          <div class="notif-bell" id="notifBell">
+            <button class="notif-trigger" onclick="toggleNotifications(event)" aria-label="Thông báo" title="Thông báo">
+              <i class="fa-regular fa-bell"></i><span class="notif-badge" id="notifBadge">0</span>
+            </button>
+            <div class="notif-dropdown" id="notifDropdown">
+              <div class="notif-head"><span>Thông báo</span><button onclick="markAllNotificationsRead()">Đọc tất cả</button></div>
+              <div class="notif-list" id="notifList"><div class="notif-empty">Đang tải...</div></div>
+            </div>
+          </div>
+
           <!-- MENU TÀI KHOẢN NGƯỜI DÙNG -->
           <div class="user-menu" id="userMenu">
             <button class="user-menu-trigger" onclick="toggleUserMenu(event)">
@@ -2807,7 +2897,164 @@
           </div>
         </div>
 
+        <!-- CHẤM CÔNG (INTERN) -->
+        <div id="tab-my-attendance" class="tab-pane" style="display:none">
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-clock text-primary"></i> Chấm công hôm nay</h3></div>
+            <div class="card-body"><div id="attendanceSchedule" class="att-schedule" aria-live="polite"></div><div id="attendanceState" aria-live="polite">Đang tải...</div>
+              <div class="fr-field att-note">
+                <label for="attendanceNote">Ghi chú khi check-in <span class="fr-hint">(không bắt buộc)</span></label>
+                <textarea id="attendanceNote" maxlength="255" oninput="document.getElementById('attendanceNoteCount').innerText=this.value.length+'/255'"></textarea>
+                <small id="attendanceNoteCount">0/255</small>
+              </div>
+              <p id="attendanceReason" class="text-danger"></p><button id="attendanceAction" class="btn btn-primary attendance-action" onclick="submitAttendance()" disabled>Đang tải...</button>
+              <p id="attendanceError" class="text-danger" role="alert"></p>
+            </div>
+          </div>
+          <div class="card"><div class="card-header"><h3>Lịch sử chấm công</h3></div><div class="card-body">
+            <div class="filter-bar">
+              <label class="filter-field">Từ ngày <input type="date" id="attendanceFrom"></label>
+              <label class="filter-field">Đến ngày <input type="date" id="attendanceTo"></label>
+              <button class="btn btn-primary" onclick="loadAttendanceHistory()">Xem lịch sử</button>
+            </div>
+            <div id="attendanceSummary" class="summary-chips"></div><div id="attendanceHistory">Đang tải...</div>
+            <div id="attendanceCorrectionForm" style="display:none;margin-top:12px">
+              <h4>Bổ sung giờ check-out ngày <span id="acDate"></span></h4>
+              <label for="acCheckOut">Giờ check-out thực tế <input type="datetime-local" id="acCheckOut"></label>
+              <label for="acReason">Lý do quên check-out</label>
+              <textarea id="acReason" maxlength="255"></textarea>
+              <p id="acError" class="text-danger" role="alert"></p>
+              <button class="btn btn-primary" onclick="submitAttendanceCorrection()">Gửi đề nghị</button>
+              <button class="btn btn-light" onclick="closeAttendanceCorrection()">Đóng</button>
+              <small>Giờ check-out cần được Mentor hoặc HR duyệt thì mới được tính vào giờ làm.</small>
+            </div>
+          </div></div>
+        </div>
+
+        <!-- CHẤM CÔNG THỰC TẬP SINH (HR / MENTOR) -->
+        <div id="tab-staff-attendance" class="tab-pane" style="display:none">
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-umbrella-beach text-primary"></i> Đơn nghỉ phép chờ duyệt</h3>
+            <button class="btn btn-sm btn-primary" onclick="loadStaffPendingLeaves()">Tải lại</button></div>
+            <div class="card-body"><p id="saLeaveError" class="text-danger" role="alert"></p><div id="saLeaves">Đang tải...</div></div>
+          </div>
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-user-clock text-primary"></i> Đề nghị bổ sung check-out chờ duyệt</h3>
+            <button class="btn btn-sm btn-primary" onclick="loadStaffPendingCorrections()">Tải lại</button></div>
+            <div class="card-body"><p id="saError" class="text-danger" role="alert"></p><div id="saPending">Đang tải...</div></div>
+          </div>
+          <div class="card"><div class="card-header"><h3>Lịch sử chấm công theo thực tập sinh</h3></div><div class="card-body">
+            <div class="filter-bar">
+              <label class="filter-field">Thực tập sinh <select id="saIntern"></select></label>
+              <label class="filter-field">Từ ngày <input type="date" id="saFrom"></label>
+              <label class="filter-field">Đến ngày <input type="date" id="saTo"></label>
+              <button class="btn btn-primary" onclick="loadStaffAttendanceHistory()">Xem chấm công</button>
+            </div>
+            <div id="saSummary" class="summary-chips"></div><div id="saHistory"></div>
+          </div></div>
+        </div>
+
+        <!-- BÁO CÁO CUỐI KỲ (HR) -->
+        <div id="tab-final-reports" class="tab-pane" style="display:none">
+          <div class="report-back"><button class="btn btn-secondary btn-sm" onclick="switchTab('tab-reports')"><i class="fa-solid fa-arrow-left"></i> Báo cáo &amp; Thống kê</button></div>
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-file-lines text-primary"></i> Báo cáo cuối kỳ</h3><button class="btn btn-primary" onclick="showFinalReportForm()">Tạo báo cáo mới</button></div>
+            <div class="card-body"><div id="finalReportError" class="text-danger" role="alert"></div><div id="finalReportList">Đang tải...</div></div>
+          </div>
+          <div class="card" id="finalReportForm" style="display:none"><div class="card-header"><h3>Tạo báo cáo</h3></div><div class="card-body">
+            <div class="fr-form-grid">
+              <label class="fr-field fr-span-2"><span>Tiêu đề <span class="fr-req">*</span></span><input id="frTitle" maxlength="255" placeholder="VD: Báo cáo cuối kỳ thực tập hè 2026"></label>
+              <label class="fr-field">Phạm vi <select id="frScope" onchange="updateFinalReportScope()"><option value="ALL">Toàn bộ</option><option value="UNIVERSITY">Theo trường</option><option value="PROGRAM">Theo chương trình</option></select></label>
+              <label class="fr-field" id="frScopeValueWrap" style="display:none"><span id="frScopeValueLabel">Trường</span> <select id="frScopeValue"></select></label>
+              <label class="fr-field">Từ ngày <input type="date" id="frFrom" onchange="syncFinalReportDates()"></label>
+              <label class="fr-field">Đến ngày <input type="date" id="frTo" onchange="syncFinalReportDates()"></label>
+              <label class="fr-field fr-span-2">Nhận xét HR <textarea id="frNote" maxlength="2000" placeholder="Nhận xét chung của HR sẽ hiển thị cuối báo cáo (tối đa 2000 ký tự)"></textarea></label>
+            </div>
+            <div id="frFormError" class="text-danger" role="alert"></div>
+            <div class="fr-actions"><button id="frPreviewButton" class="btn btn-secondary" onclick="previewFinalReport()">Xem trước</button><button id="frSaveButton" class="btn btn-primary" onclick="saveFinalReport()">Lưu bản nháp</button><button class="btn btn-light" onclick="document.getElementById('finalReportForm').style.display='none'">Đóng</button></div>
+            <div id="frPreview"></div>
+          </div></div>
+          <div class="card" id="finalReportDetail" style="display:none"><div class="card-body" id="finalReportDetailBody"></div></div>
+        </div>
+
         <!-- NỘP BÁO CÁO TUẦN (INTERN) -->
+        <div id="tab-attendance-report" class="tab-pane" style="display:none">
+          <div class="report-back"><button class="btn btn-secondary btn-sm" onclick="switchTab('tab-reports')"><i class="fa-solid fa-arrow-left"></i> Báo cáo &amp; Thống kê</button></div>
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-chart-column text-primary"></i> Báo cáo chuyên cần</h3></div>
+            <div class="card-body">
+              <div class="fr-form-grid">
+                <label class="fr-field"><span>Từ ngày</span><input id="arFrom" type="date" onchange="syncAttendanceReportDates()"></label>
+                <label class="fr-field"><span>Đến ngày</span><input id="arTo" type="date" onchange="syncAttendanceReportDates()"></label>
+                <label class="fr-field"><span>Phạm vi</span><select id="arScope" onchange="updateAttendanceReportScope()"><option value="ALL">Toàn bộ</option><option value="UNIVERSITY">Theo trường</option><option value="PROGRAM">Theo chương trình</option><option value="MENTOR">Theo mentor</option></select></label>
+                <label class="fr-field" id="arScopeValueWrap" style="display:none"><span id="arScopeValueLabel">Trường</span><select id="arScopeValue"></select></label>
+                <label class="fr-field"><span>Nhóm kết quả theo</span><select id="arGroupBy"><option value="NONE">Không nhóm</option><option value="PROGRAM">Chương trình</option><option value="UNIVERSITY">Trường</option><option value="MENTOR">Mentor</option></select></label>
+              </div>
+              <div class="fr-actions"><button id="arViewButton" class="btn btn-primary" onclick="loadAttendanceReport()">Xem báo cáo</button><button class="btn btn-secondary" onclick="downloadAttendanceReportCsv()">Tải CSV</button></div>
+              <div id="attendanceReportError" class="text-danger" role="alert"></div>
+            </div>
+          </div>
+          <div id="arSummary"></div>
+          <div id="arGroups"></div>
+          <div class="card"><div class="card-header"><h3>Theo thực tập sinh</h3></div><div class="card-body"><div id="attendanceReportList">Chọn khoảng ngày rồi bấm "Xem báo cáo".</div></div></div>
+          <div class="card" id="arDetailCard" style="display:none"><div class="card-header"><h3 id="arDetailTitle">Chi tiết từng ngày</h3><button class="btn btn-sm btn-light" onclick="document.getElementById('arDetailCard').style.display='none'">Đóng</button></div><div class="card-body"><div id="arDetail"></div></div></div>
+        </div>
+
+        <!-- LỊCH LÀM VIỆC (HR thiết lập, Admin chỉ xem) -->
+        <div id="tab-work-schedules" class="tab-pane" style="display:none">
+          <p id="wsError" class="text-danger" role="alert"></p>
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-calendar-week text-primary"></i> Mẫu lịch làm việc</h3>
+            <button class="btn btn-primary ws-hr-only" onclick="showWorkScheduleForm()">Tạo mẫu lịch</button></div>
+            <div class="card-body"><div id="wsList">Đang tải...</div></div>
+          </div>
+          <div class="card ws-hr-only" id="wsForm" style="display:none"><div class="card-header"><h3 id="wsFormTitle">Mẫu lịch</h3></div><div class="card-body">
+            <div class="fr-form-grid">
+              <label class="fr-field fr-span-2"><span>Tên lịch <span class="fr-req">*</span></span><input id="wsName" maxlength="150" placeholder="VD: Giờ hành chính, Giờ linh hoạt cho nhóm thiết kế"></label>
+              <label class="fr-field"><span>Chế độ</span><select id="wsMode" onchange="updateWorkScheduleMode()"><option value="FIXED">Giờ cố định (tính đi muộn, về sớm)</option><option value="FLEXIBLE">Giờ linh hoạt (chỉ cần đủ số giờ tối thiểu)</option></select></label>
+              <label class="fr-field" id="wsGraceWrap"><span>Dung sai đi muộn/về sớm (phút)</span><input id="wsGrace" type="number" min="0" max="120" value="15"></label>
+              <label class="fr-field" id="wsMinWrap" style="display:none"><span>Số phút tối thiểu mỗi ngày</span><input id="wsMinDaily" type="number" min="30" max="720" value="240"></label>
+              <label class="fr-field fr-span-2"><span>Mô tả</span><input id="wsDesc" maxlength="1000" placeholder="Không bắt buộc"></label>
+            </div>
+            <div class="table-container"><table class="ws-day-grid"><thead><tr><th>Thứ</th><th>Làm việc</th><th class="ws-time-col">Bắt đầu</th><th class="ws-time-col">Kết thúc</th></tr></thead><tbody id="wsDays"></tbody></table></div>
+            <p class="fr-hint" id="wsEditWarning" style="display:none"></p>
+            <div id="wsFormError" class="text-danger" role="alert"></div>
+            <div class="fr-actions"><button class="btn btn-secondary ws-time-col" onclick="copyFirstDayHours()">Sao chép giờ Thứ 2 cho các ngày còn lại</button><button class="btn btn-primary" id="wsSaveButton" onclick="saveWorkSchedule()">Lưu lịch</button><button class="btn btn-light" onclick="document.getElementById('wsForm').style.display='none'">Đóng</button></div>
+          </div></div>
+          <div class="card ws-hr-only"><div class="card-header"><h3>Áp dụng lịch cho nhóm</h3></div><div class="card-body">
+            <div class="fr-form-grid">
+              <label class="fr-field"><span>Lịch làm việc</span><select id="wsAsSchedule"></select></label>
+              <label class="fr-field"><span>Áp dụng cho</span><select id="wsAsType" onchange="updateAssignmentScope()"><option value="PROGRAM">Chương trình thực tập</option><option value="UNIVERSITY">Trường</option><option value="MENTOR">Nhóm của mentor</option><option value="INTERN">Một thực tập sinh (ngoại lệ)</option><option value="DEFAULT">Mặc định toàn hệ thống</option></select></label>
+              <label class="fr-field" id="wsAsValueWrap"><span id="wsAsValueLabel">Chương trình</span><select id="wsAsValue" onchange="previewAssignment()"></select></label>
+              <label class="fr-field"><span>Hiệu lực từ ngày</span><input id="wsAsFrom" type="date"></label>
+              <label class="fr-field"><span>Đến ngày <span class="fr-hint">(để trống nếu không giới hạn)</span></span><input id="wsAsTo" type="date"></label>
+            </div>
+            <p id="wsAsPreview" class="fr-hint" aria-live="polite"></p>
+            <div id="wsAsError" class="text-danger" role="alert"></div>
+            <div class="fr-actions"><button class="btn btn-primary" onclick="submitAssignment()">Áp dụng lịch</button></div>
+            <p class="fr-hint">Khi một thực tập sinh thuộc nhiều nhóm, lịch của nhóm cụ thể hơn được dùng: cá nhân, rồi chương trình, mentor, trường, cuối cùng là mặc định. Áp dụng lịch mới cho một nhóm sẽ tự kết thúc lần áp dụng đang mở trước đó vào ngày hôm trước.</p>
+          </div></div>
+          <div class="card"><div class="card-header"><h3>Lịch đang được áp dụng</h3></div><div class="card-body"><div id="wsAssignments">Đang tải...</div></div></div>
+          <div class="card"><div class="card-header"><h3>Lịch của từng thực tập sinh</h3></div><div class="card-body"><div id="wsResolved">Đang tải...</div></div></div>
+          <div class="card"><div class="card-header"><h3>Ngày nghỉ chung (nghỉ lễ)</h3></div><div class="card-body">
+            <div class="fr-form-grid ws-hr-only"><label class="fr-field"><span>Ngày</span><input id="wsHolDate" type="date"></label><label class="fr-field"><span>Tên ngày nghỉ</span><input id="wsHolName" maxlength="255" placeholder="VD: Quốc khánh"></label></div>
+            <div class="fr-actions ws-hr-only"><button class="btn btn-primary" onclick="addWorkHoliday()">Thêm ngày nghỉ</button></div>
+            <div id="wsHolError" class="text-danger" role="alert"></div>
+            <div id="wsHolidays">Đang tải...</div>
+          </div></div>
+        </div>
+
+        <!-- NGHỈ PHÉP CỦA TÔI (THỰC TẬP SINH) -->
+        <div id="tab-my-leaves" class="tab-pane" style="display:none">
+          <div class="card"><div class="card-header"><h3><i class="fa-solid fa-umbrella-beach text-primary"></i> Xin nghỉ phép</h3></div><div class="card-body">
+            <div class="fr-form-grid">
+              <label class="fr-field"><span>Loại nghỉ</span><select id="lvType"><option value="SICK">Nghỉ ốm</option><option value="PERSONAL">Việc cá nhân</option><option value="EXAM">Học / thi</option><option value="OTHER">Khác</option></select></label>
+              <span></span>
+              <label class="fr-field"><span>Từ ngày</span><input id="lvFrom" type="date" onchange="document.getElementById('lvTo').min=this.value"></label>
+              <label class="fr-field"><span>Đến ngày</span><input id="lvTo" type="date"></label>
+              <label class="fr-field fr-span-2"><span>Lý do <span class="fr-req">*</span></span><textarea id="lvReason" maxlength="500" placeholder="Tối đa 500 ký tự" oninput="document.getElementById('lvReasonCount').innerText=this.value.length+'/500'"></textarea><small id="lvReasonCount" class="fr-hint">0/500</small></label>
+            </div>
+            <p class="fr-hint">Mỗi đơn tối đa 30 ngày, nằm trong thời gian hợp đồng, nộp bù được tối đa 7 ngày và không áp dụng cho ngày đã chấm công. Đơn được gửi báo cho HR ngay khi nộp và do HR hoặc mentor phụ trách duyệt; hãy nộp trước ngày nghỉ.</p>
+            <div id="lvError" class="text-danger" role="alert"></div>
+            <div class="fr-actions"><button id="lvSubmit" class="btn btn-primary" onclick="submitLeave()">Gửi đơn nghỉ</button></div>
+          </div></div>
+          <div class="card"><div class="card-header"><h3>Đơn nghỉ của tôi</h3></div><div class="card-body"><div id="lvList">Đang tải...</div></div></div>
+        </div>
+
         <div id="tab-submissions" class="tab-pane" style="display: none">
           <div id="wrNotIntern" class="card" style="display: none">
             <div class="card-body">
@@ -3118,7 +3365,19 @@
 
         <!-- BÁO CÁO & THỐNG KÊ (HR & ADMIN) - số liệu thật từ GET /api/reports -->
         <div id="tab-reports" class="tab-pane" style="display: none">
-          <div class="card">
+          <div id="reportsHub" class="report-hub" style="display: none">
+            <button class="report-hub-card" onclick="switchTab('tab-final-reports')">
+              <i class="fa-solid fa-file-lines"></i>
+              <strong>Báo cáo cuối kỳ</strong>
+              <span>Tổng hợp đánh giá và xuất báo cáo gửi nhà trường</span>
+            </button>
+            <button class="report-hub-card" onclick="switchTab('tab-attendance-report')">
+              <i class="fa-solid fa-chart-column"></i>
+              <strong>Báo cáo chuyên cần</strong>
+              <span>Tổng hợp đi làm, nghỉ phép và vắng mặt</span>
+            </button>
+          </div>
+          <div class="card" id="reportsOverviewCard">
             <div class="card-header">
               <h3>
                 <i class="fa-solid fa-chart-line text-primary"></i> Báo Cáo &
@@ -4197,7 +4456,7 @@
             </button>
           </div>
           <div class="program-table-responsive">
-            <table class="table">
+            <table class="table programs-table">
               <thead>
                 <tr>
                   <th>Tên</th>
@@ -4638,6 +4897,87 @@
     </div>
 
     <div
+      id="mentorInternsModal"
+      class="modal-overlay"
+      style="display: none"
+      onclick="if (event.target === this) mentorInternsClose();"
+    >
+      <div class="modal-box program-modal" style="max-width: 860px; width: 94%; max-height: 92vh; overflow: auto">
+        <div class="modal-header">
+          <h3 id="miTitle">Thực tập sinh của mentor</h3>
+          <button class="btn-close" onclick="mentorInternsClose()">×</button>
+        </div>
+        <div style="padding: 16px 20px">
+          <div class="table-container" style="max-height: 280px; overflow: auto">
+            <table>
+              <thead><tr><th>Thực tập sinh</th><th>Trường</th><th>Trạng thái</th><th></th></tr></thead>
+              <tbody id="miRows"><tr><td colspan="4">Đang tải...</td></tr></tbody>
+            </table>
+          </div>
+          <details id="miAddBox" style="margin-top: 14px; border: 1px solid var(--slate-200); border-radius: 10px; padding: 10px 14px">
+            <summary style="cursor: pointer; font-weight: 600">Thêm / chuyển thực tập sinh sang mentor này</summary>
+            <p class="fr-hint" style="margin: 8px 0">Người đang thuộc mentor khác sẽ được chuyển sang mentor này.</p>
+            <input id="miSearch" class="form-control" placeholder="Tìm theo tên, MSSV hoặc trường..." oninput="mentorInternsRenderAvailable()" style="margin-bottom: 8px" />
+            <div class="table-container" style="max-height: 220px; overflow: auto">
+              <table><tbody id="miAvailable"><tr><td>Đang tải...</td></tr></tbody></table>
+            </div>
+            <div style="text-align: right; margin-top: 8px"><button class="btn btn-primary btn-sm" onclick="mentorInternsAdd()">Gán cho mentor này</button></div>
+          </details>
+          <p id="miError" class="text-danger" role="alert" style="margin: 10px 0 0"></p>
+          <div style="display: flex; justify-content: flex-end; margin-top: 12px"><button class="btn btn-secondary" onclick="mentorInternsClose()">Đóng</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="programMentorModal"
+      class="modal-overlay"
+      style="display: none"
+      onclick="if (event.target === this) programMentorClose();"
+    >
+      <div class="modal-box program-modal" style="max-width: 900px; width: 94%; max-height: 92vh; overflow: auto">
+        <div class="modal-header">
+          <h3 id="pmTitle">Thực tập sinh &amp; mentor của chương trình</h3>
+          <button class="btn-close" onclick="programMentorClose()">×</button>
+        </div>
+        <div style="padding: 16px 20px">
+          <details id="pmAddBox" style="margin-bottom: 14px; border: 1px solid var(--slate-200); border-radius: 10px; padding: 10px 14px">
+            <summary style="cursor: pointer; font-weight: 600">Thêm thực tập sinh vào chương trình</summary>
+            <p class="fr-hint" style="margin: 8px 0">HR chọn thực tập sinh đã có trong hệ thống để xếp vào chương trình này (không phụ thuộc hợp đồng).</p>
+            <input id="pmSearch" class="form-control" placeholder="Tìm theo tên, MSSV hoặc trường..." oninput="programMentorRenderAvailable()" style="margin-bottom: 8px" />
+            <div class="table-container" style="max-height: 200px; overflow: auto">
+              <table><tbody id="pmAvailable"><tr><td>Đang tải...</td></tr></tbody></table>
+            </div>
+            <div style="text-align: right; margin-top: 8px"><button id="pmAddBtn" class="btn btn-primary btn-sm" onclick="programMentorAdd()">Thêm vào chương trình</button></div>
+          </details>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px">
+            <label for="pmMentor" style="font-weight: 600">Mentor hướng dẫn:</label>
+            <select id="pmMentor" class="form-control" style="max-width: 320px" onchange="programMentorUpdateButton()"></select>
+          </div>
+          <div class="table-container" style="max-height: 320px; overflow: auto">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 36px"><input type="checkbox" id="pmAll" onchange="programMentorToggleAll(this.checked)" aria-label="Chọn tất cả" /></th>
+                  <th>Thực tập sinh</th>
+                  <th>Trường</th>
+                  <th>Mentor hiện tại</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="pmRows"><tr><td colspan="5">Đang tải...</td></tr></tbody>
+            </table>
+          </div>
+          <p id="pmError" class="text-danger" role="alert" style="margin: 10px 0 0"></p>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px">
+            <button class="btn btn-secondary" onclick="programMentorClose()">Đóng</button>
+            <button id="pmSubmit" class="btn btn-primary" onclick="programMentorSubmit()">Phân công</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
       id="programModal"
       class="modal-overlay"
       style="display: none"
@@ -4760,6 +5100,7 @@
         },
       ];
 
+      const REPORT_SUBTABS = ["tab-final-reports", "tab-attendance-report"];
       let currentRole = "Admin";
       let currentTab = "tab-users";
       let permissionsMap = {};
@@ -4832,6 +5173,7 @@
         document.getElementById("userNameShort").innerText = name;
         document.getElementById("userFullName").innerText = name;
         document.getElementById("userEmailText").innerText = email;
+        startNotificationPolling();
       }
 
       // Mở / đóng dropdown menu tài khoản
@@ -4850,6 +5192,8 @@
 
       // Đóng menu tài khoản khi click ra ngoài
       document.addEventListener("click", (e) => {
+        const bell = document.getElementById("notifBell");
+        if (bell && !bell.contains(e.target)) document.getElementById("notifDropdown").classList.remove("open");
         const menu = document.getElementById("userMenu");
         const dropdown = document.getElementById("userMenuDropdown");
         if (menu && dropdown && !menu.contains(e.target)) {
@@ -4882,6 +5226,7 @@
       }
 
       function hasPermissionForTab(tabId, role) {
+        if (tabId === "tab-reports" && role === "HR") return true; // trang chọn báo cáo luôn mở cho HR
         if (tabId === "tab-programs") return role === "HR" || role === "Admin";
         if (tabId === "tab-my-interns") return role === "Mentor";
         if (tabId === "tab-weekly-reports") return role === "Mentor";
@@ -4894,6 +5239,12 @@
         }
         if (tabId === "tab-my-schedule") return role === "Intern";
         if (tabId === "tab-my-tasks") return role === "Intern";
+        if (tabId === "tab-my-attendance") return role === "Intern";
+        if (tabId === "tab-staff-attendance") return role === "Mentor" || role === "HR";
+        if (tabId === "tab-final-reports") return role === "HR";
+        if (tabId === "tab-attendance-report") return role === "HR";
+        if (tabId === "tab-work-schedules") return role === "HR" || role === "Admin";
+        if (tabId === "tab-my-leaves") return role === "Intern";
         if (tabId === "tab-candidates") {
           return role === "HR" || role === "Admin";
         }
@@ -4930,7 +5281,7 @@
 
         // US9: Thêm tab "Hồ sơ của tôi" cho vai trò Intern lên đầu menu
         if (currentRole === "Intern") {
-          allowedCount += 4;
+          allowedCount += 5;
           const isProfileActive = currentTab === "tab-my-profile";
           const liProfile = document.createElement("li");
           liProfile.className = "nav-item";
@@ -4961,6 +5312,18 @@
           liMyTasks.className = "nav-item";
           liMyTasks.innerHTML = `<a class="nav-link ${currentTab === "tab-my-tasks" ? "active" : ""}" onclick="switchTab('tab-my-tasks')"><i class="fa-solid fa-list-check"></i><span>Nhiệm vụ của tôi</span></a>`;
           menuEl.appendChild(liMyTasks);
+
+          allowedCount++;
+          const liAttendance = document.createElement("li");
+          liAttendance.className = "nav-item";
+          liAttendance.innerHTML = `<a class="nav-link ${currentTab === "tab-my-attendance" ? "active" : ""}" onclick="switchTab('tab-my-attendance')"><i class="fa-solid fa-clock"></i><span>Chấm công</span></a>`;
+          menuEl.appendChild(liAttendance);
+
+          allowedCount++;
+          const liMyLeaves = document.createElement("li");
+          liMyLeaves.className = "nav-item";
+          liMyLeaves.innerHTML = `<a class="nav-link ${currentTab === "tab-my-leaves" ? "active" : ""}" onclick="switchTab('tab-my-leaves')"><i class="fa-solid fa-umbrella-beach"></i><span>Nghỉ phép</span></a>`;
+          menuEl.appendChild(liMyLeaves);
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -4969,7 +5332,8 @@
             allowedCount++;
             const li = document.createElement("li");
             li.className = "nav-item";
-            const isActive = currentTab === item.tabId;
+            const isActive = currentTab === item.tabId ||
+              (item.tabId === "tab-reports" && currentRole === "HR" && REPORT_SUBTABS.includes(currentTab));
             li.innerHTML = `
             <a class="nav-link ${isActive ? "active" : ""}" onclick="switchTab('${item.tabId}')">
               <i class="fa-solid ${item.icon}"></i>
@@ -4993,7 +5357,7 @@
 
         // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh, Hợp đồng, Nhật ký Email
         if (currentRole === "HR") {
-          allowedCount += 5;
+          allowedCount += 4;
           const isCandidateActive = currentTab === "tab-candidates";
           const isMentorActive = currentTab === "tab-mentors";
           const isStudentActive = currentTab === "tab-students";
@@ -5049,6 +5413,22 @@
           </a>
         `;
           menuEl.appendChild(liEmailLogs);
+
+          // Báo cáo cuối kỳ / chuyên cần nằm trong trang "Báo cáo & Thống kê"; nếu HR bị thu quyền VIEW_REPORTS thì vẫn giữ lối vào.
+          if (!rolePerms.includes("VIEW_REPORTS")) {
+            allowedCount++;
+            const liReportsHub = document.createElement("li");
+            liReportsHub.className = "nav-item";
+            const hubActive = currentTab === "tab-reports" || REPORT_SUBTABS.includes(currentTab);
+            liReportsHub.innerHTML = `<a class="nav-link ${hubActive ? "active" : ""}" onclick="switchTab('tab-reports')"><i class="fa-solid fa-chart-line"></i><span>Báo cáo &amp; Thống kê</span></a>`;
+            menuEl.appendChild(liReportsHub);
+          }
+
+          allowedCount++;
+          const liStaffAttendanceHr = document.createElement("li");
+          liStaffAttendanceHr.className = "nav-item";
+          liStaffAttendanceHr.innerHTML = `<a class="nav-link ${currentTab === "tab-staff-attendance" ? "active" : ""}" onclick="switchTab('tab-staff-attendance')"><i class="fa-solid fa-clock"></i><span>Chấm công thực tập sinh</span></a>`;
+          menuEl.appendChild(liStaffAttendanceHr);
         }
 
         if (currentRole === "HR" || currentRole === "Admin") {
@@ -5057,6 +5437,12 @@
           liPrograms.className = "nav-item";
           liPrograms.innerHTML = `<a class="nav-link ${currentTab === "tab-programs" ? "active" : ""}" onclick="switchTab('tab-programs')"><i class="fa-solid fa-calendar-days"></i><span>Chương trình thực tập</span></a>`;
           menuEl.appendChild(liPrograms);
+
+          allowedCount++;
+          const liWorkSchedules = document.createElement("li");
+          liWorkSchedules.className = "nav-item";
+          liWorkSchedules.innerHTML = `<a class="nav-link ${currentTab === "tab-work-schedules" ? "active" : ""}" onclick="switchTab('tab-work-schedules')"><i class="fa-solid fa-calendar-week"></i><span>Lịch làm việc</span></a>`;
+          menuEl.appendChild(liWorkSchedules);
         }
 
         if (currentRole === "Mentor") {
@@ -5075,6 +5461,12 @@
           liEvaluations.className = "nav-item";
           liEvaluations.innerHTML = `<a class="nav-link ${currentTab === "tab-evaluations" ? "active" : ""}" onclick="switchTab('tab-evaluations')"><i class="fa-solid fa-star"></i><span>Đánh giá thực tập sinh</span></a>`;
           menuEl.appendChild(liEvaluations);
+
+          allowedCount++;
+          const liStaffAttendance = document.createElement("li");
+          liStaffAttendance.className = "nav-item";
+          liStaffAttendance.innerHTML = `<a class="nav-link ${currentTab === "tab-staff-attendance" ? "active" : ""}" onclick="switchTab('tab-staff-attendance')"><i class="fa-solid fa-clock"></i><span>Chấm công thực tập sinh</span></a>`;
+          menuEl.appendChild(liStaffAttendance);
         }
 
         document.getElementById("menuCountBadge").innerText =
@@ -5119,7 +5511,13 @@
           if (permDef) {
             document.getElementById("pageTitle").innerText = permDef.name;
             document.getElementById("pageSubtitle").innerText = "";
-            if (tabId === "tab-reports") loadReports();
+            if (tabId === "tab-reports") {
+              const isHr = currentRole === "HR";
+              const canSeeStats = getRolePermissions(currentRole).includes("VIEW_REPORTS");
+              document.getElementById("reportsHub").style.display = isHr ? "grid" : "none";
+              document.getElementById("reportsOverviewCard").style.display = canSeeStats ? "block" : "none";
+              if (canSeeStats) loadReports();
+            }
             if (tabId === "tab-tasks") loadTasksTab();
             if (tabId === "tab-submissions") {
               document.getElementById("pageSubtitle").innerText =
@@ -5141,6 +5539,32 @@
             document.getElementById("pageSubtitle").innerText =
               "Các nhiệm vụ mentor đã giao cho bạn";
             loadMyTasks();
+          } else if (tabId === "tab-my-attendance") {
+            document.getElementById("pageTitle").innerText = "Chấm công";
+            document.getElementById("pageSubtitle").innerText = "Ghi nhận thời gian làm việc theo giờ Việt Nam";
+            loadAttendanceTab();
+            loadAttendanceScheduleInfo();
+          } else if (tabId === "tab-staff-attendance") {
+            document.getElementById("pageTitle").innerText = "Chấm công thực tập sinh";
+            document.getElementById("pageSubtitle").innerText = "Xem giờ làm việc và duyệt đề nghị bổ sung check-out";
+            loadStaffAttendanceTab();
+            loadStaffPendingLeaves();
+          } else if (tabId === "tab-final-reports") {
+            document.getElementById("pageTitle").innerText = "Báo cáo cuối kỳ";
+            document.getElementById("pageSubtitle").innerText = "Tổng hợp đánh giá và xuất báo cáo cho nhà trường";
+            loadFinalReports();
+          } else if (tabId === "tab-attendance-report") {
+            document.getElementById("pageTitle").innerText = "Báo cáo chuyên cần";
+            document.getElementById("pageSubtitle").innerText = "Tổng hợp đi làm, nghỉ phép và vắng mặt";
+            loadAttendanceReport();
+          } else if (tabId === "tab-work-schedules") {
+            document.getElementById("pageTitle").innerText = "Lịch làm việc";
+            document.getElementById("pageSubtitle").innerText = "Thiết lập lịch làm việc linh hoạt cho từng nhóm thực tập sinh";
+            loadWorkSchedulesTab();
+          } else if (tabId === "tab-my-leaves") {
+            document.getElementById("pageTitle").innerText = "Nghỉ phép";
+            document.getElementById("pageSubtitle").innerText = "Xin nghỉ và theo dõi trạng thái duyệt";
+            loadMyLeaves();
           } else if (tabId === "tab-my-schedule") {
             document.getElementById("pageTitle").innerText =
               "Lịch thực tập của tôi";
@@ -5979,6 +6403,7 @@
             <td>${escapeHtml(m.specialization || "N/A")}</td>
             <td align="center">
               <div class="action-group">
+                <button class="btn btn-sm btn-soft" onclick="mentorInternsOpen(${Number(m.id)}, ${escapeHtml(JSON.stringify(m.fullName))})" title="Thực tập sinh của mentor"><i class="fa-solid fa-user-group"></i> TTS (${Number(m.activeInterns || 0)})</button>
                 <button class="btn btn-sm btn-primary" onclick="editMentor(${m.id})" title="Chỉnh sửa">
                   <i class="fa-solid fa-pen"></i>
                 </button>
@@ -6495,7 +6920,7 @@
               mentor.department && mentor.department !== "Chưa cập nhật"
                 ? ` — ${mentor.department}`
                 : "";
-            return `<option value="${escapeHtml(id)}" ${id === currentId ? "selected" : ""}>${escapeHtml(mentor.fullName)}${escapeHtml(department)}</option>`;
+            return `<option value="${escapeHtml(id)}" ${id === currentId ? "selected" : ""}>${escapeHtml(mentor.fullName)}${escapeHtml(department)} · ${Number(mentor.activeInterns || 0)} TTS</option>`;
           })
           .join("");
         const legacyName =
@@ -6513,18 +6938,26 @@
         message.style.color = "#64748b";
         try {
           const mentorId = select.value === "" ? null : Number(select.value);
-          const res = await fetch(`${API_BASE}/interns/${studentId}/mentor`, {
-            method: "PUT",
-            headers: authHeaders({ "Content-Type": "application/json" }),
-            body: JSON.stringify({ mentor_id: mentorId }),
-          });
-          const data = await res.json();
+          const send = async (confirmed) => {
+            const r = await fetch(`${API_BASE}/interns/${studentId}/mentor`, {
+              method: "PUT",
+              headers: authHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify({ mentor_id: mentorId, ...(confirmed ? { confirm_warnings: true } : {}) }),
+            });
+            return { res: r, data: await r.json() };
+          };
+          let { res, data } = await send(false);
+          if (res.status === 409 && data.code === "NEEDS_CONFIRMATION") {
+            if (!confirmAssignmentWarnings(data.warnings)) throw new Error("Đã hủy phân công.");
+            ({ res, data } = await send(true));
+          }
           if (!res.ok)
             throw new Error(
               data.error || data.message || "Không thể cập nhật phân công.",
             );
           message.textContent = data.message || "Đã cập nhật phân công mentor.";
           message.style.color = "#047857";
+          await loadMentorsForSelect(); // cập nhật số TTS của từng mentor trong ô chọn
           await loadStudents();
         } catch (err) {
           select.value = previous;
@@ -10262,7 +10695,9 @@
         });
         const body = await response.json().catch(() => ({}));
         if (!response.ok || !body.success) {
-          throw new Error(body.message || "Yêu cầu thất bại!");
+          const err = new Error(body.message || "Yêu cầu thất bại!");
+          err.code = body.code; err.warnings = body.warnings;
+          throw err;
         }
         return body.data;
       }
@@ -10323,8 +10758,11 @@
 
       function programRenderRow(program, editable) {
         const actions = editable
-          ? `<button class="btn btn-sm btn-info" onclick="programEdit(${Number(program.id)})">Sửa</button>
-             <button class="btn btn-sm btn-danger" onclick="programDelete(${Number(program.id)})">Xóa</button>`
+          ? `<div class="program-actions">
+               <button class="btn btn-sm btn-soft" onclick="programMentorOpen(${Number(program.id)})"><i class="fa-solid fa-user-group"></i> Thực tập sinh &amp; mentor</button>
+               <button class="btn btn-sm btn-soft-gray" onclick="programEdit(${Number(program.id)})">Sửa</button>
+               <button class="btn btn-sm btn-soft-danger" onclick="programDelete(${Number(program.id)})">Xóa</button>
+             </div>`
           : "";
         const capacity =
           program.capacity == null ? "—" : Number(program.capacity);
@@ -10343,11 +10781,105 @@
         return `<tr>
           <td>${escapeHtml(program.name)}</td>
           <td>${escapeHtml(program.department_name)}</td>
-          <td>${period}<span class="program-time-badge">${escapeHtml(timeStateLabels[program.time_state] || program.time_state)}</span></td>
+          <td><span class="program-period">${period}</span><span class="program-time-badge">${escapeHtml(timeStateLabels[program.time_state] || program.time_state)}</span></td>
           <td>${capacity}</td>
           <td><span class="program-status">${escapeHtml(program.status)}</span></td>
           <td>${actions}</td>
         </tr>`;
+      }
+
+      // ---------- US12: HR xếp thực tập sinh vào chương trình và phân công mentor ----------
+      let pmProgramId = null, pmInterns = [], pmAvailable = [];
+      async function programMentorOpen(programId) {
+        pmProgramId = programId;
+        const program = programItems.find((p) => Number(p.id) === Number(programId));
+        document.getElementById("pmTitle").innerText = `Thực tập sinh & mentor – ${program ? program.name : ""}`;
+        setText("pmError", ""); document.getElementById("pmSearch").value = "";
+        document.getElementById("pmAddBox").open = false;
+        document.getElementById("programMentorModal").style.display = "flex";
+        try {
+          const mentorRes = await fetch(`${API_BASE}/mentors`, { headers: authHeaders() }).then((r) => r.json().catch(() => []));
+          const mentors = Array.isArray(mentorRes) ? mentorRes : [];
+          document.getElementById("pmMentor").innerHTML =
+            '<option value="">-- Gỡ mentor --</option>' +
+            mentors.map((m) => `<option value="${Number(m.id)}">${escapeHtml(m.fullName)}${m.department ? ` (${escapeHtml(m.department)})` : ""} · ${Number(m.activeInterns || 0)} TTS</option>`).join("");
+          document.getElementById("pmMentor").value = "";
+        } catch (err) { setText("pmError", err.message); }
+        await programMentorReload();
+      }
+      async function programMentorReload() {
+        document.getElementById("pmAll").checked = false;
+        try {
+          [pmInterns, pmAvailable] = await Promise.all([
+            programRequest(`/programs/${pmProgramId}/interns`),
+            programRequest(`/programs/${pmProgramId}/available-interns`),
+          ]);
+        } catch (err) { pmInterns = []; pmAvailable = []; setText("pmError", err.message); }
+        document.getElementById("pmRows").innerHTML = pmInterns.length
+          ? pmInterns.map((i) => `<tr><td><input type="checkbox" class="pm-check" value="${Number(i.id)}" onchange="programMentorUpdateButton()" aria-label="Chọn ${escapeHtml(i.fullName)}" /></td><td>${escapeHtml(i.fullName)}<span class="fr-sub">${escapeHtml(i.studentCode || "")}</span></td><td>${escapeHtml(i.university || "")}</td><td>${i.mentorName ? escapeHtml(i.mentorName) : "<em>Chưa phân công</em>"}</td><td><button class="btn btn-sm btn-danger" onclick="programMentorRemove(${Number(i.id)})">Gỡ khỏi CT</button></td></tr>`).join("")
+          : '<tr><td colspan="5">Chương trình chưa có thực tập sinh. Mở mục "Thêm thực tập sinh vào chương trình" ở trên để thêm.</td></tr>';
+        programMentorRenderAvailable();
+        programMentorUpdateButton();
+      }
+      function programMentorRenderAvailable() {
+        const q = document.getElementById("pmSearch").value.trim().toLocaleLowerCase("vi");
+        const rows = pmAvailable.filter((i) => !q || [i.fullName, i.studentCode, i.university].some((v) => String(v || "").toLocaleLowerCase("vi").includes(q)));
+        document.getElementById("pmAvailable").innerHTML = rows.length
+          ? rows.map((i) => `<tr><td style="width:36px"><input type="checkbox" class="pm-add-check" value="${Number(i.id)}" aria-label="Chọn ${escapeHtml(i.fullName)}" /></td><td>${escapeHtml(i.fullName)}<span class="fr-sub">${escapeHtml(i.studentCode || "")}</span></td><td>${escapeHtml(i.university || "")}</td></tr>`).join("")
+          : "<tr><td>Không còn thực tập sinh nào để thêm.</td></tr>";
+      }
+      async function programMentorAdd() {
+        const ids = [...document.querySelectorAll("#pmAvailable .pm-add-check:checked")].map((c) => Number(c.value));
+        if (!ids.length) return setText("pmError", "Vui lòng chọn thực tập sinh cần thêm.");
+        setText("pmError", "");
+        try {
+          const r = await programRequest(`/programs/${pmProgramId}/interns`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ intern_ids: ids }) });
+          showToast(`Đã thêm ${r.added} thực tập sinh vào chương trình.`);
+          await programMentorReload();
+        } catch (err) { setText("pmError", err.message); }
+      }
+      async function programMentorRemove(internId) {
+        if (!confirm("Gỡ thực tập sinh này khỏi chương trình? (mentor của họ không bị thay đổi)")) return;
+        setText("pmError", "");
+        try {
+          await programRequest(`/programs/${pmProgramId}/interns/${internId}`, { method: "DELETE" });
+          await programMentorReload();
+        } catch (err) { setText("pmError", err.message); }
+      }
+      function programMentorClose() { document.getElementById("programMentorModal").style.display = "none"; }
+      function programMentorSelected() { return [...document.querySelectorAll("#pmRows .pm-check:checked")].map((c) => Number(c.value)); }
+      function programMentorToggleAll(checked) {
+        document.querySelectorAll("#pmRows .pm-check").forEach((c) => { c.checked = checked; });
+        programMentorUpdateButton();
+      }
+      function programMentorUpdateButton() {
+        const n = programMentorSelected().length, remove = !document.getElementById("pmMentor").value;
+        const btn = document.getElementById("pmSubmit");
+        btn.disabled = n === 0;
+        btn.innerText = n ? `${remove ? "Gỡ mentor" : "Phân công"} cho ${n} thực tập sinh` : "Chọn thực tập sinh";
+      }
+      async function programMentorSubmit() {
+        const ids = programMentorSelected(), mentorValue = document.getElementById("pmMentor").value;
+        if (!ids.length) return setText("pmError", "Vui lòng chọn ít nhất một thực tập sinh.");
+        if (!mentorValue && !confirm(`Gỡ mentor khỏi ${ids.length} thực tập sinh đã chọn?`)) return;
+        const btn = document.getElementById("pmSubmit"); btn.disabled = true; setText("pmError", "");
+        try {
+          const send = (confirmed) => programRequest(`/programs/${pmProgramId}/mentor`, {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mentor_id: mentorValue ? Number(mentorValue) : null, intern_ids: ids, ...(confirmed ? { confirm_warnings: true } : {}) }),
+          });
+          let result;
+          try { result = await send(false); }
+          catch (err) {
+            if (err.code !== "NEEDS_CONFIRMATION" || !confirmAssignmentWarnings(err.warnings)) throw err;
+            result = await send(true);
+          }
+          showToast(result.updated ? `Đã cập nhật mentor cho ${result.updated} thực tập sinh${result.unchanged ? ` (${result.unchanged} người không đổi)` : ""}.` : "Không có thay đổi nào.", result.updated ? "success" : "info");
+          await programMentorReload();
+        } catch (err) {
+          setText("pmError", err.message);
+          btn.disabled = false;
+        }
       }
 
       function programOpenModal(item = null) {
@@ -10507,6 +11039,966 @@
             "error",
           );
         }
+      }
+      const featureCss=document.createElement("style");featureCss.textContent=`.attendance-action{width:100%;min-height:54px;font-size:1.1rem;margin-top:12px}.fr-signature{text-align:right;margin:48px 24px}.fr-print-table tr{break-inside:avoid;page-break-inside:avoid}@media print{body *{visibility:hidden!important}#frPrintable,#frPrintable *{visibility:visible!important}#frPrintable{position:absolute;inset:0;width:100%;font-size:10pt}#frPrintable table{width:100%;border-collapse:collapse}#frPrintable th,#frPrintable td{border:1px solid #555;padding:5px}#frPrintable tr{break-inside:avoid;page-break-inside:avoid}.fr-screen-controls{display:none!important}@page{size:A4;margin:15mm}}`;
+      document.head.appendChild(featureCss);
+
+      let attendanceServerNow = null;
+      let attendanceClockTimer = null;
+      function attendanceClockText() {
+        if (!attendanceServerNow)
+          return "";
+        return new Intl.DateTimeFormat("vi-VN", {
+          timeZone: "Asia/Ho_Chi_Minh",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        }).format(attendanceServerNow);
+      }
+      function formatAttendanceMinutes(minutes) {
+        if (minutes == null)
+          return "—"; return `${Math.floor(minutes / 60)} giờ ${minutes % 60} phút`;
+      }
+      async function loadAttendanceTab() {
+        const state = document.getElementById("attendanceState");
+        const button = document.getElementById("attendanceAction");
+        state.innerText = "Đang tải trạng thái chấm công...";
+        button.disabled = true;
+        const result = await wrRequest("/me/attendance/today");
+        if (!result)
+          return;
+        if (!result.res.ok) {
+          state.innerText = "Không tải được trạng thái chấm công.";
+          document.getElementById("attendanceError").innerText = wrApiError(result, "Lỗi tải dữ liệu");
+          return;
+        }
+        const d = result.body.data;
+        attendanceServerNow = new Date(d.serverNow);
+        document.getElementById("attendanceError").innerText = "";
+        const row = d.record;
+        const statusText = {
+          NOT_CHECKED_IN: "Chưa check-in",
+          CHECKED_IN: "Đang làm việc",
+          CHECKED_OUT: "Đã hoàn thành hôm nay"
+        }[d.status];
+        const overnightNote = row && row.workDate !== d.workDate ? `<p class="text-danger">Bạn đang có ca làm việc bắt đầu ngày ${escapeHtml(row.workDate)} chưa check-out.</p>` : "";
+        const cell = (label, value, id) => `<div class="att-cell"><small>${label}</small><strong${id ? ` id="${id}"` : ""}>${value}</strong></div>`;
+        const hhmm = (v, empty) => escapeHtml(v ? String(v).slice(11, 16) : empty);
+        state.innerHTML = `<div class="att-grid">${cell("Ngày làm việc", escapeHtml(d.workDate))}${cell("Giờ máy chủ", escapeHtml(attendanceClockText()), "attendanceClock")}${cell("Trạng thái", statusText)}${row ? cell("Check-in", hhmm(row.checkInAt, "—")) + cell("Check-out", hhmm(row.checkOutAt, "Chưa")) + cell("Thời lượng", escapeHtml(formatAttendanceMinutes(row.durationMinutes))) : ""}</div>${overnightNote}`;
+        document.getElementById("attendanceReason").innerText = d.reason || "";
+        button.disabled = !(d.canCheckIn || d.canCheckOut);
+        button.innerText = d.canCheckIn ? "Check-in" : d.canCheckOut ? "Check-out" : d.reason ? "Chưa đủ điều kiện" : "Đã hoàn thành hôm nay";
+        if (attendanceClockTimer)
+          clearInterval(attendanceClockTimer);
+        attendanceClockTimer = setInterval(() => {
+          attendanceServerNow = new Date(attendanceServerNow.getTime() + 1000); const clock = document.getElementById("attendanceClock"); if (clock)
+            clock.innerText = attendanceClockText();
+        }, 1000);
+        const today = d.workDate;
+        const first = today.slice(0, 7) + "-01";
+        document.getElementById("attendanceFrom").value ||= first;
+        document.getElementById("attendanceTo").value ||= today;
+        await loadAttendanceHistory();
+      }
+      async function submitAttendance() {
+        const button = document.getElementById("attendanceAction"); button.disabled = true; document.getElementById("attendanceError").innerText = ""; const isIn = button.innerText === "Check-in"; const body = isIn ? { note: document.getElementById("attendanceNote").value } : {}; const result = await wrRequest(isIn ? "/me/attendance/check-in" : "/me/attendance/check-out", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        }); if (!result)
+          return; if (!result.res.ok)
+          document.getElementById("attendanceError").innerText = wrApiError(result, "Không thể ghi nhận chấm công."); await loadAttendanceTab();
+      }
+      function attendanceStatusText(r) {
+        if (r.status === "COMPLETED")
+          return r.isAdjusted ? "Hoàn tất (đã điều chỉnh)" : "Hoàn tất";
+        if (r.status === "MISSING_CHECKOUT") {
+          if (r.correctionStatus === "PENDING")
+            return "Quên check-out · chờ duyệt bổ sung";
+          if (r.correctionStatus === "REJECTED")
+            return `Quên check-out · bị từ chối${r.correctionReviewNote ? ": " + r.correctionReviewNote : ""}`;
+          return "Quên check-out";
+        }
+        return "Đang làm";
+      }
+      function attendanceSummaryChips(s) {
+        const chip = (label, value, warn) => `<div class="summary-chip${warn ? " warn" : ""}"><small>${label}</small><strong>${value}</strong></div>`;
+        const missing = Number(s.missingCheckoutDays || 0), pending = Number(s.pendingCorrections || 0);
+        return chip("Tổng thời gian", escapeHtml(formatAttendanceMinutes(s.totalMinutes)))
+          + chip("Số ngày làm", Number(s.daysWorked || 0))
+          + chip("Quên check-out", missing, missing > 0)
+          + chip("Đã điều chỉnh", Number(s.adjustedDays || 0))
+          + chip("Chờ duyệt", pending, pending > 0);
+      }
+      async function loadAttendanceHistory() {
+        const from = document.getElementById("attendanceFrom").value, to = document.getElementById("attendanceTo").value; const box = document.getElementById("attendanceHistory"); box.innerText = "Đang tải lịch sử..."; const result = await wrRequest(`/me/attendance?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`); if (!result)
+          return; if (!result.res.ok) {
+            box.innerText = wrApiError(result, "Không tải được lịch sử.");
+            return;
+          } const d = result.body.data; document.getElementById("attendanceSummary").innerHTML = attendanceSummaryChips(d.summary); box.innerHTML = `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Check-in</th><th>Check-out</th><th>Thời lượng</th><th>Trạng thái</th><th>Ghi chú</th><th></th></tr></thead><tbody>${d.records.length ? d.records.map(r => `<tr><td>${escapeHtml(r.workDate)}</td><td>${escapeHtml(r.checkInAt ? String(r.checkInAt).slice(11, 16) : "—")}</td><td>${escapeHtml(r.checkOutAt ? String(r.checkOutAt).slice(11, 16) : "—")}</td><td>${formatAttendanceMinutes(r.durationMinutes)}</td><td>${escapeHtml(attendanceStatusText(r))}${r.correctionStatus === "PENDING" ? `<br><small>Đề nghị: ${escapeHtml(String(r.correctionCheckOutAt || "").slice(11, 16))} — ${escapeHtml(r.correctionReason || "")}</small>` : ""}</td><td>${escapeHtml(r.note || "")}</td><td>${r.canRequestCorrection ? `<button class="btn btn-sm btn-secondary" onclick="openAttendanceCorrection(${Number(r.id)},'${escapeHtml(r.workDate)}','${escapeHtml(String(r.checkInAt || "").slice(0, 16).replace(" ", "T"))}')">Bổ sung check-out</button>` : ""}</td></tr>`).join("") : `<tr><td colspan="7">Chưa có dữ liệu chấm công trong khoảng này.</td></tr>`}</tbody></table></div>`;
+      }
+      let attendanceCorrectionId = null;
+      function openAttendanceCorrection(id, workDate, checkInLocal) { attendanceCorrectionId = id; document.getElementById("acDate").innerText = workDate; const input = document.getElementById("acCheckOut"); input.min = checkInLocal; input.value = checkInLocal; document.getElementById("acReason").value = ""; document.getElementById("acError").innerText = ""; document.getElementById("attendanceCorrectionForm").style.display = "block"; }
+      function closeAttendanceCorrection() { attendanceCorrectionId = null; document.getElementById("attendanceCorrectionForm").style.display = "none"; }
+      async function submitAttendanceCorrection() {
+        const error = document.getElementById("acError"); error.innerText = ""; const result = await wrRequest(`/me/attendance/${attendanceCorrectionId}/correction`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ check_out_at: document.getElementById("acCheckOut").value, reason: document.getElementById("acReason").value })
+        }); if (!result)
+          return; if (!result.res.ok) {
+            error.innerText = wrApiError(result, "Không gửi được đề nghị bổ sung.");
+            return;
+          } closeAttendanceCorrection(); await loadAttendanceHistory();
+      }
+      // ---- Chấm công: HR / Mentor ----
+      async function loadStaffAttendanceTab() {
+        const today = new Date().toLocaleDateString("sv-SE");
+        const from = document.getElementById("saFrom"), to = document.getElementById("saTo");
+        if (!from.value)
+          from.value = today.slice(0, 7) + "-01";
+        if (!to.value)
+          to.value = today;
+        const select = document.getElementById("saIntern");
+        const keep = select.value;
+        const result = await wrRequest("/interns");
+        if (!result)
+          return;
+        if (result.res.ok && Array.isArray(result.body)) {
+          select.innerHTML = result.body.map(i => `<option value="${Number(i.id)}">${escapeHtml(i.fullName || i.name || "")} ${escapeHtml(i.studentCode ? "(" + i.studentCode + ")" : "")}</option>`).join("");
+          if (keep)
+            select.value = keep;
+        }
+        await loadStaffPendingCorrections();
+      }
+      async function loadStaffPendingCorrections() {
+        const box = document.getElementById("saPending");
+        document.getElementById("saError").innerText = "";
+        box.innerText = "Đang tải...";
+        const result = await wrRequest("/attendance/corrections/pending");
+        if (!result)
+          return;
+        if (!result.res.ok) {
+          box.innerText = "";
+          document.getElementById("saError").innerText = wrApiError(result, "Không tải được danh sách chờ duyệt.");
+          return;
+        }
+        const rows = result.body.data;
+        box.innerHTML = `<div class="table-container"><table><thead><tr><th>Thực tập sinh</th><th>Ngày</th><th>Check-in</th><th>Check-out đề nghị</th><th>Thời lượng</th><th>Lý do</th><th></th></tr></thead><tbody>${rows.length ? rows.map(r => { const mins = Math.max(0, Math.floor((new Date(String(r.correctionCheckOutAt).replace(" ", "T") + "+07:00") - new Date(String(r.checkInAt).replace(" ", "T") + "+07:00")) / 60000)); return `<tr><td>${escapeHtml(r.fullName || "")}<br>${escapeHtml(r.studentCode || "")}</td><td>${escapeHtml(r.workDate)}</td><td>${escapeHtml(String(r.checkInAt).slice(11, 16))}</td><td>${escapeHtml(String(r.correctionCheckOutAt).slice(0, 16))}</td><td>${formatAttendanceMinutes(mins)}</td><td>${escapeHtml(r.correctionReason || "")}</td><td><button class="btn btn-sm btn-primary" onclick="reviewAttendanceCorrection(${Number(r.id)},'APPROVED')">Duyệt</button> <button class="btn btn-sm btn-danger" onclick="reviewAttendanceCorrection(${Number(r.id)},'REJECTED')">Từ chối</button></td></tr>`; }).join("") : `<tr><td colspan="7">Không có đề nghị nào đang chờ duyệt.</td></tr>`}</tbody></table></div>`;
+      }
+      async function reviewAttendanceCorrection(id, decision) {
+        let note = "";
+        if (decision === "REJECTED") {
+          note = prompt("Nhập lý do từ chối:") || "";
+          if (!note.trim())
+            return;
+        }
+        const result = await wrRequest(`/attendance/${id}/correction/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decision, note })
+        });
+        if (!result)
+          return;
+        if (!result.res.ok) {
+          document.getElementById("saError").innerText = wrApiError(result, "Không xử lý được đề nghị.");
+          return;
+        }
+        await loadStaffPendingCorrections();
+        if (document.getElementById("saIntern").value)
+          await loadStaffAttendanceHistory();
+      }
+      async function loadStaffAttendanceHistory() {
+        const internId = document.getElementById("saIntern").value;
+        const box = document.getElementById("saHistory");
+        if (!internId) {
+          box.innerText = "Chưa chọn thực tập sinh.";
+          return;
+        }
+        const from = document.getElementById("saFrom").value, to = document.getElementById("saTo").value;
+        box.innerText = "Đang tải...";
+        const result = await wrRequest(`/interns/${encodeURIComponent(internId)}/attendance?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+        if (!result)
+          return;
+        if (!result.res.ok) {
+          box.innerText = wrApiError(result, "Không tải được chấm công.");
+          return;
+        }
+        const d = result.body.data;
+        document.getElementById("saSummary").innerHTML = attendanceSummaryChips(d.summary);
+        box.innerHTML = `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Check-in</th><th>Check-out</th><th>Thời lượng</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>${d.records.length ? d.records.map(r => `<tr><td>${escapeHtml(r.workDate)}</td><td>${escapeHtml(r.checkInAt ? String(r.checkInAt).slice(11, 16) : "—")}</td><td>${escapeHtml(r.checkOutAt ? String(r.checkOutAt).slice(11, 16) : "—")}</td><td>${formatAttendanceMinutes(r.durationMinutes)}</td><td>${escapeHtml(attendanceStatusText(r))}</td><td>${escapeHtml(r.note || "")}</td></tr>`).join("") : `<tr><td colspan="6">Chưa có dữ liệu chấm công trong khoảng này.</td></tr>`}</tbody></table></div>`;
+      }
+      let finalReportOptions = { universities: [], programs: [] };
+      let editingFinalReportId = null;
+      const frCss = document.createElement("style");
+      frCss.textContent = `.fr-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px;margin-bottom:16px}.fr-field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--slate-700)}.fr-field.fr-span-2{grid-column:1/-1}.fr-field input,.fr-field select,.fr-field textarea{width:100%;padding:10px 14px;border:1px solid var(--slate-300);border-radius:8px;font-size:13.5px;font-weight:400;background:#fff;outline:none;font-family:inherit}.fr-field textarea{min-height:90px;resize:vertical}.fr-field input:focus,.fr-field select:focus,.fr-field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(3,42,184,.15)}.fr-req{color:var(--danger)}.fr-hint{font-weight:400;color:var(--slate-600);font-size:12px}.fr-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:4px}.fr-row-actions{display:flex;flex-wrap:wrap;gap:6px}.fr-sub{display:block;font-size:12px;color:var(--slate-600);margin-top:2px}.fr-badge-final{background:#e0f2fe;color:#0369a1}.fr-screen-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px}.fr-screen-controls h2{margin-right:auto}.fr-send-panel{flex-basis:100%;display:grid;gap:12px;border-top:1px solid var(--slate-200);padding-top:14px;margin-top:6px}.fr-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}.fr-chip-wrap{display:inline-flex;align-items:center;border:1px solid var(--slate-300);border-radius:20px;background:var(--slate-50);overflow:hidden}.fr-chip{border:0;background:transparent;padding:5px 10px;font-size:12.5px;cursor:pointer;color:var(--slate-800)}.fr-chip:hover{background:var(--primary-light)}.fr-chip-x{border:0;border-left:1px solid var(--slate-200);background:transparent;padding:5px 8px;cursor:pointer;color:var(--slate-600)}.fr-chip-x:hover{background:#fee2e2;color:var(--danger)}.fr-history{flex-basis:100%;font-size:13px}.fr-history ul{margin:8px 0 0 18px;display:grid;gap:6px}@media(max-width:700px){.fr-form-grid{grid-template-columns:1fr}}`;
+      document.head.appendChild(frCss);
+      function finalReportStatusBadge(r) {
+        if (r.status === "DRAFT") return `<span class="badge badge-pending">Nháp</span>`;
+        if (r.isSent || Number(r.sendCount) > 0) return `<span class="badge badge-active">Đã gửi</span>`;
+        return `<span class="badge fr-badge-final">Đã chốt</span>`;
+      }
+      function finalReportPeriod(r) {
+        const from = r.periodFrom ? formatDateOnly(r.periodFrom) : "", to = r.periodTo ? formatDateOnly(r.periodTo) : "";
+        return from || to ? `${from || "..."} – ${to || "..."}` : "Toàn bộ thời gian";
+      }
+      function finalReportRow(r) {
+        const id = Number(r.id), sendCount = Number(r.sendCount || 0), isDraft = r.status === "DRAFT";
+        const sentCell = sendCount
+          ? `${sendCount} lần<span class="fr-sub">Gần nhất: ${escapeHtml(formatDateTime(r.lastSentAt))}</span><span class="fr-sub">${escapeHtml((r.lastRecipients || []).join(", "))}</span>`
+          : isDraft ? "—" : `<span class="fr-sub">Chưa gửi</span>`;
+        const actions = `<button class="btn btn-sm btn-primary" onclick="openFinalReport(${id})">Mở</button><button class="btn btn-sm btn-secondary" onclick="downloadFinalReportCsv(${id})">CSV</button>` + (isDraft
+          ? `<button class="btn btn-sm btn-secondary" onclick="editFinalReport(${id})">Sửa</button><button class="btn btn-sm btn-primary" onclick="finalizeFinalReport(${id})">Chốt</button><button class="btn btn-sm btn-danger" onclick="deleteFinalReport(${id})">Xóa</button>`
+          : `<button class="btn btn-sm btn-primary" onclick="openFinalReport(${id}, { focusSend: true })">Gửi</button>`);
+        return `<tr><td>${escapeHtml(r.title)}</td><td>${escapeHtml(r.scopeLabel || "")}<span class="fr-sub">${escapeHtml(finalReportPeriod(r))}</span></td><td>${finalReportStatusBadge(r)}</td><td>${sentCell}</td><td>${escapeHtml(r.createdByName || "")}</td><td>${escapeHtml(formatDateTime(r.createdAt))}</td><td><div class="fr-row-actions">${actions}</div></td></tr>`;
+      }
+      function syncFinalReportDates() {
+        const from = document.getElementById("frFrom"), to = document.getElementById("frTo");
+        to.min = from.value || ""; from.max = to.value || "";
+      }
+      function validateFinalReportForm({ requireTitle = true } = {}) {
+        const err = document.getElementById("frFormError"); err.innerText = "";
+        const fail = (message, fieldId) => { err.innerText = message; document.getElementById(fieldId).focus(); return false; };
+        const p = finalReportPayload();
+        if (requireTitle && !p.title.trim()) return fail("Vui lòng nhập tiêu đề báo cáo!", "frTitle");
+        if (p.scope_type !== "ALL" && !p.scope_value) return fail("Vui lòng chọn trường hoặc chương trình!", "frScopeValue");
+        if (p.period_from && p.period_to && p.period_from > p.period_to) return fail("Ngày bắt đầu không được sau ngày kết thúc!", "frFrom");
+        return true;
+      }
+      async function loadFinalReports() {
+        const box = document.getElementById("finalReportList"); box.innerText = "Đang tải danh sách báo cáo..."; document.getElementById("finalReportError").innerText = ""; const result = await wrRequest("/final-reports"); if (!result)
+          return; if (!result.res.ok) {
+            box.innerText = wrApiError(result, "Không tải được báo cáo.");
+            return;
+          } finalReportOptions = result.body.data.options; const reports = result.body.data.reports;
+        box.innerHTML = `<div class="table-container"><table><thead><tr><th>Tiêu đề</th><th>Phạm vi</th><th>Trạng thái</th><th>Đã gửi</th><th>Người tạo</th><th>Thời điểm</th><th>Thao tác</th></tr></thead><tbody>${reports.length ? reports.map(finalReportRow).join("") : `<tr><td colspan="7">Chưa có báo cáo nào.</td></tr>`}</tbody></table></div>`;
+      }
+      function showFinalReportForm() { editingFinalReportId = null; document.getElementById("frTitle").value = ""; document.getElementById("frNote").value = ""; document.getElementById("frFrom").value = ""; document.getElementById("frTo").value = ""; document.getElementById("frScope").value = "ALL"; document.getElementById("frSaveButton").innerText = "Lưu bản nháp"; document.getElementById("frFormError").innerText = ""; document.getElementById("frPreview").innerHTML = ""; document.getElementById("finalReportForm").style.display = "block"; document.getElementById("finalReportDetail").style.display = "none"; updateFinalReportScope(); syncFinalReportDates(); }
+      async function editFinalReport(id) {
+        const result = await wrRequest(`/final-reports/${id}`); if (!result)
+          return; if (!result.res.ok) {
+            document.getElementById("finalReportError").innerText = wrApiError(result, "Không tải được bản nháp.");
+            return;
+          } const r = result.body.data; editingFinalReportId = id; document.getElementById("frTitle").value = r.title; document.getElementById("frScope").value = r.scopeType; updateFinalReportScope(); if (r.scopeValue)
+          document.getElementById("frScopeValue").value = r.scopeValue; document.getElementById("frFrom").value = r.periodFrom || ""; document.getElementById("frTo").value = r.periodTo || ""; document.getElementById("frNote").value = r.hrNote || ""; document.getElementById("frSaveButton").innerText = "Cập nhật bản nháp"; document.getElementById("frFormError").innerText = ""; document.getElementById("frPreview").innerHTML = ""; syncFinalReportDates(); document.getElementById("finalReportForm").style.display = "block"; document.getElementById("finalReportDetail").style.display = "none";
+      }
+      function updateFinalReportScope() {
+        const scope = document.getElementById("frScope").value;
+        document.getElementById("frScopeValueWrap").style.display = scope === "ALL" ? "none" : "";
+        document.getElementById("frScopeValueLabel").innerText = scope === "UNIVERSITY" ? "Trường" : "Chương trình";
+        const options = scope === "UNIVERSITY"
+          ? (finalReportOptions.universities || []).map(v => ({ value: v, label: v }))
+          : (finalReportOptions.programs || []).map(p => ({ value: String(p.id), label: p.name }));
+        document.getElementById("frScopeValue").innerHTML = options.length
+          ? options.map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("")
+          : `<option value="">— Chưa có dữ liệu —</option>`;
+      }
+      function finalReportPayload() {
+        const scope = document.getElementById("frScope").value; return {
+          title: document.getElementById("frTitle").value,
+          scope_type: scope,
+          scope_value: scope === "ALL" ? null : document.getElementById("frScopeValue").value || null,
+          period_from: document.getElementById("frFrom").value || null,
+          period_to: document.getElementById("frTo").value || null,
+          hr_note: document.getElementById("frNote").value || null
+        };
+      }
+      function renderFinalReportData(d) { return `<h3>Tổng quan</h3><p>${d.summary.totalInterns} thực tập sinh · Đã đánh giá ${d.summary.evaluated} · Chưa đánh giá ${d.summary.notEvaluated}</p><p>Điểm trung bình: kỹ năng ${d.summary.avgSkill ?? "—"} · thái độ ${d.summary.avgAttitude ?? "—"} · tổng ${d.summary.avgOverall ?? "—"}</p><p>Tổng giờ làm việc ghi nhận trong kỳ: ${formatAttendanceMinutes(d.summary.totalWorkMinutes || 0)}</p><div class="fr-chart">${Object.entries(d.summary.distribution).map(([k, v]) => `<div>${escapeHtml(k)} <span style="display:inline-block;background:#2563eb;height:12px;width:${Math.min(100, v * 20)}%"></span> ${v}</div>`).join("")}</div><div class="table-container"><table class="fr-print-table"><thead><tr><th>Thực tập sinh</th><th>Trường / ngành</th><th>Mentor</th><th>Kỹ năng</th><th>Thái độ</th><th>Điểm tổng</th><th>Tuần đúng / trễ / thiếu</th><th>Nhiệm vụ trong kỳ</th><th>Giờ làm</th></tr></thead><tbody>${d.interns.map(i => `<tr><td>${escapeHtml(i.fullName)}<br>${escapeHtml(i.studentCode || "")}</td><td>${escapeHtml(i.university || "")}<br>${escapeHtml(i.major || "")}</td><td>${escapeHtml(i.mentorName || "")}</td><td>${i.evaluated ? i.skillScore : "Chưa đánh giá"}<details><summary>Nhận xét</summary>${escapeHtml(i.skillComment || "")}</details></td><td>${i.evaluated ? i.attitudeScore : "—"}<details><summary>Nhận xét</summary>${escapeHtml(i.attitudeComment || "")}</details></td><td>${i.overallScore ?? "—"}<details><summary>Nhận xét</summary>${escapeHtml(i.overallComment || "")}</details></td><td>${i.weeklyReportStats.onTime} / ${i.weeklyReportStats.late} / ${i.weeklyReportStats.missing}</td><td>${i.taskStats.done}/${i.taskStats.total}</td><td>${formatAttendanceMinutes(i.totalWorkMinutes || 0)}</td></tr>`).join("")}</tbody></table></div><p>Ghi chú HR: ${escapeHtml(d.hrNote || "")}</p>`; }
+      async function previewFinalReport() {
+        if (!validateFinalReportForm({ requireTitle: false })) return;
+        const button = document.getElementById("frPreviewButton"); button.disabled = true; const params = new URLSearchParams({ scope_type: document.getElementById("frScope").value }); const scope = document.getElementById("frScope").value; if (scope !== "ALL")
+          params.set("scope_value", document.getElementById("frScopeValue").value); if (document.getElementById("frFrom").value)
+          params.set("from", document.getElementById("frFrom").value); if (document.getElementById("frTo").value)
+          params.set("to", document.getElementById("frTo").value); const result = await wrRequest(`/final-reports/preview?${params}`); button.disabled = false; const box = document.getElementById("frPreview"); if (!result)
+          return; if (!result.res.ok) {
+            box.innerText = wrApiError(result, "Không xem trước được báo cáo.");
+            return;
+          } box.innerHTML = renderFinalReportData(result.body.data);
+      }
+      async function saveFinalReport() {
+        if (!validateFinalReportForm()) return;
+        const button = document.getElementById("frSaveButton"); button.disabled = true; try {
+          const updating = !!editingFinalReportId;
+          const result = await wrRequest(updating ? `/final-reports/${editingFinalReportId}` : "/final-reports", {
+            method: updating ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(finalReportPayload())
+          });
+          if (!result)
+            return;
+          if (!result.res.ok) {
+            document.getElementById("frFormError").innerText = wrApiError(result, "Không lưu được báo cáo.");
+            return;
+          }
+          const id = updating ? editingFinalReportId : result.body.data.id;
+          editingFinalReportId = null;
+          document.getElementById("finalReportForm").style.display = "none";
+          await loadFinalReports();
+          await openFinalReport(id);
+        }
+          finally {
+          button.disabled = false;
+        }
+      }
+      async function openFinalReport(id, opts = {}) {
+        const result = await wrRequest(`/final-reports/${id}`); if (!result)
+          return; if (!result.res.ok) {
+            document.getElementById("finalReportError").innerText = wrApiError(result, "Không tải được báo cáo.");
+            return;
+          } const r = result.body.data; const rid = Number(r.id); const sends = r.sends || [];
+        let suggestions = [];
+        if (r.status === "FINALIZED") {
+          const q = new URLSearchParams({ scope_type: r.scopeType }); if (r.scopeType !== "ALL" && r.scopeValue) q.set("scope_value", r.scopeValue);
+          const rr = await wrRequest(`/final-reports/recipients?${q}`); if (rr && rr.res.ok) suggestions = rr.body.data.recipients || [];
+        }
+        const chips = suggestions.length ? `<div><div class="fr-hint">Gợi ý người nhận (bấm để thêm, × để xóa khỏi gợi ý):</div><div class="fr-chips">${suggestions.map(x => `<span class="fr-chip-wrap"><button type="button" class="fr-chip" data-email="${escapeHtml(x.email)}" onclick="addFinalReportRecipient(this.dataset.email)">${escapeHtml(x.email)}</button><button type="button" class="fr-chip-x" title="Xóa khỏi danh sách gợi ý" aria-label="Xóa ${escapeHtml(x.email)} khỏi gợi ý" onclick="removeFinalReportRecipient(${Number(x.id)}, this)">×</button></span>`).join("")}</div></div>` : "";
+        const sendPanel = `<div class="fr-send-panel"><label class="fr-field"><span>Gửi cho <span class="fr-hint">(nhiều email, cách nhau bằng dấu phẩy, tối đa 10)</span></span><input id="frSendTo" placeholder="ban.lanh.dao@truong.edu.vn, phong.dao.tao@truong.edu.vn"></label>${chips}<label class="fr-field">Lời nhắn<textarea id="frSendMessage" maxlength="1000"></textarea></label><div class="fr-actions"><button id="frSendButton" class="btn btn-primary" onclick="sendFinalReportEmail(${rid}, ${sends.length})">Gửi báo cáo qua email (kèm CSV)</button><span id="frSendResult" role="status"></span></div></div>`;
+        const history = r.status === "FINALIZED" ? `<div class="fr-history"><strong>Lịch sử gửi (${sends.length})</strong>${sends.length ? `<ul>${sends.map(x => `<li>${escapeHtml(formatDateTime(x.sentAt))} · ${escapeHtml(x.sentByName || "—")} → ${escapeHtml((x.recipients || []).join(", "))}${x.message ? `<span class="fr-sub">Lời nhắn: ${escapeHtml(x.message)}</span>` : ""}</li>`).join("")}</ul>` : `<p class="fr-hint">Báo cáo này chưa được gửi cho ai.</p>`}</div>` : "";
+        const draftButtons = `<button class="btn btn-secondary" onclick="editFinalReport(${rid})">Sửa nháp</button><button class="btn btn-primary" onclick="finalizeFinalReport(${rid})">Chốt báo cáo</button><button class="btn btn-danger" onclick="deleteFinalReport(${rid})">Xóa nháp</button>`;
+        document.getElementById("finalReportForm").style.display = "none"; document.getElementById("finalReportDetail").style.display = "block";
+        document.getElementById("finalReportDetailBody").innerHTML = `<div class="fr-screen-controls"><h2>${escapeHtml(r.title)}</h2>${finalReportStatusBadge(r)}<button class="btn btn-secondary" onclick="window.print()">In / Lưu PDF</button><button class="btn btn-secondary" onclick="downloadFinalReportCsv(${rid})">Tải CSV</button>${r.status === "DRAFT" ? draftButtons : sendPanel + history}</div><div id="frPrintable"><h1>${escapeHtml(r.title)}</h1><p>Ngày lập: ${escapeHtml(formatDateTime(r.data.generatedAt || r.createdAt))} · Phạm vi: ${escapeHtml(r.scopeLabel || "")} · Thời gian: ${escapeHtml(finalReportPeriod(r))}</p>${renderFinalReportData(r.data)}<p class="fr-signature">Đại diện Nhân sự</p></div>`;
+        if (opts.flash) { const out = document.getElementById("frSendResult"); if (out) { out.className = "text-success"; out.innerText = opts.flash; } }
+        const sendInput = document.getElementById("frSendTo");
+        if (opts.focusSend && sendInput) { sendInput.scrollIntoView({ behavior: "smooth", block: "center" }); sendInput.focus(); }
+        else document.getElementById("finalReportDetail").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      async function finalizeFinalReport(id, confirmIncomplete = false) {
+        if (!confirmIncomplete && !confirm("Sau khi chốt, báo cáo không thể sửa hoặc xóa. Bạn có muốn tiếp tục?"))
+          return; const button = document.activeElement; button.disabled = true; try {
+            const result = await wrRequest(`/final-reports/${id}/finalize`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(confirmIncomplete ? { confirm_incomplete: true } : {})
+            });
+            if (!result)
+              return;
+            if (!result.res.ok) {
+              if (result.res.status === 409 && result.body.code === "INCOMPLETE_EVALUATION") {
+                if (confirm(result.body.message + "\n\nVẫn chốt báo cáo này?")) {
+                  button.disabled = false;
+                  return finalizeFinalReport(id, true);
+                }
+                return;
+              }
+              document.getElementById("finalReportError").innerText = wrApiError(result, "Không chốt được báo cáo.");
+              return;
+            }
+            await loadFinalReports();
+            await openFinalReport(id);
+          }
+        finally {
+          button.disabled = false;
+        }
+      }
+      function parseFinalReportRecipients(text) { return String(text || "").split(/[,;\s]+/).map(x => x.trim()).filter(Boolean); }
+      function addFinalReportRecipient(email) {
+        const input = document.getElementById("frSendTo"); const list = parseFinalReportRecipients(input.value);
+        if (!list.some(x => x.toLowerCase() === String(email).toLowerCase())) list.push(email);
+        input.value = list.join(", "); input.focus();
+      }
+      async function removeFinalReportRecipient(recipientId, el) {
+        if (!confirm("Xóa email này khỏi danh sách gợi ý? (Không ảnh hưởng các báo cáo đã gửi)")) return;
+        const result = await wrRequest(`/final-reports/recipients/${recipientId}`, { method: "DELETE" }); if (!result) return;
+        if (!result.res.ok) { const out = document.getElementById("frSendResult"); out.className = "text-danger"; out.innerText = wrApiError(result, "Không xóa được người nhận."); return; }
+        const wrap = el.closest(".fr-chip-wrap"); if (wrap) wrap.remove();
+      }
+      async function sendFinalReportEmail(id, previousCount = 0) {
+        const out = document.getElementById("frSendResult"), button = document.getElementById("frSendButton"); out.className = "";
+        const recipients = parseFinalReportRecipients(document.getElementById("frSendTo").value);
+        if (!recipients.length) { out.className = "text-danger"; out.innerText = "Vui lòng nhập ít nhất một email người nhận!"; return; }
+        if (previousCount > 0 && !confirm(`Báo cáo này đã được gửi ${previousCount} lần. Bạn vẫn muốn gửi lại?`)) return;
+        out.innerText = "Đang gửi..."; button.disabled = true;
+        try {
+          const result = await wrRequest(`/final-reports/${id}/send`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipients, message: document.getElementById("frSendMessage").value })
+          }); if (!result) return;
+          if (!result.res.ok) { out.className = "text-danger"; out.innerText = wrApiError(result, "Không gửi được email."); return; }
+          const sentTo = result.body.data.recipients.join(", ");
+          await loadFinalReports();
+          await openFinalReport(id, { flash: `Đã gửi tới ${sentTo}` });
+        } finally { button.disabled = false; }
+      }
+      async function deleteFinalReport(id) {
+        if (!confirm("Xóa bản nháp báo cáo này?"))
+          return; const button = document.activeElement; button.disabled = true; try {
+            const result = await wrRequest(`/final-reports/${id}`, { method: "DELETE" });
+            if (!result)
+              return;
+            if (!result.res.ok) {
+              document.getElementById("finalReportError").innerText = wrApiError(result, "Không xóa được báo cáo.");
+              return;
+            }
+            document.getElementById("finalReportDetail").style.display = "none";
+            await loadFinalReports();
+          }
+        finally {
+          button.disabled = false;
+        }
+      }
+      async function downloadFinalReportCsv(id) {
+        const res = await fetch(`${API_BASE}/final-reports/${id}/export.csv`, { headers: authHeaders() }); if (res.status === 401)
+          return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!"); if (!res.ok) {
+            document.getElementById("finalReportError").innerText = "Không tải được CSV.";
+            return;
+          } const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `bao-cao-cuoi-ky-${id}.csv`; a.click(); URL.revokeObjectURL(url);
+      }
+      const arCss = document.createElement("style");
+      arCss.textContent = `.ar-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px}.ar-stat{background:#fff;border:1px solid var(--slate-200);border-radius:12px;padding:14px 16px}.ar-stat span{display:block;font-size:12px;color:var(--slate-600)}.ar-stat strong{display:block;font-size:24px;margin-top:4px}.ar-stat.clickable{cursor:pointer}.ar-stat.clickable:hover{border-color:var(--primary)}.ar-rate{display:inline-block;padding:2px 10px;border-radius:12px;font-weight:700;font-size:12.5px;white-space:nowrap}.ar-rate-good{background:#dcfce7;color:#166534}.ar-rate-mid{background:#fef3c7;color:#92400e}.ar-rate-low{background:#fee2e2;color:#991b1b}.ar-rate-none{background:var(--slate-100);color:var(--slate-600)}.ar-badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap}.ar-b-present{background:#dcfce7;color:#166534}.ar-b-leave{background:#e0f2fe;color:#075985}.ar-b-absent{background:#fee2e2;color:#991b1b}.ar-b-pending{background:#fef3c7;color:#92400e}.ar-b-muted{background:var(--slate-100);color:var(--slate-600)}.ar-muted-row{opacity:.55}th.ar-sortable{cursor:pointer;user-select:none;white-space:nowrap}th.ar-sortable:hover{color:var(--primary)}.ws-day-grid td{padding:8px 12px}.ws-day-grid input[type=time]{padding:6px 10px;border:1px solid var(--slate-300);border-radius:8px}.ws-hide{display:none!important}.ar-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.ar-col-name{min-width:190px}.ar-col-group{min-width:230px}.card-body .fr-actions{margin-bottom:12px}.card-body .fr-actions+.fr-hint{margin-top:4px}`;
+      document.head.appendChild(arCss);
+
+      // ====================== US7 + US8: chuyên cần, lịch làm việc, nghỉ phép ======================
+      const WEEKDAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+      const DAY_STATUS = {
+        PRESENT: ["Có mặt", "ar-b-present"], LEAVE: ["Nghỉ phép", "ar-b-leave"], ABSENT: ["Vắng", "ar-b-absent"],
+        ABSENT_PENDING_LEAVE: ["Vắng (chờ duyệt nghỉ)", "ar-b-pending"], DAY_OFF: ["Ngày nghỉ", "ar-b-muted"],
+        HOLIDAY: ["Ngày lễ", "ar-b-muted"], OUT_OF_CONTRACT: ["Ngoài hợp đồng", "ar-b-muted"], UPCOMING: ["Chưa tới", "ar-b-muted"],
+      };
+      const DAY_FLAGS = {
+        LATE: "Đi muộn", EARLY_LEAVE: "Về sớm", SHORT_HOURS: "Thiếu giờ", MISSING_CHECKOUT: "Thiếu check-out",
+        ADJUSTED: "Đã bổ sung check-out", WORKED_DURING_LEAVE: "Đi làm dù đã xin nghỉ",
+      };
+      const LEAVE_TYPE_LABEL = { SICK: "Nghỉ ốm", PERSONAL: "Việc cá nhân", EXAM: "Học / thi", OTHER: "Khác" };
+      const LEAVE_STATUS_LABEL = {
+        PENDING: ["Chờ duyệt", "ar-b-pending"], APPROVED: ["Đã duyệt", "ar-b-present"],
+        REJECTED: ["Từ chối", "ar-b-absent"], CANCELLED: ["Đã hủy", "ar-b-muted"],
+      };
+      let workScopeOptions = null;
+
+      function pill(label, cls) { return `<span class="ar-badge ${cls}">${escapeHtml(label)}</span>`; }
+      function postJson(body, method = "POST") {
+        return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+      }
+      function daysInclusive(from, to) {
+        return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000) + 1;
+      }
+      function weekdayLabel(date) { return WEEKDAY_LABELS[(new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7]; }
+      function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text || ""; }
+
+      // Danh sách trường / chương trình / mentor / thực tập sinh cho các ô chọn phạm vi.
+      async function loadWorkScopeOptions(force = false) {
+        if (!workScopeOptions || force) {
+          const result = await wrRequest("/work-schedules/options");
+          if (result && result.res.ok) workScopeOptions = result.body.data;
+        }
+        return workScopeOptions || { universities: [], programs: [], mentors: [], interns: [] };
+      }
+      function scopeChoices(type, options) {
+        if (type === "UNIVERSITY") return options.universities.map((v) => ({ value: v, label: v }));
+        if (type === "PROGRAM") return options.programs.map((p) => ({ value: String(p.id), label: p.name }));
+        if (type === "MENTOR") return options.mentors.map((m) => ({ value: String(m.id), label: m.name }));
+        if (type === "INTERN") return options.interns.map((i) => ({ value: String(i.id), label: `${i.name}${i.studentCode ? ` (${i.studentCode})` : ""}` }));
+        return [];
+      }
+      const SCOPE_LABEL = { UNIVERSITY: "Trường", PROGRAM: "Chương trình", MENTOR: "Mentor", INTERN: "Thực tập sinh" };
+      function fillScopeSelect(selectId, type, options) {
+        const choices = scopeChoices(type, options);
+        document.getElementById(selectId).innerHTML = choices.length
+          ? choices.map((c) => `<option value="${escapeHtml(c.value)}">${escapeHtml(c.label)}</option>`).join("")
+          : `<option value="">— Chưa có dữ liệu —</option>`;
+      }
+
+      // ---------- Báo cáo chuyên cần ----------
+      let attendanceReportData = null;
+      let attendanceReportSort = { key: "attendanceRate", dir: "asc" };
+      function syncAttendanceReportDates() {
+        const from = document.getElementById("arFrom"), to = document.getElementById("arTo");
+        to.min = from.value || ""; from.max = to.value || "";
+      }
+      async function updateAttendanceReportScope() {
+        const type = document.getElementById("arScope").value;
+        document.getElementById("arScopeValueWrap").style.display = type === "ALL" ? "none" : "";
+        if (type === "ALL") return;
+        document.getElementById("arScopeValueLabel").textContent = SCOPE_LABEL[type];
+        fillScopeSelect("arScopeValue", type, await loadWorkScopeOptions());
+      }
+      function attendanceReportQuery() {
+        const error = document.getElementById("attendanceReportError"); error.textContent = "";
+        const from = document.getElementById("arFrom").value, to = document.getElementById("arTo").value;
+        const type = document.getElementById("arScope").value, value = document.getElementById("arScopeValue").value;
+        if (!from || !to) { error.textContent = "Vui lòng chọn khoảng ngày."; return null; }
+        if (from > to) { error.textContent = "Ngày bắt đầu không được sau ngày kết thúc."; return null; }
+        if (daysInclusive(from, to) > 366) { error.textContent = "Khoảng ngày tối đa 366 ngày."; return null; }
+        if (type !== "ALL" && !value) { error.textContent = "Vui lòng chọn giá trị phạm vi."; return null; }
+        const query = new URLSearchParams({ from, to, scope_type: type, group_by: document.getElementById("arGroupBy").value });
+        if (type !== "ALL") query.set("scope_value", value);
+        return query;
+      }
+      function rateBadge(rate) {
+        if (rate == null) return `<span class="ar-rate ar-rate-none">—</span>`;
+        const cls = rate >= 90 ? "ar-rate-good" : rate >= 75 ? "ar-rate-mid" : "ar-rate-low";
+        return `<span class="ar-rate ${cls}">${rate}%</span>`;
+      }
+      function renderAttendanceSummary(s) {
+        const stat = (label, value, extra = "") => `<div class="ar-stat ${extra}"><span>${label}</span><strong>${value}</strong></div>`;
+        document.getElementById("arSummary").innerHTML = `<div class="ar-stats">${stat("Thực tập sinh", s.totalInterns)}${stat("Tỷ lệ chuyên cần chung", rateBadge(s.attendanceRate))}${stat("Ngày vắng không phép", s.absentDays)}${stat("Ngày nghỉ phép", s.leaveDays)}${stat("Lượt đi muộn", s.lateCount)}${stat("Đơn nghỉ chờ duyệt", s.pendingLeaveRequests, "clickable\" onclick=\"switchTab('tab-staff-attendance')\" title=\"Mở danh sách đơn chờ duyệt")}</div>`;
+      }
+      function renderAttendanceGroups(groups) {
+        const box = document.getElementById("arGroups");
+        if (!groups.length) { box.innerHTML = ""; return; }
+        box.innerHTML = `<div class="card"><div class="card-header"><h3>Tổng hợp theo nhóm</h3></div><div class="card-body"><div class="table-container"><table><thead><tr><th>Nhóm</th><th class="ar-num">Thực tập sinh</th><th class="ar-num">Phải đi</th><th class="ar-num">Có mặt</th><th class="ar-num">Nghỉ phép</th><th class="ar-num">Vắng</th><th class="ar-num">Muộn</th><th>Tỷ lệ</th></tr></thead><tbody>${groups.map((g) => `<tr><td>${escapeHtml(g.name)}</td><td class="ar-num">${g.totalInterns}</td><td class="ar-num">${g.requiredDays}</td><td class="ar-num">${g.presentDays}</td><td class="ar-num">${g.leaveDays}</td><td class="ar-num">${g.absentDays}</td><td class="ar-num">${g.lateCount}</td><td>${rateBadge(g.attendanceRate)}</td></tr>`).join("")}</tbody></table></div></div></div>`;
+      }
+      const AR_COLUMNS = [
+        ["name", "Thực tập sinh"], ["schedule", "Nhóm / lịch"], ["requiredDays", "Phải đi"], ["presentDays", "Có mặt"],
+        ["leaveDays", "Nghỉ phép"], ["absentDays", "Vắng"], ["pendingLeaveDays", "Chờ duyệt nghỉ"], ["lateCount", "Muộn"],
+        ["earlyLeaveCount", "Về sớm"], ["missingCheckoutCount", "Thiếu check-out"], ["totalWorkMinutes", "Giờ làm"], ["attendanceRate", "Tỷ lệ"],
+      ];
+      function attendanceSortValue(row, key) {
+        if (key === "name") return row.intern.fullName || "";
+        if (key === "schedule") return `${row.intern.programName || ""} ${row.scheduleName || ""}`;
+        return row[key];
+      }
+      function sortAttendanceReport(key) {
+        attendanceReportSort = { key, dir: attendanceReportSort.key === key && attendanceReportSort.dir === "asc" ? "desc" : "asc" };
+        renderAttendanceTable();
+      }
+      function renderAttendanceTable() {
+        const box = document.getElementById("attendanceReportList");
+        const { key, dir } = attendanceReportSort, factor = dir === "asc" ? 1 : -1;
+        const rows = [...attendanceReportData.interns].sort((a, b) => {
+          const x = attendanceSortValue(a, key), y = attendanceSortValue(b, key);
+          if (x == null && y == null) return 0;
+          if (x == null) return 1;
+          if (y == null) return -1; // giá trị trống luôn xuống cuối
+          return (typeof x === "string" ? x.localeCompare(y, "vi") : x - y) * factor;
+        });
+        const arrow = (k) => (k === key ? (dir === "asc" ? " ▲" : " ▼") : "");
+        const head = AR_COLUMNS.map(([k, label]) => `<th class="ar-sortable${k === "name" ? " ar-col-name" : k === "schedule" ? " ar-col-group" : " ar-num"}" onclick="sortAttendanceReport('${k}')">${label}${arrow(k)}</th>`).join("");
+        const body = rows.map((r) => {
+          const i = r.intern;
+          const identity = [i.studentCode, i.university].filter(Boolean).join(" · ");
+          const scheduleText = r.scheduleName ? (r.scheduleSource && r.scheduleSource !== "Mặc định" ? `${r.scheduleName} · theo ${r.scheduleSource}` : r.scheduleName) : "";
+          return `<tr><td>${escapeHtml(i.fullName)}${identity ? `<span class="fr-sub">${escapeHtml(identity)}</span>` : ""}</td><td>${escapeHtml(i.programName || "Chưa gán chương trình")}${scheduleText ? `<span class="fr-sub">${escapeHtml(scheduleText)}</span>` : ""}</td><td class="ar-num">${r.requiredDays}</td><td class="ar-num">${r.presentDays}</td><td class="ar-num">${r.leaveDays}</td><td class="ar-num">${r.absentDays}</td><td class="ar-num">${r.pendingLeaveDays}</td><td class="ar-num">${r.lateCount}</td><td class="ar-num">${r.earlyLeaveCount}</td><td class="ar-num">${r.missingCheckoutCount}</td><td class="ar-num">${escapeHtml(formatAttendanceMinutes(r.totalWorkMinutes))}</td><td class="ar-num">${rateBadge(r.attendanceRate)}</td><td><button class="btn btn-sm btn-secondary" onclick="openAttendanceReportDetail(${Number(i.id)})">Chi tiết</button></td></tr>`;
+        }).join("");
+        box.innerHTML = rows.length
+          ? `<div class="table-container"><table><thead><tr>${head}<th></th></tr></thead><tbody>${body}</tbody></table></div><p class="fr-hint">Tỷ lệ = có mặt / (ngày phải đi làm − ngày nghỉ có phép). Màu: từ 90% xanh, 75–90% vàng, dưới 75% đỏ.</p>`
+          : `<p>Không có thực tập sinh nào có ngày làm việc trong khoảng này.</p>`;
+      }
+      async function loadAttendanceReport() {
+        const today = getVietnamToday();
+        const from = document.getElementById("arFrom"), to = document.getElementById("arTo");
+        if (!to.value) to.value = today;
+        if (!from.value) from.value = `${today.slice(0, 8)}01`;
+        syncAttendanceReportDates();
+        if (!document.getElementById("arScopeValue").options.length) await updateAttendanceReportScope();
+        const query = attendanceReportQuery(); if (!query) return;
+        const button = document.getElementById("arViewButton"); button.disabled = true;
+        const list = document.getElementById("attendanceReportList"); list.textContent = "Đang tải...";
+        document.getElementById("arDetailCard").style.display = "none";
+        try {
+          const result = await wrRequest(`/attendance/report?${query}`); if (!result) return;
+          if (!result.res.ok) {
+            list.textContent = ""; document.getElementById("arSummary").innerHTML = ""; document.getElementById("arGroups").innerHTML = "";
+            setText("attendanceReportError", wrApiError(result, "Không tải được báo cáo chuyên cần."));
+            return;
+          }
+          attendanceReportData = result.body.data;
+          renderAttendanceSummary(attendanceReportData.summary);
+          renderAttendanceGroups(attendanceReportData.groups);
+          renderAttendanceTable();
+        } finally { button.disabled = false; }
+      }
+      async function openAttendanceReportDetail(internId) {
+        const query = attendanceReportQuery(); if (!query) return;
+        const card = document.getElementById("arDetailCard"), box = document.getElementById("arDetail");
+        card.style.display = ""; box.textContent = "Đang tải..."; card.scrollIntoView({ behavior: "smooth", block: "start" });
+        const result = await wrRequest(`/attendance/report/interns/${internId}/days?from=${query.get("from")}&to=${query.get("to")}`); if (!result) return;
+        if (!result.res.ok) { box.textContent = wrApiError(result, "Không tải được chi tiết."); return; }
+        const d = result.body.data;
+        setText("arDetailTitle", `Chi tiết từng ngày: ${d.intern.fullName}`);
+        const rows = d.days.map((day) => {
+          const [label, cls] = DAY_STATUS[day.status] || [day.status, "ar-b-muted"];
+          const r = day.record;
+          const time = r ? `${String(r.checkInAt).slice(11, 16)} – ${r.checkOutAt ? String(r.checkOutAt).slice(11, 16) : "chưa check-out"}` : "—";
+          const schedule = day.schedule ? (day.schedule.mode === "FIXED" ? `${day.schedule.startTime || "—"}–${day.schedule.endTime || "—"}` : "Linh hoạt") : "—";
+          const muted = ["OUT_OF_CONTRACT", "UPCOMING"].includes(day.status) ? " class=\"ar-muted-row\"" : "";
+          return `<tr${muted}><td>${escapeHtml(weekdayLabel(day.date))}, ${escapeHtml(formatDateOnly(day.date))}</td><td>${pill(label, cls)}</td><td>${escapeHtml(time)}</td><td>${escapeHtml(day.flags.map((f) => DAY_FLAGS[f] || f).join(", ")) || "—"}</td><td>${escapeHtml(schedule)}</td></tr>`;
+        }).join("");
+        box.innerHTML = `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Trạng thái</th><th>Giờ làm</th><th>Ghi chú</th><th>Giờ theo lịch</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      }
+      async function downloadAttendanceReportCsv() {
+        const query = attendanceReportQuery(); if (!query) return;
+        const res = await fetch(`${API_BASE}/attendance/report/export.csv?${query}`, { headers: authHeaders() });
+        if (res.status === 401) return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setText("attendanceReportError", body.message || "Không tải được CSV.");
+          return;
+        }
+        const url = URL.createObjectURL(await res.blob()); const a = document.createElement("a");
+        a.href = url; a.download = `bao-cao-chuyen-can_${query.get("from")}_${query.get("to")}.csv`; a.click(); URL.revokeObjectURL(url);
+      }
+
+      // ---------- Lịch làm việc (HR thiết lập) ----------
+      let wsSchedules = [];
+      let wsEditingId = null;
+      function wsCanEdit() { return currentRole === "HR"; }
+      function wsRenderDayRows(days) {
+        document.getElementById("wsDays").innerHTML = WEEKDAY_LABELS.map((label, i) => {
+          const d = days[i];
+          return `<tr><td>${label}</td><td><input type="checkbox" id="wsOn${i + 1}" ${d.isWorking ? "checked" : ""} onchange="updateWorkScheduleMode()" aria-label="Làm việc ${label}"></td><td class="ws-time-col"><input type="time" id="wsStart${i + 1}" value="${d.startTime || ""}" aria-label="Bắt đầu ${label}"></td><td class="ws-time-col"><input type="time" id="wsEnd${i + 1}" value="${d.endTime || ""}" aria-label="Kết thúc ${label}"></td></tr>`;
+        }).join("");
+      }
+      function updateWorkScheduleMode() {
+        const fixed = document.getElementById("wsMode").value === "FIXED";
+        document.getElementById("wsGraceWrap").style.display = fixed ? "" : "none";
+        document.getElementById("wsMinWrap").style.display = fixed ? "none" : "";
+        document.querySelectorAll("#wsForm .ws-time-col").forEach((el) => el.classList.toggle("ws-hide", !fixed));
+        for (let n = 1; n <= 7; n++) {
+          const on = document.getElementById(`wsOn${n}`).checked;
+          document.getElementById(`wsStart${n}`).disabled = !on; document.getElementById(`wsEnd${n}`).disabled = !on;
+        }
+      }
+      function copyFirstDayHours() {
+        const start = document.getElementById("wsStart1").value, end = document.getElementById("wsEnd1").value;
+        for (let n = 2; n <= 7; n++) { document.getElementById(`wsStart${n}`).value = start; document.getElementById(`wsEnd${n}`).value = end; }
+      }
+      function showWorkScheduleForm(id = null) {
+        const schedule = id ? wsSchedules.find((s) => s.id === id) : null; wsEditingId = id;
+        setText("wsFormError", ""); setText("wsFormTitle", schedule ? `Sửa mẫu lịch: ${schedule.name}` : "Tạo mẫu lịch");
+        document.getElementById("wsName").value = schedule ? schedule.name : "";
+        document.getElementById("wsDesc").value = schedule ? schedule.description : "";
+        document.getElementById("wsMode").value = schedule ? schedule.mode : "FIXED";
+        document.getElementById("wsGrace").value = schedule ? schedule.graceMinutes : 15;
+        document.getElementById("wsMinDaily").value = schedule && schedule.minDailyMinutes ? schedule.minDailyMinutes : 240;
+        const byDay = (n) => (schedule ? schedule.days.find((d) => d.weekday === n) : null) || { isWorking: n <= 5, startTime: "08:30", endTime: "17:30" };
+        wsRenderDayRows([1, 2, 3, 4, 5, 6, 7].map((n) => { const d = byDay(n); return { isWorking: d.isWorking, startTime: d.startTime || (d.isWorking ? "08:30" : ""), endTime: d.endTime || (d.isWorking ? "17:30" : "") }; }));
+        const warning = document.getElementById("wsEditWarning");
+        warning.style.display = schedule && schedule.assignmentCount ? "" : "none";
+        warning.textContent = "Lịch này đang được áp dụng cho nhóm. Thay đổi sẽ ảnh hưởng cả báo cáo các ngày đã qua; nên tạo mẫu lịch mới và áp dụng từ ngày hiệu lực để giữ nguyên số liệu cũ.";
+        updateWorkScheduleMode();
+        document.getElementById("wsForm").style.display = ""; document.getElementById("wsForm").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      function workSchedulePayload() {
+        const fixed = document.getElementById("wsMode").value === "FIXED";
+        const days = [1, 2, 3, 4, 5, 6, 7].map((n) => {
+          const on = document.getElementById(`wsOn${n}`).checked;
+          return { weekday: n, is_working: on, start_time: fixed && on ? document.getElementById(`wsStart${n}`).value : null, end_time: fixed && on ? document.getElementById(`wsEnd${n}`).value : null };
+        });
+        const payload = { name: document.getElementById("wsName").value.trim(), description: document.getElementById("wsDesc").value.trim(), mode: fixed ? "FIXED" : "FLEXIBLE", days };
+        if (fixed) payload.grace_minutes = Number(document.getElementById("wsGrace").value);
+        else payload.min_daily_minutes = Number(document.getElementById("wsMinDaily").value);
+        return payload;
+      }
+      function validateWorkSchedulePayload(p) {
+        if (!p.name) return "Vui lòng nhập tên lịch.";
+        if (!p.days.some((d) => d.is_working)) return "Lịch phải có ít nhất một ngày làm việc.";
+        if (p.mode === "FIXED") {
+          if (!Number.isInteger(p.grace_minutes) || p.grace_minutes < 0 || p.grace_minutes > 120) return "Dung sai phải từ 0 đến 120 phút.";
+          for (const d of p.days.filter((x) => x.is_working)) {
+            if (!d.start_time || !d.end_time) return `Vui lòng nhập giờ bắt đầu và kết thúc cho ${WEEKDAY_LABELS[d.weekday - 1]}.`;
+            if (d.end_time <= d.start_time) return `Giờ kết thúc phải sau giờ bắt đầu (${WEEKDAY_LABELS[d.weekday - 1]}).`;
+          }
+        } else if (!Number.isInteger(p.min_daily_minutes) || p.min_daily_minutes < 30 || p.min_daily_minutes > 720) return "Số phút tối thiểu phải từ 30 đến 720.";
+        return "";
+      }
+      async function saveWorkSchedule() {
+        const payload = workSchedulePayload(), problem = validateWorkSchedulePayload(payload);
+        if (problem) { setText("wsFormError", problem); return; }
+        const button = document.getElementById("wsSaveButton"); button.disabled = true; setText("wsFormError", "");
+        try {
+          const result = await wrRequest(wsEditingId ? `/work-schedules/${wsEditingId}` : "/work-schedules", postJson(payload, wsEditingId ? "PUT" : "POST"));
+          if (!result) return;
+          if (!result.res.ok) { setText("wsFormError", wrApiError(result, "Không lưu được lịch.")); return; }
+          document.getElementById("wsForm").style.display = "none";
+          await loadWorkSchedulesTab();
+        } finally { button.disabled = false; }
+      }
+      async function deleteWorkSchedule(id) {
+        const schedule = wsSchedules.find((s) => s.id === id);
+        if (!confirm(`Xóa mẫu lịch "${schedule ? schedule.name : id}"?`)) return;
+        const result = await wrRequest(`/work-schedules/${id}`, { method: "DELETE" }); if (!result) return;
+        if (!result.res.ok) { setText("wsError", wrApiError(result, "Không xóa được lịch.")); return; }
+        await loadWorkSchedulesTab();
+      }
+      function renderWorkScheduleList() {
+        const edit = wsCanEdit();
+        document.getElementById("wsList").innerHTML = `<div class="table-container"><table><thead><tr><th>Tên lịch</th><th>Chế độ</th><th>Tóm tắt</th><th>Đang áp dụng</th>${edit ? "<th>Thao tác</th>" : ""}</tr></thead><tbody>${wsSchedules.map((s) => `<tr><td>${escapeHtml(s.name)}${s.id === 1 ? ' <span class="load-badge ok">Mặc định</span>' : ""}${s.description && !(s.id === 1 && s.description === "Lịch làm việc mặc định toàn hệ thống") ? `<span class="fr-sub">${escapeHtml(s.description)}</span>` : ""}</td><td>${s.mode === "FIXED" ? "Giờ cố định" : "Giờ linh hoạt"}</td><td>${escapeHtml(s.summary)}${s.mode === "FIXED" ? `<span class="fr-sub">Dung sai ${s.graceMinutes} phút</span>` : ""}</td><td>${s.assignmentCount} lần áp dụng</td>${edit ? `<td><div class="fr-row-actions"><button class="btn btn-sm btn-secondary" onclick="showWorkScheduleForm(${s.id})">Sửa</button>${s.id === 1 ? "" : `<button class="btn btn-sm btn-danger" onclick="deleteWorkSchedule(${s.id})">Xóa</button>`}</div></td>` : ""}</tr>`).join("")}</tbody></table></div>`;
+      }
+      function assignmentStatus(a, today) {
+        if (a.effectiveFrom > today) return pill("Sắp áp dụng", "ar-b-pending");
+        if (a.effectiveTo && a.effectiveTo < today) return pill("Đã kết thúc", "ar-b-muted");
+        return pill("Đang áp dụng", "ar-b-present");
+      }
+      function renderAssignments(rows) {
+        const today = getVietnamToday(), edit = wsCanEdit();
+        document.getElementById("wsAssignments").innerHTML = `<div class="table-container"><table><thead><tr><th>Phạm vi</th><th>Lịch</th><th>Hiệu lực</th><th>Trạng thái</th>${edit ? "<th></th>" : ""}</tr></thead><tbody>${rows.map((a) => {
+          const target = a.targetType === "INTERN" ? `Cá nhân (ID ${a.targetValue})` : a.targetLabel;
+          return `<tr><td>${escapeHtml(target)}</td><td>${escapeHtml(a.scheduleName)}<span class="fr-sub">${escapeHtml(a.scheduleSummary)}</span></td><td>${escapeHtml(a.effectiveFrom === "1970-01-01" ? "Từ trước đến nay" : formatDateOnly(a.effectiveFrom))} – ${a.effectiveTo ? escapeHtml(formatDateOnly(a.effectiveTo)) : "không giới hạn"}</td><td>${assignmentStatus(a, today)}</td>${edit ? `<td>${a.targetType === "DEFAULT" ? "" : `<button class="btn btn-sm btn-danger" onclick="removeAssignment(${a.id})">Xóa</button>`}</td>` : ""}</tr>`;
+        }).join("")}</tbody></table></div>`;
+      }
+      function renderResolvedSchedules(rows) {
+        document.getElementById("wsResolved").innerHTML = rows.length
+          ? `<div class="table-container"><table><thead><tr><th>Thực tập sinh</th><th>Trường</th><th>Lịch áp dụng</th><th>Theo</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${escapeHtml(r.intern.fullName)}<span class="fr-sub">${escapeHtml(r.intern.studentCode || "")}</span></td><td>${escapeHtml(r.intern.university || "")}</td><td>${r.schedule ? `${escapeHtml(r.schedule.name)}<span class="fr-sub">${escapeHtml(r.schedule.summary)}</span>` : "—"}</td><td>${r.source ? escapeHtml(r.source.label) : "—"}</td></tr>`).join("")}</tbody></table></div>`
+          : "<p>Chưa có thực tập sinh nào đang hoặc sắp thực tập (cần hợp đồng đã xác nhận).</p>";
+      }
+      function renderHolidays(rows) {
+        const edit = wsCanEdit();
+        document.getElementById("wsHolidays").innerHTML = rows.length
+          ? `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Tên</th>${edit ? "<th></th>" : ""}</tr></thead><tbody>${rows.map((h) => `<tr><td>${escapeHtml(weekdayLabel(h.holidayDate))}, ${escapeHtml(formatDateOnly(h.holidayDate))}</td><td>${escapeHtml(h.name)}</td>${edit ? `<td><button class="btn btn-sm btn-danger" onclick="removeWorkHoliday(${h.id})">Xóa</button></td>` : ""}</tr>`).join("")}</tbody></table></div>`
+          : "<p>Chưa có ngày nghỉ chung nào. Ngày nghỉ chung không bị tính là vắng mặt trong báo cáo chuyên cần.</p>";
+      }
+      async function loadWorkSchedulesTab() {
+        document.querySelectorAll("#tab-work-schedules .ws-hr-only").forEach((el) => el.classList.toggle("ws-hide", !wsCanEdit()));
+        setText("wsError", "");
+        const [schedules, assignments, resolved, holidays, options] = await Promise.all([
+          wrRequest("/work-schedules"), wrRequest("/work-schedules/assignments"), wrRequest("/work-schedules/resolved"),
+          wrRequest("/work-holidays"), loadWorkScopeOptions(true),
+        ]);
+        const failed = [schedules, assignments, resolved, holidays].find((r) => r && !r.res.ok);
+        if (failed) { setText("wsError", wrApiError(failed, "Không tải được dữ liệu lịch làm việc.")); }
+        if (!schedules || !assignments || !resolved || !holidays) return;
+        if (schedules.res.ok) { wsSchedules = schedules.body.data; renderWorkScheduleList(); }
+        if (assignments.res.ok) renderAssignments(assignments.body.data);
+        if (resolved.res.ok) renderResolvedSchedules(resolved.body.data);
+        if (holidays.res.ok) renderHolidays(holidays.body.data);
+        const select = document.getElementById("wsAsSchedule"), keep = select.value;
+        select.innerHTML = wsSchedules.map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+        if (keep) select.value = keep;
+        if (!document.getElementById("wsAsFrom").value) document.getElementById("wsAsFrom").value = getVietnamToday();
+        void options;
+        await updateAssignmentScope();
+      }
+      async function updateAssignmentScope() {
+        const type = document.getElementById("wsAsType").value;
+        document.getElementById("wsAsValueWrap").style.display = type === "DEFAULT" ? "none" : "";
+        if (type !== "DEFAULT") {
+          setText("wsAsValueLabel", SCOPE_LABEL[type]);
+          fillScopeSelect("wsAsValue", type, await loadWorkScopeOptions());
+        }
+        await previewAssignment();
+      }
+      async function previewAssignment() {
+        const type = document.getElementById("wsAsType").value, value = document.getElementById("wsAsValue").value, box = document.getElementById("wsAsPreview");
+        if (type !== "DEFAULT" && !value) { box.textContent = ""; return; }
+        const query = new URLSearchParams({ target_type: type }); if (type !== "DEFAULT") query.set("target_value", value);
+        const result = await wrRequest(`/work-schedules/preview?${query}`); if (!result || !result.res.ok) { box.textContent = ""; return; }
+        const p = result.body.data;
+        const names = p.interns.slice(0, 5).map((i) => i.fullName).join(", ");
+        box.textContent = p.count
+          ? `Thuộc phạm vi này: ${p.count} thực tập sinh đang hoặc sắp thực tập${names ? ` (${names}${p.count > 5 ? ", ..." : ""})` : ""}.${p.overriddenCount ? ` ${p.overriddenCount} người đang dùng lịch của nhóm cụ thể hơn nên chưa bị ảnh hưởng.` : ""}`
+          : "Chưa có thực tập sinh đang hoặc sắp thực tập thuộc phạm vi này.";
+      }
+      async function submitAssignment() {
+        const type = document.getElementById("wsAsType").value, value = document.getElementById("wsAsValue").value;
+        const scheduleId = document.getElementById("wsAsSchedule").value, from = document.getElementById("wsAsFrom").value, to = document.getElementById("wsAsTo").value;
+        setText("wsAsError", "");
+        if (!scheduleId) return setText("wsAsError", "Vui lòng chọn lịch làm việc.");
+        if (type !== "DEFAULT" && !value) return setText("wsAsError", "Vui lòng chọn phạm vi áp dụng.");
+        if (!from) return setText("wsAsError", "Vui lòng chọn ngày hiệu lực.");
+        if (to && to < from) return setText("wsAsError", "Ngày kết thúc không được trước ngày hiệu lực.");
+        const body = { schedule_id: Number(scheduleId), target_type: type, effective_from: from };
+        if (type !== "DEFAULT") body.target_value = value;
+        if (to) body.effective_to = to;
+        const result = await wrRequest("/work-schedules/assignments", postJson(body)); if (!result) return;
+        if (!result.res.ok) return setText("wsAsError", wrApiError(result, "Không áp dụng được lịch."));
+        document.getElementById("wsAsTo").value = "";
+        await loadWorkSchedulesTab();
+      }
+      async function removeAssignment(id) {
+        if (!confirm("Xóa lần áp dụng lịch này? Nhóm sẽ quay về lịch của phạm vi rộng hơn.")) return;
+        const result = await wrRequest(`/work-schedules/assignments/${id}`, { method: "DELETE" }); if (!result) return;
+        if (!result.res.ok) return setText("wsError", wrApiError(result, "Không xóa được."));
+        await loadWorkSchedulesTab();
+      }
+      async function addWorkHoliday() {
+        const date = document.getElementById("wsHolDate").value, name = document.getElementById("wsHolName").value.trim();
+        setText("wsHolError", "");
+        if (!date || !name) return setText("wsHolError", "Vui lòng nhập ngày và tên ngày nghỉ.");
+        const result = await wrRequest("/work-holidays", postJson({ holiday_date: date, name })); if (!result) return;
+        if (!result.res.ok) return setText("wsHolError", wrApiError(result, "Không thêm được ngày nghỉ."));
+        document.getElementById("wsHolName").value = "";
+        await loadWorkSchedulesTab();
+      }
+      async function removeWorkHoliday(id) {
+        const result = await wrRequest(`/work-holidays/${id}`, { method: "DELETE" }); if (!result) return;
+        if (!result.res.ok) return setText("wsHolError", wrApiError(result, "Không xóa được ngày nghỉ."));
+        await loadWorkSchedulesTab();
+      }
+
+      // ---------- Lịch của thực tập sinh trên tab Chấm công ----------
+      async function loadAttendanceScheduleInfo() {
+        const el = document.getElementById("attendanceSchedule"); el.innerHTML = "";
+        const result = await wrRequest("/me/work-schedule"); if (!result || !result.res.ok) return;
+        const d = result.body.data;
+        let note = "";
+        if (d.today.holiday) note = `Hôm nay là ngày nghỉ chung (${d.today.holiday}); bạn vẫn có thể chấm công nếu làm việc.`;
+        else if (!d.today.rule.isWorkingDay) note = "Hôm nay là ngày nghỉ theo lịch; bạn vẫn có thể chấm công nếu làm việc.";
+        el.innerHTML = `<i class="fa-regular fa-calendar"></i><span>Lịch của bạn: <b>${escapeHtml(d.schedule.summary)}</b> · theo ${escapeHtml(d.source.label)}</span>${note ? `<span class="att-schedule-note">${escapeHtml(note)}</span>` : ""}`;
+      }
+
+      // ---------- US30: HR xem / gán thực tập sinh từ tab Quản lý mentor ----------
+      let miMentorId = null, miAvailable = [];
+      async function mentorInternsOpen(mentorId, name) {
+        miMentorId = mentorId;
+        document.getElementById("miTitle").innerText = `Thực tập sinh của ${name}`;
+        setText("miError", ""); document.getElementById("miSearch").value = "";
+        document.getElementById("miAddBox").open = false;
+        document.getElementById("mentorInternsModal").style.display = "flex";
+        await mentorInternsReload();
+      }
+      function mentorInternsClose() {
+        document.getElementById("mentorInternsModal").style.display = "none";
+        loadMentors();
+      }
+      async function mentorInternsReload() {
+        const [mine, avail] = await Promise.all([wrRequest(`/mentors/${miMentorId}/interns`), wrRequest(`/mentors/${miMentorId}/available-interns`)]);
+        if (!mine || !avail) return;
+        if (!mine.res.ok) return setText("miError", wrApiError(mine, "Không tải được danh sách thực tập sinh."));
+        miAvailable = avail.res.ok ? avail.body.data : [];
+        const rows = mine.body.data;
+        document.getElementById("miRows").innerHTML = rows.length
+          ? rows.map((i) => `<tr><td><b>${escapeHtml(i.fullName)}</b><span class="fr-sub">${escapeHtml(i.studentCode || "")}</span></td><td>${escapeHtml(i.university || "")}</td><td>${escapeHtml(i.status || "")}</td><td><button class="btn btn-sm btn-soft-danger" onclick="mentorInternsRemove(${Number(i.id)}, ${escapeHtml(JSON.stringify(i.fullName))})">Gỡ</button></td></tr>`).join("")
+          : '<tr><td colspan="4">Mentor này chưa phụ trách thực tập sinh nào.</td></tr>';
+        mentorInternsRenderAvailable();
+      }
+      function mentorInternsRenderAvailable() {
+        const q = document.getElementById("miSearch").value.trim().toLocaleLowerCase("vi");
+        const rows = miAvailable.filter((i) => !q || [i.fullName, i.studentCode, i.university].some((v) => String(v || "").toLocaleLowerCase("vi").includes(q)));
+        document.getElementById("miAvailable").innerHTML = rows.length
+          ? rows.map((i) => `<tr><td style="width:36px"><input type="checkbox" class="mi-check" value="${Number(i.id)}" aria-label="Chọn ${escapeHtml(i.fullName)}" /></td><td>${escapeHtml(i.fullName)}<span class="fr-sub">${escapeHtml(i.studentCode || "")}</span></td><td>${escapeHtml(i.university || "")}</td><td>${escapeHtml(i.status || "")}</td><td>${i.mentorName ? `Đang thuộc ${escapeHtml(i.mentorName)}` : "<em>Chưa có mentor</em>"}</td></tr>`).join("")
+          : "<tr><td>Không có thực tập sinh nào để gán.</td></tr>";
+      }
+      async function mentorInternsAdd() {
+        const ids = [...document.querySelectorAll("#miAvailable .mi-check:checked")].map((c) => Number(c.value));
+        if (!ids.length) return setText("miError", "Vui lòng chọn thực tập sinh cần gán.");
+        setText("miError", "");
+        const send = (confirmed) => wrRequest(`/mentors/${miMentorId}/interns`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intern_ids: ids, ...(confirmed ? { confirm_warnings: true } : {}) }),
+        });
+        let result = await send(false);
+        if (result && result.res.status === 409 && result.body.code === "NEEDS_CONFIRMATION") {
+          if (!confirmAssignmentWarnings(result.body.warnings)) return;
+          result = await send(true);
+        }
+        if (!result) return;
+        if (!result.res.ok) return setText("miError", wrApiError(result, "Không gán được thực tập sinh."));
+        const r = result.body.data;
+        showToast(`Đã gán ${r.updated} thực tập sinh cho mentor${r.unchanged ? ` (${r.unchanged} người không đổi)` : ""}.`);
+        await mentorInternsReload();
+      }
+      async function mentorInternsRemove(internId, name) {
+        if (!confirm(`Gỡ ${name} khỏi mentor này? Thực tập sinh sẽ trở về trạng thái chưa có mentor.`)) return;
+        setText("miError", "");
+        const result = await wrRequest(`/interns/${internId}/mentor`, {
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mentor_id: null }),
+        });
+        if (!result) return;
+        if (!result.res.ok) return setText("miError", wrApiError(result, "Không gỡ được thực tập sinh."));
+        await mentorInternsReload();
+      }
+
+      // Cảnh báo mềm khi phân công mentor (server trả 409 NEEDS_CONFIRMATION): hỏi HR rồi gửi lại với confirm_warnings.
+      function confirmAssignmentWarnings(warnings) {
+        return confirm("Cần lưu ý trước khi phân công:\n\n• " + (warnings || []).map((w) => w.message).join("\n• ") + "\n\nVẫn tiếp tục phân công?");
+      }
+
+      // ---------- Chuông thông báo ----------
+      let notifTimer = null, notifUnread = 0, notifFirstLoad = true;
+      function startNotificationPolling() {
+        if (notifTimer) return;
+        loadNotifications();
+        notifTimer = setInterval(() => { if (!document.hidden) loadNotifications(); }, 45000);
+      }
+      function notifTimeAgo(sql) {
+        const t = Date.parse(String(sql).replace(" ", "T") + "+07:00");
+        if (!t) return "";
+        const m = Math.max(0, Math.floor((Date.now() - t) / 60000));
+        if (m < 1) return "Vừa xong";
+        if (m < 60) return `${m} phút trước`;
+        if (m < 1440) return `${Math.floor(m / 60)} giờ trước`;
+        return `${Math.floor(m / 1440)} ngày trước`;
+      }
+      async function loadNotifications() {
+        const result = await wrRequest("/notifications"); if (!result || !result.res.ok) return;
+        const data = (result.body && result.body.data) || { unread: 0, items: [] };
+        if (!notifFirstLoad && data.unread > notifUnread) showToast("Bạn có thông báo mới.", "info");
+        notifFirstLoad = false; notifUnread = data.unread;
+        const badge = document.getElementById("notifBadge");
+        badge.innerText = data.unread > 99 ? "99+" : String(data.unread);
+        badge.classList.toggle("show", data.unread > 0);
+        const list = document.getElementById("notifList");
+        list.innerHTML = data.items.length
+          ? data.items.map((n) => `<button class="notif-item ${n.isRead ? "" : "unread"}" onclick="openNotification(${Number(n.id)}, '${escapeHtml(n.targetTab || "")}')"><strong>${escapeHtml(n.title)}</strong><span>${escapeHtml(n.message)}</span><small>${escapeHtml(notifTimeAgo(n.createdAt))}</small></button>`).join("")
+          : '<div class="notif-empty">Chưa có thông báo nào.</div>';
+      }
+      function toggleNotifications(event) {
+        event.stopPropagation();
+        document.getElementById("userMenuDropdown").classList.remove("open");
+        const dd = document.getElementById("notifDropdown");
+        dd.classList.toggle("open");
+        if (dd.classList.contains("open")) loadNotifications();
+      }
+      async function openNotification(id, tab) {
+        document.getElementById("notifDropdown").classList.remove("open");
+        await wrRequest(`/notifications/${id}/read`, { method: "POST" });
+        if (tab && document.getElementById(tab)) switchTab(tab);
+        loadNotifications();
+      }
+      async function markAllNotificationsRead() {
+        await wrRequest("/notifications/read-all", { method: "POST" });
+        loadNotifications();
+      }
+
+      // ---------- Nghỉ phép: thực tập sinh ----------
+      async function loadMyLeaves() {
+        const box = document.getElementById("lvList"); box.textContent = "Đang tải...";
+        const today = getVietnamToday();
+        const from = document.getElementById("lvFrom"), to = document.getElementById("lvTo");
+        if (!from.value) { from.value = today; to.value = today; to.min = today; }
+        const result = await wrRequest("/me/leaves"); if (!result) return;
+        if (!result.res.ok) { box.textContent = wrApiError(result, "Không tải được đơn nghỉ."); return; }
+        const rows = result.body.data;
+        box.innerHTML = rows.length ? `<div class="table-container"><table><thead><tr><th>Loại</th><th>Thời gian</th><th>Số ngày</th><th>Lý do</th><th>Trạng thái</th><th></th></tr></thead><tbody>${rows.map((l) => {
+          const [label, cls] = LEAVE_STATUS_LABEL[l.status] || [l.status, "ar-b-muted"];
+          const cancellable = l.status === "PENDING" || (l.status === "APPROVED" && l.fromDate > today);
+          return `<tr><td>${escapeHtml(LEAVE_TYPE_LABEL[l.leaveType] || l.leaveType)}</td><td>${escapeHtml(formatDateOnly(l.fromDate))}${l.toDate !== l.fromDate ? ` – ${escapeHtml(formatDateOnly(l.toDate))}` : ""}</td><td class="ar-num">${daysInclusive(l.fromDate, l.toDate)}</td><td>${escapeHtml(l.reason)}${l.reviewNote ? `<span class="fr-sub">Phản hồi: ${escapeHtml(l.reviewNote)}</span>` : ""}</td><td>${pill(label, cls)}</td><td>${cancellable ? `<button class="btn btn-sm btn-secondary" onclick="cancelMyLeave(${Number(l.id)})">Hủy đơn</button>` : ""}</td></tr>`;
+        }).join("")}</tbody></table></div>` : "<p>Bạn chưa có đơn nghỉ nào.</p>";
+      }
+      async function submitLeave() {
+        const from = document.getElementById("lvFrom").value, to = document.getElementById("lvTo").value, reason = document.getElementById("lvReason").value.trim();
+        setText("lvError", "");
+        if (!from || !to) return setText("lvError", "Vui lòng chọn ngày nghỉ.");
+        if (from > to) return setText("lvError", "Ngày bắt đầu không được sau ngày kết thúc.");
+        if (daysInclusive(from, to) > 30) return setText("lvError", "Mỗi đơn nghỉ không quá 30 ngày.");
+        if (!reason) return setText("lvError", "Vui lòng nhập lý do nghỉ.");
+        const button = document.getElementById("lvSubmit"); button.disabled = true;
+        try {
+          const result = await wrRequest("/me/leaves", postJson({ leave_type: document.getElementById("lvType").value, from_date: from, to_date: to, reason })); if (!result) return;
+          if (!result.res.ok) return setText("lvError", wrApiError(result, "Không gửi được đơn nghỉ."));
+          document.getElementById("lvReason").value = ""; document.getElementById("lvReasonCount").innerText = "0/500";
+          const notified = result.body && result.body.data && result.body.data.hrNotified;
+          showToast(notified ? "Đã gửi đơn nghỉ và báo cho HR qua email." : "Đã gửi đơn nghỉ. HR sẽ thấy đơn trong danh sách chờ duyệt.");
+          await loadMyLeaves();
+        } finally { button.disabled = false; }
+      }
+      async function cancelMyLeave(id) {
+        if (!confirm("Bạn muốn hủy đơn nghỉ này?")) return;
+        const result = await wrRequest(`/me/leaves/${id}/cancel`, { method: "POST" }); if (!result) return;
+        if (!result.res.ok) return setText("lvError", wrApiError(result, "Không hủy được đơn nghỉ."));
+        await loadMyLeaves();
+      }
+
+      // ---------- Nghỉ phép: HR / Mentor duyệt ----------
+      async function loadStaffPendingLeaves() {
+        const box = document.getElementById("saLeaves"); setText("saLeaveError", ""); box.textContent = "Đang tải...";
+        const result = await wrRequest("/leaves/pending"); if (!result) return;
+        if (!result.res.ok) { box.textContent = ""; setText("saLeaveError", wrApiError(result, "Không tải được đơn nghỉ chờ duyệt.")); return; }
+        const rows = result.body.data;
+        box.innerHTML = rows.length ? `<div class="table-container"><table><thead><tr><th>Thực tập sinh</th><th>Loại</th><th>Thời gian</th><th>Số ngày</th><th>Lý do</th><th></th></tr></thead><tbody>${rows.map((l) => `<tr><td>${escapeHtml(l.fullName || "")}<span class="fr-sub">${escapeHtml(l.studentCode || "")}</span></td><td>${escapeHtml(LEAVE_TYPE_LABEL[l.leaveType] || l.leaveType)}</td><td>${escapeHtml(formatDateOnly(l.fromDate))}${l.toDate !== l.fromDate ? ` – ${escapeHtml(formatDateOnly(l.toDate))}` : ""}</td><td class="ar-num">${daysInclusive(l.fromDate, l.toDate)}</td><td>${escapeHtml(l.reason)}</td><td><div class="fr-row-actions"><button class="btn btn-sm btn-primary" onclick="reviewLeave(${Number(l.id)}, 'APPROVED')">Duyệt</button><button class="btn btn-sm btn-danger" onclick="reviewLeave(${Number(l.id)}, 'REJECTED')">Từ chối</button></div></td></tr>`).join("")}</tbody></table></div>` : "<p>Không có đơn nghỉ nào đang chờ duyệt.</p>";
+      }
+      async function reviewLeave(id, decision) {
+        let note = "";
+        if (decision === "REJECTED") {
+          note = prompt("Nhập lý do từ chối:") || "";
+          if (!note.trim()) return;
+        }
+        const result = await wrRequest(`/leaves/${id}/review`, postJson({ decision, note })); if (!result) return;
+        if (!result.res.ok) { setText("saLeaveError", wrApiError(result, "Không xử lý được đơn nghỉ.")); return; }
+        await loadStaffPendingLeaves();
       }
     </script>
   </body>

@@ -625,6 +625,8 @@ async function testAttachments(ctx, report) {
 }
 
 async function testCascade(ctx, conn, report) {
+  // Hồ sơ đang giữ hợp đồng đã xác nhận thì không xóa được (409), nên gỡ hợp đồng test trước khi kiểm tra CASCADE.
+  await conn.query("DELETE FROM internship_contracts WHERE intern_id = ?", [ctx.a.id]);
   const del = await call("DELETE", `/interns/${ctx.a.id}`, ctx.hrToken);
   const [reports] = await conn.query(
     "SELECT COUNT(*) AS n FROM weekly_reports WHERE intern_id = ?",

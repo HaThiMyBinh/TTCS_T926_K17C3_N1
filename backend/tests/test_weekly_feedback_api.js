@@ -525,6 +525,8 @@ async function testDeleteAndCascade(ctx, conn) {
     [reportA.id],
   );
   check("Có phản hồi trước khi xóa intern", Number(before[0].n) === 1);
+  // Hồ sơ đang giữ hợp đồng đã xác nhận thì không xóa được (409), nên gỡ hợp đồng test trước khi kiểm tra CASCADE.
+  await conn.query("DELETE FROM internship_contracts WHERE intern_id = ?", [a.id]);
   const delIntern = await call("DELETE", `/interns/${a.id}`, hrToken);
   const [after] = await conn.query(
     "SELECT COUNT(*) AS n FROM weekly_report_feedback WHERE report_id = ?",

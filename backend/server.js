@@ -18,6 +18,11 @@ const tasksRouter = require("./routes/tasks.routes");
 const weeklyReportsRouter = require("./routes/weeklyReports.routes");
 const evaluationsRouter = require("./routes/evaluations.routes");
 const attendanceRouter = require("./routes/attendance.routes");
+const finalReportsRouter = require("./routes/finalReports.routes");
+const workSchedulesRouter = require("./routes/workSchedules.routes");
+const leavesRouter = require("./routes/leaves.routes");
+const notificationsRouter = require("./routes/notifications.routes");
+const attendanceReportRouter = require("./routes/attendanceReport.routes");
 const {
   applicationEvents,
   REVIEWED_EVENT,
@@ -42,6 +47,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(FRONTEND_DIR));
+app.use("/api/final-reports", (req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); });
+app.use("/api/me/attendance", (req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); });
 app.use(apiAuthentication);
 ensurePermissionsFile();
 
@@ -60,6 +67,11 @@ app.use("/api", tasksRouter);
 app.use("/api", weeklyReportsRouter);
 app.use("/api", evaluationsRouter);
 app.use("/api", attendanceRouter);
+app.use("/api", finalReportsRouter);
+app.use("/api", workSchedulesRouter);
+app.use("/api", leavesRouter);
+app.use("/api", notificationsRouter);
+app.use("/api", attendanceReportRouter);
 
 app.get("/login", (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "login.html"));
@@ -129,6 +141,12 @@ async function start() {
     }
   } catch (err) {
     console.error("[EMAIL] Không nạp lại được các email dang dở:", err.message);
+  }
+
+  try {
+    require("./services/reminders.service").start();
+  } catch (err) {
+    console.error("[REMINDER] Không khởi động được nhắc lịch:", err.message);
   }
 
   app.listen(PORT, () => {
