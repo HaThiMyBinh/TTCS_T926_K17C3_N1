@@ -324,26 +324,6 @@ CREATE TABLE IF NOT EXISTS `attendance_records` (
   CONSTRAINT `fk_attendance_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 19b. BẢNG ĐƠN XIN NGHỈ CỦA THỰC TẬP SINH (LEAVE_REQUESTS)
-CREATE TABLE IF NOT EXISTS `leave_requests` (
-  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `intern_id` BIGINT NOT NULL,
-  `leave_type` ENUM('PERSONAL','SICK','STUDY','OTHER') NOT NULL DEFAULT 'PERSONAL',
-  `start_date` DATE NOT NULL,
-  `end_date` DATE NOT NULL,
-  `reason` VARCHAR(500) NOT NULL,
-  `status` ENUM('PENDING','APPROVED','REJECTED','CANCELLED') NOT NULL DEFAULT 'PENDING',
-  `reviewed_by` BIGINT NULL,
-  `reviewed_at` DATETIME NULL,
-  `review_note` VARCHAR(255) NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX `idx_leave_intern_dates` (`intern_id`, `start_date`, `end_date`),
-  INDEX `idx_leave_status_start` (`status`, `start_date`),
-  CONSTRAINT `chk_leave_dates` CHECK (`end_date` >= `start_date`),
-  CONSTRAINT `fk_leave_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 -- 20. BẢNG BÁO CÁO TỔNG KẾT CUỐI KỲ (FINAL_REPORTS)
 CREATE TABLE IF NOT EXISTS `final_reports` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -421,3 +401,5 @@ INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (2, 4),                                 -- HR: VIEW_REPORTS
 (3, 2),                                 -- Mentor: ASSIGN_TASKS
 (4, 3);                                 -- Intern: SUBMIT_WORK
+CREATE TABLE IF NOT EXISTS notifications ( id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT NOT NULL, type VARCHAR(50) NOT NULL, title VARCHAR(255) NOT NULL, message VARCHAR(500) NOT NULL, target_tab VARCHAR(80) NULL, ref_id BIGINT NULL, is_read TINYINT(1) NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, dedupe_key VARCHAR(120) NULL, INDEX idx_notifications_user (user_id,is_read,created_at), UNIQUE KEY uq_notification_dedupe (user_id,dedupe_key), CONSTRAINT fk_notification_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS program_interns (id BIGINT AUTO_INCREMENT PRIMARY KEY, program_id BIGINT NOT NULL, intern_id BIGINT NOT NULL, assigned_by BIGINT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_program_intern (program_id,intern_id), INDEX idx_program_intern_intern (intern_id), CONSTRAINT fk_pi_program FOREIGN KEY(program_id) REFERENCES internship_programs(id) ON DELETE CASCADE, CONSTRAINT fk_pi_intern FOREIGN KEY(intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE, CONSTRAINT fk_pi_user FOREIGN KEY(assigned_by) REFERENCES users(id) ON DELETE SET NULL ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -173,6 +173,12 @@ function findContractProgram(contracts, date) {
   return covering[0].programId == null ? null : Number(covering[0].programId);
 }
 
+// Chương trình của thực tập sinh tại một ngày theo danh sách thành viên do HR xếp (cùng hình dạng với hợp đồng):
+// chỉ tính chương trình có ngày bao phủ ngày đó; nếu thuộc nhiều chương trình thì lấy chương trình xếp gần nhất.
+function findMembershipProgram(memberships, date) {
+  return findContractProgram(memberships, date);
+}
+
 // ---------- Lịch áp dụng ----------
 function describeTarget(type, value, ctx) {
   if (type === "DEFAULT") return "Mặc định";
@@ -215,12 +221,12 @@ function resolveScheduleFromContext(ctx, intern, date, programId = null) {
   return fallback ? { schedule: fallback, source: { type: "DEFAULT", value: "", label: "Mặc định" } } : null;
 }
 // Thực tập sinh có thuộc phạm vi (type, value) không? Dùng để xem trước số người bị ảnh hưởng.
-function internMatchesTarget(intern, contracts, type, value) {
+function internMatchesTarget(intern, memberships, type, value) {
   if (type === "DEFAULT") return true;
   if (type === "INTERN") return String(intern.id) === String(value);
   if (type === "UNIVERSITY") return intern.university === value;
   if (type === "MENTOR") return String(intern.mentorId) === String(value);
-  return contracts.some((c) => Number(c.internId) === Number(intern.id) && String(c.programId) === String(value));
+  return memberships.some((c) => Number(c.internId) === Number(intern.id) && String(c.programId) === String(value));
 }
 // Kế hoạch khi thêm một lần áp dụng mới cho cùng phạm vi: tự đóng lần đang mở bắt đầu trước đó,
 // và báo xung đột nếu khoảng ngày mới vẫn trùng với lần áp dụng khác.
@@ -247,11 +253,11 @@ async function resolveScheduleForIntern(internId, date) {
   if (!weeks.isValidDate(date)) throw new HttpError(400, "Ngày không hợp lệ!");
   const intern = await db.findInternProfileById(Number(internId));
   if (!intern) throw new HttpError(404, "Không tìm thấy thực tập sinh!");
-  const [contracts, ctx] = await Promise.all([
-    db.listConfirmedContractsForInterns([intern.id]),
+  const [memberships, ctx] = await Promise.all([
+    db.listProgramMembershipsForInterns([intern.id]),
     db.loadWorkScheduleContext(),
   ]);
-  const resolved = resolveScheduleFromContext(ctx, intern, date, findContractProgram(contracts, date));
+  const resolved = resolveScheduleFromContext(ctx, intern, date, findMembershipProgram(memberships, date));
   if (!resolved) throw new HttpError(404, "Chưa có lịch làm việc mặc định!");
   return resolved;
 }
@@ -268,6 +274,7 @@ module.exports = {
   evaluateAttendance,
   contractCovers,
   findContractProgram,
+  findMembershipProgram,
   describeTarget,
   resolveScheduleFromContext,
   internMatchesTarget,

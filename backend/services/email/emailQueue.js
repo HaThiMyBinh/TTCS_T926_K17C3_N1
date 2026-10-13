@@ -97,6 +97,25 @@ class EmailQueue extends EventEmitter {
     });
   }
 
+  // Báo HR có đơn nghỉ phép mới: gửi ngay, không ghi email_logs, không retry; lỗi ném ra cho service tự xử lý
+  async sendLeaveNotificationEmail({ to, intern, leave }) {
+    const config = smtpConfig.readConfig();
+    if (!smtpConfig.isConfigured(config)) {
+      const err = new Error("Chưa cấu hình SMTP đầy đủ!");
+      err.classification = "PERMANENT";
+      throw err;
+    }
+    const built = templates.renderLeaveRequestEmail({ intern, leave });
+    const transporter = emailSender.buildTransporter(config);
+    await emailSender.sendViaTransporter(transporter, {
+      from: formatFrom(config),
+      to,
+      subject: built.subject,
+      html: built.html,
+      text: built.text,
+    });
+  }
+
   // Gọi 1 lần khi khởi động: nạp lại các log PENDING/RETRYING bị dang dở do server tắt/crash
   async loadPendingJobsFromDb() {
     const rows = await db.listPendingOrRetryingEmailLogs();

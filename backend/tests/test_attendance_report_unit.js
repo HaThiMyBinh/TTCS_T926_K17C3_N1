@@ -43,6 +43,11 @@ const contracts = [
   { id: 1, internId: 1, programId: 3, startDate: "2026-09-01", endDate: "2026-12-31", confirmedAt: "2026-08-20 00:00:00" },
   { id: 2, internId: 2, programId: 4, startDate: null, endDate: "2026-09-09", confirmedAt: "2026-08-21 00:00:00" }, // thiếu ngày bắt đầu
 ];
+// Thành viên chương trình do HR xếp (ngày = ngày của chương trình).
+const memberships = [
+  { id: 1, internId: 1, programId: 3, startDate: "2026-09-01", endDate: "2026-12-31", confirmedAt: "2026-08-20 00:00:00" },
+  { id: 2, internId: 2, programId: 4, startDate: null, endDate: "2026-09-09", confirmedAt: "2026-08-21 00:00:00" },
+];
 const rec = (internId, date, inAt, outAt, minutes) => ({
   internId, workDate: date, checkInAt: `${date} ${inAt}`, checkOutAt: outAt && `${date} ${outAt}`, durationMinutes: minutes, isAdjusted: 0,
 });
@@ -62,6 +67,7 @@ const reportDb = {
   getAllStudents: async () => [internA, internB],
   findInternProfileById: async (id) => [internA, internB].find((i) => i.id === id) || null,
   listConfirmedContractsForInterns: async (ids) => contracts.filter((c) => ids.includes(c.internId)),
+  listProgramMembershipsForInterns: async (ids) => memberships.filter((m) => ids.includes(m.internId)),
   listAttendanceForInterns: async (ids, from, to) => records.filter((r) => ids.includes(r.internId) && inRange(r.workDate, from, to)),
   listLeavesForInterns: async (ids) => leaveRows.filter((l) => ids.includes(l.internId)),
   loadWorkScheduleContext: async () => ctx,
@@ -168,7 +174,7 @@ const leaveDb = (over = {}) => ({
 const body = (o = {}) => ({ leave_type: "SICK", from_date: addDays(today, 2), to_date: addDays(today, 3), reason: "Ốm", ...o });
 test("leaves.submit: đơn hợp lệ (kể cả hợp đồng thiếu ngày)", async () => {
   useDb(leaveDb());
-  assert.deepEqual(await leaves.submit(user, body()), { id: 99 });
+  assert.deepEqual(await leaves.submit(user, body()), { id: 99, hrNotified: 0 });
   assert.equal(calls.pop().internId, 1);
 });
 test("leaves.submit: các trường hợp bị từ chối", async () => {
@@ -179,7 +185,7 @@ test("leaves.submit: các trường hợp bị từ chối", async () => {
   await throwsStatus(leaves.submit(user, { ...body(), extra: 1 }), 400, "trường lạ");
   await throwsStatus(leaves.submit(user, body({ to_date: addDays(today, 40) })), 400, "quá 30 ngày");
   await throwsStatus(leaves.submit(user, body({ from_date: addDays(today, -8), to_date: addDays(today, -7) })), 400, "nộp bù quá 7 ngày");
-  assert.deepEqual(await leaves.submit(user, body({ from_date: addDays(today, -7), to_date: addDays(today, -7) })), { id: 99 });
+  assert.deepEqual(await leaves.submit(user, body({ from_date: addDays(today, -7), to_date: addDays(today, -7) })), { id: 99, hrNotified: 0 });
   calls.pop();
   useDb(leaveDb({ listConfirmedContractsForInterns: async () => [{ id: 1, internId: 1, startDate: null, endDate: addDays(today, 2) }] }));
   await throwsStatus(leaves.submit(user, body()), 409, "ngoài hợp đồng");
@@ -188,10 +194,100 @@ test("leaves.submit: các trường hợp bị từ chối", async () => {
   useDb(leaveDb({ listLeaves: async () => [{ status: "PENDING" }] }));
   await throwsStatus(leaves.submit(user, body()), 409, "chồng đơn");
   useDb(leaveDb({ listLeaves: async () => [{ status: "REJECTED" }, { status: "CANCELLED" }] }));
-  assert.deepEqual(await leaves.submit(user, body()), { id: 99 }); // đơn bị từ chối/hủy không tính là chồng
+  assert.deepEqual(await leaves.submit(user, body()), { id: 99, hrNotified: 0 }); // đơn bị từ chối/hủy không tính là chồng
   calls.pop();
   useDb(leaveDb({ findInternProfileByEmail: async () => null }));
   await throwsStatus(leaves.submit(user, body()), 404, "chưa có hồ sơ");
+});
+test("leaves.submit: báo HR bằng email, lỗi gửi không làm hỏng đơn", async () => {
+  const emailQueue = require("../services/email/emailQueue");
+  const original = emailQueue.sendLeaveNotificationEmail;
+  const sent = [];
+  try {
+    emailQueue.sendLeaveNotificationEmail = async ({ to, intern, leave }) => {
+      if (to === "bad@hr.vn") throw new Error("smtp lỗi");
+      sent.push({ to, name: intern.fullName, from: leave.fromDate });
+    };
+    useDb(leaveDb({ listActiveHrEmails: async () => ["hr1@x.vn", "bad@hr.vn", "hr2@x.vn"] }));
+    const res = await leaves.submit(user, body());
+    calls.pop();
+    assert.equal(res.id, 99);
+    assert.equal(res.hrNotified, 2); // 1 địa chỉ lỗi vẫn không chặn đơn
+    assert.deepEqual(sent.map((s) => s.to), ["hr1@x.vn", "hr2@x.vn"]);
+    useDb(leaveDb({ listActiveHrEmails: async () => [] }));
+    assert.equal((await leaves.submit(user, body())).hrNotified, 0);
+    calls.pop();
+  } finally {
+    emailQueue.sendLeaveNotificationEmail = original;
+  }
+});
+test("templates.renderLeaveRequestEmail", () => {
+  const t = require("../services/email/templates");
+  const m = t.renderLeaveRequestEmail({ intern: { fullName: "An <b>" }, leave: { leaveType: "SICK", fromDate: "2026-10-12", toDate: "2026-10-13", reason: "Ốm & sốt" } });
+  assert.match(m.subject, /An <b> xin nghỉ 2026-10-12 – 2026-10-13/);
+  assert.ok(m.html.includes("An &lt;b&gt;") && m.html.includes("Ốm &amp; sốt")); // thoát HTML
+  assert.match(m.text, /2 ngày/);
+});
+test("thông báo chuông: nộp đơn báo HR + mentor, duyệt đơn báo thực tập sinh", async () => {
+  const pushed = [];
+  const base = {
+    listActiveHrUserIds: async () => [1, 2],
+    findMentorUserId: async () => 2, // trùng id HR vẫn chỉ nhận 1 thông báo (createNotifications loại trùng)
+    createNotifications: async (ids, n) => { pushed.push({ ids, n }); return ids.length; },
+  };
+  useDb(leaveDb(base));
+  await leaves.submit(user, body());
+  calls.pop();
+  assert.deepEqual(pushed[0].ids, [1, 2, 2]);
+  assert.equal(pushed[0].n.type, "LEAVE_SUBMITTED");
+  assert.equal(pushed[0].n.targetTab, "tab-staff-attendance");
+  assert.match(pushed[0].n.message, /xin nghỉ/);
+  // lỗi tạo thông báo không làm hỏng đơn
+  useDb(leaveDb({ ...base, createNotifications: async () => { throw new Error("db lỗi"); } }));
+  assert.equal((await leaves.submit(user, body())).id, 99);
+  calls.pop();
+  // duyệt / từ chối -> báo thực tập sinh
+  pushed.length = 0;
+  const lv = { id: 10, internId: 1, mentorId: 5, status: "PENDING", fromDate: "2026-10-12", toDate: "2026-10-12" };
+  const rv = { ...reviewDb(lv), ...base, findInternProfileById: async () => ({ id: 1, email: "an@x.vn" }), findUserByEmail: async () => ({ id: 77 }) };
+  useDb(rv);
+  await leaves.review(hr, "10", { decision: "APPROVED" });
+  await leaves.review(hr, "10", { decision: "REJECTED", note: "Trùng lịch" });
+  calls.length = 0;
+  assert.deepEqual(pushed.map((p) => [p.ids, p.n.type, p.n.targetTab]), [[[77], "LEAVE_APPROVED", "tab-my-leaves"], [[77], "LEAVE_REJECTED", "tab-my-leaves"]]);
+  assert.match(pushed[1].n.message, /Trùng lịch/);
+});
+test("notifications.service: list / đánh dấu đã đọc", async () => {
+  const ns = require("../services/notifications.service");
+  const seen = [];
+  useDb({
+    listNotifications: async (uid) => [{ id: 1, uid }], countUnreadNotifications: async () => 3,
+    markNotificationRead: async (id, uid) => { seen.push([id, uid]); return id === 5 ? 1 : 0; },
+    markAllNotificationsRead: async () => 4,
+  });
+  assert.deepEqual(await ns.list({ id: 9 }), { unread: 3, items: [{ id: 1, uid: 9 }] });
+  assert.equal(await ns.markRead({ id: 9 }, "5"), null);
+  assert.deepEqual(seen, [[5, 9]]); // luôn kèm id người dùng trong token
+  await throwsStatus(ns.markRead({ id: 9 }, "6"), 404, "của người khác / không tồn tại");
+  await throwsStatus(ns.markRead({ id: 9 }, "abc"), 400, "id sai");
+  assert.deepEqual(await ns.markAllRead({ id: 9 }), { updated: 4 });
+});
+test("chương trình lấy từ danh sách HR xếp, không phụ thuộc hợp đồng", async () => {
+  // Hợp đồng của An gắn chương trình 4 nhưng HR xếp An vào chương trình 3.
+  const swapped = [
+    { id: 1, internId: 1, programId: 3, startDate: null, endDate: null, confirmedAt: "2026-08-20 00:00:00" },
+    { id: 9, internId: 1, programId: 4, startDate: null, endDate: null, confirmedAt: "2026-09-01 00:00:00" }, // xếp sau -> thắng
+  ];
+  useDb({ ...reportDb, listConfirmedContractsForInterns: async () => [{ id: 1, internId: 1, programId: 4, startDate: "2026-09-01", endDate: "2026-12-31", confirmedAt: "2026-08-20 00:00:00" }], listProgramMembershipsForInterns: async (ids) => swapped.filter((m) => ids.includes(m.internId)) });
+  const q = { from: "2026-09-07", to: "2026-09-13" };
+  const byName = async (extra) => (await report.report({ ...q, ...extra })).interns.map((i) => i.intern.fullName);
+  assert.deepEqual(await byName({ scope_type: "PROGRAM", scope_value: "3" }), ["An"], "thuộc nhiều chương trình vẫn lọc được");
+  assert.deepEqual(await byName({ scope_type: "PROGRAM", scope_value: "4" }), ["An"]);
+  assert.equal((await report.report(q)).interns[0].intern.programName, "Thu 2026", "lấy chương trình xếp gần nhất");
+  // Không được xếp vào chương trình nào -> không còn tính theo hợp đồng
+  useDb({ ...reportDb, listProgramMembershipsForInterns: async () => [] });
+  assert.deepEqual(await byName({ scope_type: "PROGRAM", scope_value: "3" }), []);
+  assert.equal((await report.report(q)).interns[0].intern.programName, null);
 });
 test("leaves.cancel", async () => {
   useDb(leaveDb({ cancelLeave: async (id, internId, d) => (id === 5 && internId === 1 && d === today ? 1 : 0) }));
@@ -302,6 +398,10 @@ test("workSchedules.preview/resolved", async () => {
     listConfirmedContractsForInterns: async () => [
       { id: 1, internId: 1, programId: 4, startDate: null, endDate: null, confirmedAt: "2026-01-01" },
       { id: 2, internId: 2, programId: 4, startDate: null, endDate: "2000-01-01", confirmedAt: "2026-01-01" }, // đã kết thúc
+    ],
+    listProgramMembershipsForInterns: async () => [
+      { id: 1, internId: 1, programId: 4, startDate: null, endDate: null, confirmedAt: "2026-01-01" },
+      { id: 2, internId: 2, programId: 4, startDate: null, endDate: null, confirmedAt: "2026-01-01" },
     ],
     loadWorkScheduleContext: async () => ctx,
   });
