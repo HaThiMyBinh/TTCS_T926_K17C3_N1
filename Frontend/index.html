@@ -98,6 +98,85 @@
         color: var(--slate-600);
       }
 
+      /* THANH LỌC (nhãn nhỏ phía trên ô nhập) + CHIP TỔNG HỢP */
+      .filter-bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-bottom: 16px; }
+      .filter-field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--slate-600); }
+      .filter-field input, .filter-field select { height: 40px; min-width: 150px; padding: 0 12px; border: 1px solid var(--slate-300); border-radius: 8px; background: #fff; font-size: 13.5px; font-weight: 400; color: var(--slate-800); font-family: inherit; outline: none; }
+      .filter-field select { min-width: 220px; }
+      .filter-field input:focus, .filter-field select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(3, 42, 184, 0.15); }
+      .filter-bar .btn { height: 40px; padding: 0 18px; }
+      .summary-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+      .summary-chip { display: flex; flex-direction: column; gap: 2px; min-width: 120px; padding: 10px 14px; border: 1px solid var(--slate-200); border-radius: 10px; background: var(--slate-50); }
+      .summary-chip small { font-size: 11.5px; color: var(--slate-600); }
+      .summary-chip strong { font-size: 16px; color: var(--slate-800); }
+      .summary-chip.warn { background: #fef3c7; border-color: #fde68a; }
+      .summary-chip.warn strong { color: #92400e; }
+
+      /* THẺ CHẤM CÔNG HÔM NAY: cỡ chữ thống nhất, thông tin dạng ô */
+      .att-schedule { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 10px 14px; margin-bottom: 16px; background: var(--primary-light); border-radius: 10px; font-size: 13.5px; color: var(--slate-800); }
+      .att-schedule:empty { display: none; }
+      .att-schedule i { color: var(--primary); }
+      .att-schedule .att-schedule-note { flex-basis: 100%; color: var(--slate-600); font-size: 12.5px; }
+      .att-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+      .att-cell { padding: 10px 14px; border: 1px solid var(--slate-200); border-radius: 10px; background: var(--slate-50); }
+      .att-cell small { display: block; font-size: 12px; color: var(--slate-600); margin-bottom: 2px; }
+      .att-cell strong { font-size: 15px; color: var(--slate-800); }
+      .att-note { margin-bottom: 4px; }
+      .att-note textarea { min-height: 64px; }
+      .att-note small { align-self: flex-end; font-size: 12px; color: var(--slate-600); }
+
+      /* KHỐI LƯỢNG MENTOR */
+      .load-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+      .load-badge.high { background: #fee2e2; color: #b91c1c; }
+      .load-badge.low { background: #fef3c7; color: #92400e; }
+      .load-badge.ok { background: #dcfce7; color: #166534; }
+
+      /* BẢNG CHƯƠNG TRÌNH: cột gọn, nút thao tác một hàng */
+      .programs-table { min-width: 960px; }
+      .programs-table th:nth-child(1) { width: 20%; }
+      .programs-table th:nth-child(2) { width: 15%; }
+      .programs-table th:nth-child(3) { width: 24%; }
+      .programs-table th:nth-child(4), .programs-table th:nth-child(5) { width: 8%; }
+      .programs-table td:first-child { font-weight: 600; color: var(--slate-800); }
+      .programs-table .program-time-badge { display: table; margin: 6px 0 0; }
+      .programs-table .program-period { white-space: nowrap; }
+      .program-actions { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+      .btn-soft, .btn-soft-gray, .btn-soft-danger { border: 0; cursor: pointer; border-radius: 8px; font-weight: 600; }
+      .btn-soft { background: var(--primary-light, #e0e7ff); color: var(--primary); }
+      .btn-soft:hover { background: #c7d2fe; }
+      .btn-soft-gray { background: var(--slate-100); color: var(--slate-700); }
+      .btn-soft-gray:hover { background: var(--slate-200); }
+      .btn-soft-danger { background: #fee2e2; color: #b91c1c; }
+      .btn-soft-danger:hover { background: #fecaca; }
+
+      /* TRANG BÁO CÁO & THỐNG KÊ: các nút mở báo cáo */
+      .report-hub { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px; }
+      .report-hub-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 18px 20px; border: 1px solid var(--slate-200); border-radius: 12px; background: #fff; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
+      .report-hub-card:hover { border-color: var(--primary); box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12); transform: translateY(-1px); }
+      .report-hub-card i { font-size: 22px; color: var(--primary); }
+      .report-hub-card strong { font-size: 15px; color: var(--slate-900, #0f172a); }
+      .report-hub-card span { font-size: 13px; color: var(--slate-600); }
+      .report-back { margin-bottom: 12px; }
+
+      /* CHUÔNG THÔNG BÁO */
+      .notif-bell { position: relative; }
+      .notif-trigger { position: relative; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--slate-200); background: #fff; color: var(--slate-600); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+      .notif-trigger:hover { border-color: var(--primary); color: var(--primary); }
+      .notif-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; display: none; }
+      .notif-badge.show { display: block; }
+      .notif-dropdown { position: absolute; right: 0; top: 48px; width: 360px; max-width: 92vw; background: #fff; border: 1px solid var(--slate-200); border-radius: 12px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18); display: none; z-index: 1000; overflow: hidden; }
+      .notif-dropdown.open { display: block; }
+      .notif-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--slate-200); font-weight: 700; }
+      .notif-head button { border: 0; background: none; color: var(--primary); cursor: pointer; font-size: 12.5px; }
+      .notif-list { max-height: 380px; overflow-y: auto; }
+      .notif-item { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--slate-100); background: #fff; padding: 12px 16px; cursor: pointer; }
+      .notif-item:hover { background: var(--slate-100); }
+      .notif-item.unread { background: #eff6ff; }
+      .notif-item strong { display: block; font-size: 13.5px; }
+      .notif-item span { display: block; font-size: 13px; color: var(--slate-600); margin-top: 2px; }
+      .notif-item small { display: block; font-size: 11.5px; color: var(--slate-600); margin-top: 4px; }
+      .notif-empty { padding: 24px 16px; text-align: center; color: var(--slate-600); font-size: 13.5px; }
+
       /* MENU TÀI KHOẢN NGƯỜI DÙNG (Avatar + Dropdown) */
       .user-menu {
         position: relative;
@@ -1840,6 +1919,17 @@
             <i class="fa-solid fa-paper-plane"></i> Form Ứng Tuyển Online
           </a>
 
+          <!-- CHUÔNG THÔNG BÁO -->
+          <div class="notif-bell" id="notifBell">
+            <button class="notif-trigger" onclick="toggleNotifications(event)" aria-label="Thông báo" title="Thông báo">
+              <i class="fa-regular fa-bell"></i><span class="notif-badge" id="notifBadge">0</span>
+            </button>
+            <div class="notif-dropdown" id="notifDropdown">
+              <div class="notif-head"><span>Thông báo</span><button onclick="markAllNotificationsRead()">Đọc tất cả</button></div>
+              <div class="notif-list" id="notifList"><div class="notif-empty">Đang tải...</div></div>
+            </div>
+          </div>
+
           <!-- MENU TÀI KHOẢN NGƯỜI DÙNG -->
           <div class="user-menu" id="userMenu">
             <button class="user-menu-trigger" onclick="toggleUserMenu(event)">
@@ -2810,16 +2900,23 @@
         <!-- CHẤM CÔNG (INTERN) -->
         <div id="tab-my-attendance" class="tab-pane" style="display:none">
           <div class="card"><div class="card-header"><h3><i class="fa-solid fa-clock text-primary"></i> Chấm công hôm nay</h3></div>
-            <div class="card-body"><p id="attendanceSchedule" class="fr-hint" aria-live="polite"></p><div id="attendanceState" aria-live="polite">Đang tải...</div>
-              <label for="attendanceNote">Ghi chú khi check-in (không bắt buộc)</label>
-              <textarea id="attendanceNote" maxlength="255" oninput="document.getElementById('attendanceNoteCount').innerText=this.value.length+'/255'"></textarea><small id="attendanceNoteCount">0/255</small>
+            <div class="card-body"><div id="attendanceSchedule" class="att-schedule" aria-live="polite"></div><div id="attendanceState" aria-live="polite">Đang tải...</div>
+              <div class="fr-field att-note">
+                <label for="attendanceNote">Ghi chú khi check-in <span class="fr-hint">(không bắt buộc)</span></label>
+                <textarea id="attendanceNote" maxlength="255" oninput="document.getElementById('attendanceNoteCount').innerText=this.value.length+'/255'"></textarea>
+                <small id="attendanceNoteCount">0/255</small>
+              </div>
               <p id="attendanceReason" class="text-danger"></p><button id="attendanceAction" class="btn btn-primary attendance-action" onclick="submitAttendance()" disabled>Đang tải...</button>
               <p id="attendanceError" class="text-danger" role="alert"></p>
             </div>
           </div>
           <div class="card"><div class="card-header"><h3>Lịch sử chấm công</h3></div><div class="card-body">
-            <label>Từ ngày <input type="date" id="attendanceFrom"></label><label>Đến ngày <input type="date" id="attendanceTo"></label>
-            <button class="btn btn-sm btn-primary" onclick="loadAttendanceHistory()">Xem lịch sử</button><div id="attendanceSummary"></div><div id="attendanceHistory">Đang tải...</div>
+            <div class="filter-bar">
+              <label class="filter-field">Từ ngày <input type="date" id="attendanceFrom"></label>
+              <label class="filter-field">Đến ngày <input type="date" id="attendanceTo"></label>
+              <button class="btn btn-primary" onclick="loadAttendanceHistory()">Xem lịch sử</button>
+            </div>
+            <div id="attendanceSummary" class="summary-chips"></div><div id="attendanceHistory">Đang tải...</div>
             <div id="attendanceCorrectionForm" style="display:none;margin-top:12px">
               <h4>Bổ sung giờ check-out ngày <span id="acDate"></span></h4>
               <label for="acCheckOut">Giờ check-out thực tế <input type="datetime-local" id="acCheckOut"></label>
@@ -2844,15 +2941,19 @@
             <div class="card-body"><p id="saError" class="text-danger" role="alert"></p><div id="saPending">Đang tải...</div></div>
           </div>
           <div class="card"><div class="card-header"><h3>Lịch sử chấm công theo thực tập sinh</h3></div><div class="card-body">
-            <label>Thực tập sinh <select id="saIntern"></select></label>
-            <label>Từ ngày <input type="date" id="saFrom"></label><label>Đến ngày <input type="date" id="saTo"></label>
-            <button class="btn btn-sm btn-primary" onclick="loadStaffAttendanceHistory()">Xem chấm công</button>
-            <div id="saSummary"></div><div id="saHistory"></div>
+            <div class="filter-bar">
+              <label class="filter-field">Thực tập sinh <select id="saIntern"></select></label>
+              <label class="filter-field">Từ ngày <input type="date" id="saFrom"></label>
+              <label class="filter-field">Đến ngày <input type="date" id="saTo"></label>
+              <button class="btn btn-primary" onclick="loadStaffAttendanceHistory()">Xem chấm công</button>
+            </div>
+            <div id="saSummary" class="summary-chips"></div><div id="saHistory"></div>
           </div></div>
         </div>
 
         <!-- BÁO CÁO CUỐI KỲ (HR) -->
         <div id="tab-final-reports" class="tab-pane" style="display:none">
+          <div class="report-back"><button class="btn btn-secondary btn-sm" onclick="switchTab('tab-reports')"><i class="fa-solid fa-arrow-left"></i> Báo cáo &amp; Thống kê</button></div>
           <div class="card"><div class="card-header"><h3><i class="fa-solid fa-file-lines text-primary"></i> Báo cáo cuối kỳ</h3><button class="btn btn-primary" onclick="showFinalReportForm()">Tạo báo cáo mới</button></div>
             <div class="card-body"><div id="finalReportError" class="text-danger" role="alert"></div><div id="finalReportList">Đang tải...</div></div>
           </div>
@@ -2874,6 +2975,7 @@
 
         <!-- NỘP BÁO CÁO TUẦN (INTERN) -->
         <div id="tab-attendance-report" class="tab-pane" style="display:none">
+          <div class="report-back"><button class="btn btn-secondary btn-sm" onclick="switchTab('tab-reports')"><i class="fa-solid fa-arrow-left"></i> Báo cáo &amp; Thống kê</button></div>
           <div class="card"><div class="card-header"><h3><i class="fa-solid fa-chart-column text-primary"></i> Báo cáo chuyên cần</h3></div>
             <div class="card-body">
               <div class="fr-form-grid">
@@ -2946,7 +3048,7 @@
               <label class="fr-field"><span>Đến ngày</span><input id="lvTo" type="date"></label>
               <label class="fr-field fr-span-2"><span>Lý do <span class="fr-req">*</span></span><textarea id="lvReason" maxlength="500" placeholder="Tối đa 500 ký tự" oninput="document.getElementById('lvReasonCount').innerText=this.value.length+'/500'"></textarea><small id="lvReasonCount" class="fr-hint">0/500</small></label>
             </div>
-            <p class="fr-hint">Mỗi đơn tối đa 30 ngày, nằm trong thời gian hợp đồng, nộp bù được tối đa 7 ngày và không áp dụng cho ngày đã chấm công. Đơn được HR hoặc mentor phụ trách duyệt.</p>
+            <p class="fr-hint">Mỗi đơn tối đa 30 ngày, nằm trong thời gian hợp đồng, nộp bù được tối đa 7 ngày và không áp dụng cho ngày đã chấm công. Đơn được gửi báo cho HR ngay khi nộp và do HR hoặc mentor phụ trách duyệt; hãy nộp trước ngày nghỉ.</p>
             <div id="lvError" class="text-danger" role="alert"></div>
             <div class="fr-actions"><button id="lvSubmit" class="btn btn-primary" onclick="submitLeave()">Gửi đơn nghỉ</button></div>
           </div></div>
@@ -3263,7 +3365,19 @@
 
         <!-- BÁO CÁO & THỐNG KÊ (HR & ADMIN) - số liệu thật từ GET /api/reports -->
         <div id="tab-reports" class="tab-pane" style="display: none">
-          <div class="card">
+          <div id="reportsHub" class="report-hub" style="display: none">
+            <button class="report-hub-card" onclick="switchTab('tab-final-reports')">
+              <i class="fa-solid fa-file-lines"></i>
+              <strong>Báo cáo cuối kỳ</strong>
+              <span>Tổng hợp đánh giá và xuất báo cáo gửi nhà trường</span>
+            </button>
+            <button class="report-hub-card" onclick="switchTab('tab-attendance-report')">
+              <i class="fa-solid fa-chart-column"></i>
+              <strong>Báo cáo chuyên cần</strong>
+              <span>Tổng hợp đi làm, nghỉ phép và vắng mặt</span>
+            </button>
+          </div>
+          <div class="card" id="reportsOverviewCard">
             <div class="card-header">
               <h3>
                 <i class="fa-solid fa-chart-line text-primary"></i> Báo Cáo &
@@ -4342,7 +4456,7 @@
             </button>
           </div>
           <div class="program-table-responsive">
-            <table class="table">
+            <table class="table programs-table">
               <thead>
                 <tr>
                   <th>Tên</th>
@@ -4783,6 +4897,87 @@
     </div>
 
     <div
+      id="mentorInternsModal"
+      class="modal-overlay"
+      style="display: none"
+      onclick="if (event.target === this) mentorInternsClose();"
+    >
+      <div class="modal-box program-modal" style="max-width: 860px; width: 94%; max-height: 92vh; overflow: auto">
+        <div class="modal-header">
+          <h3 id="miTitle">Thực tập sinh của mentor</h3>
+          <button class="btn-close" onclick="mentorInternsClose()">×</button>
+        </div>
+        <div style="padding: 16px 20px">
+          <div class="table-container" style="max-height: 280px; overflow: auto">
+            <table>
+              <thead><tr><th>Thực tập sinh</th><th>Trường</th><th>Trạng thái</th><th></th></tr></thead>
+              <tbody id="miRows"><tr><td colspan="4">Đang tải...</td></tr></tbody>
+            </table>
+          </div>
+          <details id="miAddBox" style="margin-top: 14px; border: 1px solid var(--slate-200); border-radius: 10px; padding: 10px 14px">
+            <summary style="cursor: pointer; font-weight: 600">Thêm / chuyển thực tập sinh sang mentor này</summary>
+            <p class="fr-hint" style="margin: 8px 0">Người đang thuộc mentor khác sẽ được chuyển sang mentor này.</p>
+            <input id="miSearch" class="form-control" placeholder="Tìm theo tên, MSSV hoặc trường..." oninput="mentorInternsRenderAvailable()" style="margin-bottom: 8px" />
+            <div class="table-container" style="max-height: 220px; overflow: auto">
+              <table><tbody id="miAvailable"><tr><td>Đang tải...</td></tr></tbody></table>
+            </div>
+            <div style="text-align: right; margin-top: 8px"><button class="btn btn-primary btn-sm" onclick="mentorInternsAdd()">Gán cho mentor này</button></div>
+          </details>
+          <p id="miError" class="text-danger" role="alert" style="margin: 10px 0 0"></p>
+          <div style="display: flex; justify-content: flex-end; margin-top: 12px"><button class="btn btn-secondary" onclick="mentorInternsClose()">Đóng</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="programMentorModal"
+      class="modal-overlay"
+      style="display: none"
+      onclick="if (event.target === this) programMentorClose();"
+    >
+      <div class="modal-box program-modal" style="max-width: 900px; width: 94%; max-height: 92vh; overflow: auto">
+        <div class="modal-header">
+          <h3 id="pmTitle">Thực tập sinh &amp; mentor của chương trình</h3>
+          <button class="btn-close" onclick="programMentorClose()">×</button>
+        </div>
+        <div style="padding: 16px 20px">
+          <details id="pmAddBox" style="margin-bottom: 14px; border: 1px solid var(--slate-200); border-radius: 10px; padding: 10px 14px">
+            <summary style="cursor: pointer; font-weight: 600">Thêm thực tập sinh vào chương trình</summary>
+            <p class="fr-hint" style="margin: 8px 0">HR chọn thực tập sinh đã có trong hệ thống để xếp vào chương trình này (không phụ thuộc hợp đồng).</p>
+            <input id="pmSearch" class="form-control" placeholder="Tìm theo tên, MSSV hoặc trường..." oninput="programMentorRenderAvailable()" style="margin-bottom: 8px" />
+            <div class="table-container" style="max-height: 200px; overflow: auto">
+              <table><tbody id="pmAvailable"><tr><td>Đang tải...</td></tr></tbody></table>
+            </div>
+            <div style="text-align: right; margin-top: 8px"><button id="pmAddBtn" class="btn btn-primary btn-sm" onclick="programMentorAdd()">Thêm vào chương trình</button></div>
+          </details>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px">
+            <label for="pmMentor" style="font-weight: 600">Mentor hướng dẫn:</label>
+            <select id="pmMentor" class="form-control" style="max-width: 320px" onchange="programMentorUpdateButton()"></select>
+          </div>
+          <div class="table-container" style="max-height: 320px; overflow: auto">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 36px"><input type="checkbox" id="pmAll" onchange="programMentorToggleAll(this.checked)" aria-label="Chọn tất cả" /></th>
+                  <th>Thực tập sinh</th>
+                  <th>Trường</th>
+                  <th>Mentor hiện tại</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="pmRows"><tr><td colspan="5">Đang tải...</td></tr></tbody>
+            </table>
+          </div>
+          <p id="pmError" class="text-danger" role="alert" style="margin: 10px 0 0"></p>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px">
+            <button class="btn btn-secondary" onclick="programMentorClose()">Đóng</button>
+            <button id="pmSubmit" class="btn btn-primary" onclick="programMentorSubmit()">Phân công</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
       id="programModal"
       class="modal-overlay"
       style="display: none"
@@ -4905,6 +5100,7 @@
         },
       ];
 
+      const REPORT_SUBTABS = ["tab-final-reports", "tab-attendance-report"];
       let currentRole = "Admin";
       let currentTab = "tab-users";
       let permissionsMap = {};
@@ -4977,6 +5173,7 @@
         document.getElementById("userNameShort").innerText = name;
         document.getElementById("userFullName").innerText = name;
         document.getElementById("userEmailText").innerText = email;
+        startNotificationPolling();
       }
 
       // Mở / đóng dropdown menu tài khoản
@@ -4995,6 +5192,8 @@
 
       // Đóng menu tài khoản khi click ra ngoài
       document.addEventListener("click", (e) => {
+        const bell = document.getElementById("notifBell");
+        if (bell && !bell.contains(e.target)) document.getElementById("notifDropdown").classList.remove("open");
         const menu = document.getElementById("userMenu");
         const dropdown = document.getElementById("userMenuDropdown");
         if (menu && dropdown && !menu.contains(e.target)) {
@@ -5027,6 +5226,7 @@
       }
 
       function hasPermissionForTab(tabId, role) {
+        if (tabId === "tab-reports" && role === "HR") return true; // trang chọn báo cáo luôn mở cho HR
         if (tabId === "tab-programs") return role === "HR" || role === "Admin";
         if (tabId === "tab-my-interns") return role === "Mentor";
         if (tabId === "tab-weekly-reports") return role === "Mentor";
@@ -5132,7 +5332,8 @@
             allowedCount++;
             const li = document.createElement("li");
             li.className = "nav-item";
-            const isActive = currentTab === item.tabId;
+            const isActive = currentTab === item.tabId ||
+              (item.tabId === "tab-reports" && currentRole === "HR" && REPORT_SUBTABS.includes(currentTab));
             li.innerHTML = `
             <a class="nav-link ${isActive ? "active" : ""}" onclick="switchTab('${item.tabId}')">
               <i class="fa-solid ${item.icon}"></i>
@@ -5156,7 +5357,7 @@
 
         // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh, Hợp đồng, Nhật ký Email
         if (currentRole === "HR") {
-          allowedCount += 6;
+          allowedCount += 4;
           const isCandidateActive = currentTab === "tab-candidates";
           const isMentorActive = currentTab === "tab-mentors";
           const isStudentActive = currentTab === "tab-students";
@@ -5213,15 +5414,15 @@
         `;
           menuEl.appendChild(liEmailLogs);
 
-          const liFinalReports = document.createElement("li");
-          liFinalReports.className = "nav-item";
-          liFinalReports.innerHTML = `<a class="nav-link ${currentTab === "tab-final-reports" ? "active" : ""}" onclick="switchTab('tab-final-reports')"><i class="fa-solid fa-file-lines"></i><span>Báo cáo cuối kỳ</span></a>`;
-          menuEl.appendChild(liFinalReports);
-
-          const liAttendanceReport = document.createElement("li");
-          liAttendanceReport.className = "nav-item";
-          liAttendanceReport.innerHTML = `<a class="nav-link ${currentTab === "tab-attendance-report" ? "active" : ""}" onclick="switchTab('tab-attendance-report')"><i class="fa-solid fa-chart-column"></i><span>Báo cáo chuyên cần</span></a>`;
-          menuEl.appendChild(liAttendanceReport);
+          // Báo cáo cuối kỳ / chuyên cần nằm trong trang "Báo cáo & Thống kê"; nếu HR bị thu quyền VIEW_REPORTS thì vẫn giữ lối vào.
+          if (!rolePerms.includes("VIEW_REPORTS")) {
+            allowedCount++;
+            const liReportsHub = document.createElement("li");
+            liReportsHub.className = "nav-item";
+            const hubActive = currentTab === "tab-reports" || REPORT_SUBTABS.includes(currentTab);
+            liReportsHub.innerHTML = `<a class="nav-link ${hubActive ? "active" : ""}" onclick="switchTab('tab-reports')"><i class="fa-solid fa-chart-line"></i><span>Báo cáo &amp; Thống kê</span></a>`;
+            menuEl.appendChild(liReportsHub);
+          }
 
           allowedCount++;
           const liStaffAttendanceHr = document.createElement("li");
@@ -5310,7 +5511,13 @@
           if (permDef) {
             document.getElementById("pageTitle").innerText = permDef.name;
             document.getElementById("pageSubtitle").innerText = "";
-            if (tabId === "tab-reports") loadReports();
+            if (tabId === "tab-reports") {
+              const isHr = currentRole === "HR";
+              const canSeeStats = getRolePermissions(currentRole).includes("VIEW_REPORTS");
+              document.getElementById("reportsHub").style.display = isHr ? "grid" : "none";
+              document.getElementById("reportsOverviewCard").style.display = canSeeStats ? "block" : "none";
+              if (canSeeStats) loadReports();
+            }
             if (tabId === "tab-tasks") loadTasksTab();
             if (tabId === "tab-submissions") {
               document.getElementById("pageSubtitle").innerText =
@@ -6196,6 +6403,7 @@
             <td>${escapeHtml(m.specialization || "N/A")}</td>
             <td align="center">
               <div class="action-group">
+                <button class="btn btn-sm btn-soft" onclick="mentorInternsOpen(${Number(m.id)}, ${escapeHtml(JSON.stringify(m.fullName))})" title="Thực tập sinh của mentor"><i class="fa-solid fa-user-group"></i> TTS (${Number(m.activeInterns || 0)})</button>
                 <button class="btn btn-sm btn-primary" onclick="editMentor(${m.id})" title="Chỉnh sửa">
                   <i class="fa-solid fa-pen"></i>
                 </button>
@@ -6712,7 +6920,7 @@
               mentor.department && mentor.department !== "Chưa cập nhật"
                 ? ` — ${mentor.department}`
                 : "";
-            return `<option value="${escapeHtml(id)}" ${id === currentId ? "selected" : ""}>${escapeHtml(mentor.fullName)}${escapeHtml(department)}</option>`;
+            return `<option value="${escapeHtml(id)}" ${id === currentId ? "selected" : ""}>${escapeHtml(mentor.fullName)}${escapeHtml(department)} · ${Number(mentor.activeInterns || 0)} TTS</option>`;
           })
           .join("");
         const legacyName =
@@ -6730,18 +6938,26 @@
         message.style.color = "#64748b";
         try {
           const mentorId = select.value === "" ? null : Number(select.value);
-          const res = await fetch(`${API_BASE}/interns/${studentId}/mentor`, {
-            method: "PUT",
-            headers: authHeaders({ "Content-Type": "application/json" }),
-            body: JSON.stringify({ mentor_id: mentorId }),
-          });
-          const data = await res.json();
+          const send = async (confirmed) => {
+            const r = await fetch(`${API_BASE}/interns/${studentId}/mentor`, {
+              method: "PUT",
+              headers: authHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify({ mentor_id: mentorId, ...(confirmed ? { confirm_warnings: true } : {}) }),
+            });
+            return { res: r, data: await r.json() };
+          };
+          let { res, data } = await send(false);
+          if (res.status === 409 && data.code === "NEEDS_CONFIRMATION") {
+            if (!confirmAssignmentWarnings(data.warnings)) throw new Error("Đã hủy phân công.");
+            ({ res, data } = await send(true));
+          }
           if (!res.ok)
             throw new Error(
               data.error || data.message || "Không thể cập nhật phân công.",
             );
           message.textContent = data.message || "Đã cập nhật phân công mentor.";
           message.style.color = "#047857";
+          await loadMentorsForSelect(); // cập nhật số TTS của từng mentor trong ô chọn
           await loadStudents();
         } catch (err) {
           select.value = previous;
@@ -10479,7 +10695,9 @@
         });
         const body = await response.json().catch(() => ({}));
         if (!response.ok || !body.success) {
-          throw new Error(body.message || "Yêu cầu thất bại!");
+          const err = new Error(body.message || "Yêu cầu thất bại!");
+          err.code = body.code; err.warnings = body.warnings;
+          throw err;
         }
         return body.data;
       }
@@ -10540,8 +10758,11 @@
 
       function programRenderRow(program, editable) {
         const actions = editable
-          ? `<button class="btn btn-sm btn-info" onclick="programEdit(${Number(program.id)})">Sửa</button>
-             <button class="btn btn-sm btn-danger" onclick="programDelete(${Number(program.id)})">Xóa</button>`
+          ? `<div class="program-actions">
+               <button class="btn btn-sm btn-soft" onclick="programMentorOpen(${Number(program.id)})"><i class="fa-solid fa-user-group"></i> Thực tập sinh &amp; mentor</button>
+               <button class="btn btn-sm btn-soft-gray" onclick="programEdit(${Number(program.id)})">Sửa</button>
+               <button class="btn btn-sm btn-soft-danger" onclick="programDelete(${Number(program.id)})">Xóa</button>
+             </div>`
           : "";
         const capacity =
           program.capacity == null ? "—" : Number(program.capacity);
@@ -10560,11 +10781,105 @@
         return `<tr>
           <td>${escapeHtml(program.name)}</td>
           <td>${escapeHtml(program.department_name)}</td>
-          <td>${period}<span class="program-time-badge">${escapeHtml(timeStateLabels[program.time_state] || program.time_state)}</span></td>
+          <td><span class="program-period">${period}</span><span class="program-time-badge">${escapeHtml(timeStateLabels[program.time_state] || program.time_state)}</span></td>
           <td>${capacity}</td>
           <td><span class="program-status">${escapeHtml(program.status)}</span></td>
           <td>${actions}</td>
         </tr>`;
+      }
+
+      // ---------- US12: HR xếp thực tập sinh vào chương trình và phân công mentor ----------
+      let pmProgramId = null, pmInterns = [], pmAvailable = [];
+      async function programMentorOpen(programId) {
+        pmProgramId = programId;
+        const program = programItems.find((p) => Number(p.id) === Number(programId));
+        document.getElementById("pmTitle").innerText = `Thực tập sinh & mentor – ${program ? program.name : ""}`;
+        setText("pmError", ""); document.getElementById("pmSearch").value = "";
+        document.getElementById("pmAddBox").open = false;
+        document.getElementById("programMentorModal").style.display = "flex";
+        try {
+          const mentorRes = await fetch(`${API_BASE}/mentors`, { headers: authHeaders() }).then((r) => r.json().catch(() => []));
+          const mentors = Array.isArray(mentorRes) ? mentorRes : [];
+          document.getElementById("pmMentor").innerHTML =
+            '<option value="">-- Gỡ mentor --</option>' +
+            mentors.map((m) => `<option value="${Number(m.id)}">${escapeHtml(m.fullName)}${m.department ? ` (${escapeHtml(m.department)})` : ""} · ${Number(m.activeInterns || 0)} TTS</option>`).join("");
+          document.getElementById("pmMentor").value = "";
+        } catch (err) { setText("pmError", err.message); }
+        await programMentorReload();
+      }
+      async function programMentorReload() {
+        document.getElementById("pmAll").checked = false;
+        try {
+          [pmInterns, pmAvailable] = await Promise.all([
+            programRequest(`/programs/${pmProgramId}/interns`),
+            programRequest(`/programs/${pmProgramId}/available-interns`),
+          ]);
+        } catch (err) { pmInterns = []; pmAvailable = []; setText("pmError", err.message); }
+        document.getElementById("pmRows").innerHTML = pmInterns.length
+          ? pmInterns.map((i) => `<tr><td><input type="checkbox" class="pm-check" value="${Number(i.id)}" onchange="programMentorUpdateButton()" aria-label="Chọn ${escapeHtml(i.fullName)}" /></td><td>${escapeHtml(i.fullName)}<span class="fr-sub">${escapeHtml(i.studentCode || "")}</span></td><td>${escapeHtml(i.university || "")}</td><td>${i.mentorName ? escapeHtml(i.mentorName) : "<em>Chưa phân công</em>"}</td><td><button class="btn btn-sm btn-danger" onclick="programMentorRemove(${Number(i.id)})">Gỡ khỏi CT</button></td></tr>`).join("")
+          : '<tr><td colspan="5">Chương trình chưa có thực tập sinh. Mở mục "Thêm thực tập sinh vào chương trình" ở trên để thêm.</td></tr>';
+        programMentorRenderAvailable();
+        programMentorUpdateButton();
+      }
+      function programMentorRenderAvailable() {
+        const q = document.getElementById("pmSearch").value.trim().toLocaleLowerCase("vi");
+        const rows = pmAvailable.filter((i) => !q || [i.fullName, i.studentCode, i.university].some((v) => String(v || "").toLocaleLowerCase("vi").includes(q)));
+        document.getElementById("pmAvailable").innerHTML = rows.length
+          ? rows.map((i) => `<tr><td style="width:36px"><input type="checkbox" class="pm-add-check" value="${Number(i.id)}" aria-label="Chọn ${escapeHtml(i.fullName)}" /></td><td>${escapeHtml(i.fullName)}<span class="fr-sub">${escapeHtml(i.studentCode || "")}</span></td><td>${escapeHtml(i.university || "")}</td></tr>`).join("")
+          : "<tr><td>Không còn thực tập sinh nào để thêm.</td></tr>";
+      }
+      async function programMentorAdd() {
+        const ids = [...document.querySelectorAll("#pmAvailable .pm-add-check:checked")].map((c) => Number(c.value));
+        if (!ids.length) return setText("pmError", "Vui lòng chọn thực tập sinh cần thêm.");
+        setText("pmError", "");
+        try {
+          const r = await programRequest(`/programs/${pmProgramId}/interns`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ intern_ids: ids }) });
+          showToast(`Đã thêm ${r.added} thực tập sinh vào chương trình.`);
+          await programMentorReload();
+        } catch (err) { setText("pmError", err.message); }
+      }
+      async function programMentorRemove(internId) {
+        if (!confirm("Gỡ thực tập sinh này khỏi chương trình? (mentor của họ không bị thay đổi)")) return;
+        setText("pmError", "");
+        try {
+          await programRequest(`/programs/${pmProgramId}/interns/${internId}`, { method: "DELETE" });
+          await programMentorReload();
+        } catch (err) { setText("pmError", err.message); }
+      }
+      function programMentorClose() { document.getElementById("programMentorModal").style.display = "none"; }
+      function programMentorSelected() { return [...document.querySelectorAll("#pmRows .pm-check:checked")].map((c) => Number(c.value)); }
+      function programMentorToggleAll(checked) {
+        document.querySelectorAll("#pmRows .pm-check").forEach((c) => { c.checked = checked; });
+        programMentorUpdateButton();
+      }
+      function programMentorUpdateButton() {
+        const n = programMentorSelected().length, remove = !document.getElementById("pmMentor").value;
+        const btn = document.getElementById("pmSubmit");
+        btn.disabled = n === 0;
+        btn.innerText = n ? `${remove ? "Gỡ mentor" : "Phân công"} cho ${n} thực tập sinh` : "Chọn thực tập sinh";
+      }
+      async function programMentorSubmit() {
+        const ids = programMentorSelected(), mentorValue = document.getElementById("pmMentor").value;
+        if (!ids.length) return setText("pmError", "Vui lòng chọn ít nhất một thực tập sinh.");
+        if (!mentorValue && !confirm(`Gỡ mentor khỏi ${ids.length} thực tập sinh đã chọn?`)) return;
+        const btn = document.getElementById("pmSubmit"); btn.disabled = true; setText("pmError", "");
+        try {
+          const send = (confirmed) => programRequest(`/programs/${pmProgramId}/mentor`, {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mentor_id: mentorValue ? Number(mentorValue) : null, intern_ids: ids, ...(confirmed ? { confirm_warnings: true } : {}) }),
+          });
+          let result;
+          try { result = await send(false); }
+          catch (err) {
+            if (err.code !== "NEEDS_CONFIRMATION" || !confirmAssignmentWarnings(err.warnings)) throw err;
+            result = await send(true);
+          }
+          showToast(result.updated ? `Đã cập nhật mentor cho ${result.updated} thực tập sinh${result.unchanged ? ` (${result.unchanged} người không đổi)` : ""}.` : "Không có thay đổi nào.", result.updated ? "success" : "info");
+          await programMentorReload();
+        } catch (err) {
+          setText("pmError", err.message);
+          btn.disabled = false;
+        }
       }
 
       function programOpenModal(item = null) {
@@ -10768,7 +11083,9 @@
           CHECKED_OUT: "Đã hoàn thành hôm nay"
         }[d.status];
         const overnightNote = row && row.workDate !== d.workDate ? `<p class="text-danger">Bạn đang có ca làm việc bắt đầu ngày ${escapeHtml(row.workDate)} chưa check-out.</p>` : "";
-        state.innerHTML = `<p>Ngày làm việc: <strong>${escapeHtml(d.workDate)}</strong> · Giờ máy chủ: <strong id="attendanceClock">${escapeHtml(attendanceClockText())}</strong></p><p>Trạng thái: <strong>${statusText}</strong></p>${overnightNote}${row ? `<p>Check-in: ${escapeHtml(row.checkInAt ? String(row.checkInAt).slice(11, 16) : "—")} · Check-out: ${escapeHtml(row.checkOutAt ? String(row.checkOutAt).slice(11, 16) : "Chưa")}</p><p>Thời lượng: ${formatAttendanceMinutes(row.durationMinutes)}</p>` : ""}`;
+        const cell = (label, value, id) => `<div class="att-cell"><small>${label}</small><strong${id ? ` id="${id}"` : ""}>${value}</strong></div>`;
+        const hhmm = (v, empty) => escapeHtml(v ? String(v).slice(11, 16) : empty);
+        state.innerHTML = `<div class="att-grid">${cell("Ngày làm việc", escapeHtml(d.workDate))}${cell("Giờ máy chủ", escapeHtml(attendanceClockText()), "attendanceClock")}${cell("Trạng thái", statusText)}${row ? cell("Check-in", hhmm(row.checkInAt, "—")) + cell("Check-out", hhmm(row.checkOutAt, "Chưa")) + cell("Thời lượng", escapeHtml(formatAttendanceMinutes(row.durationMinutes))) : ""}</div>${overnightNote}`;
         document.getElementById("attendanceReason").innerText = d.reason || "";
         button.disabled = !(d.canCheckIn || d.canCheckOut);
         button.innerText = d.canCheckIn ? "Check-in" : d.canCheckOut ? "Check-out" : d.reason ? "Chưa đủ điều kiện" : "Đã hoàn thành hôm nay";
@@ -10805,13 +11122,21 @@
         }
         return "Đang làm";
       }
-      function attendanceSummaryText(s) { return `Tổng thời gian: ${formatAttendanceMinutes(s.totalMinutes)} · Số ngày làm: ${s.daysWorked} · Quên check-out: ${s.missingCheckoutDays} · Đã điều chỉnh: ${s.adjustedDays || 0} · Chờ duyệt: ${s.pendingCorrections || 0}`; }
+      function attendanceSummaryChips(s) {
+        const chip = (label, value, warn) => `<div class="summary-chip${warn ? " warn" : ""}"><small>${label}</small><strong>${value}</strong></div>`;
+        const missing = Number(s.missingCheckoutDays || 0), pending = Number(s.pendingCorrections || 0);
+        return chip("Tổng thời gian", escapeHtml(formatAttendanceMinutes(s.totalMinutes)))
+          + chip("Số ngày làm", Number(s.daysWorked || 0))
+          + chip("Quên check-out", missing, missing > 0)
+          + chip("Đã điều chỉnh", Number(s.adjustedDays || 0))
+          + chip("Chờ duyệt", pending, pending > 0);
+      }
       async function loadAttendanceHistory() {
         const from = document.getElementById("attendanceFrom").value, to = document.getElementById("attendanceTo").value; const box = document.getElementById("attendanceHistory"); box.innerText = "Đang tải lịch sử..."; const result = await wrRequest(`/me/attendance?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`); if (!result)
           return; if (!result.res.ok) {
             box.innerText = wrApiError(result, "Không tải được lịch sử.");
             return;
-          } const d = result.body.data; document.getElementById("attendanceSummary").innerText = attendanceSummaryText(d.summary); box.innerHTML = `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Check-in</th><th>Check-out</th><th>Thời lượng</th><th>Trạng thái</th><th>Ghi chú</th><th></th></tr></thead><tbody>${d.records.length ? d.records.map(r => `<tr><td>${escapeHtml(r.workDate)}</td><td>${escapeHtml(r.checkInAt ? String(r.checkInAt).slice(11, 16) : "—")}</td><td>${escapeHtml(r.checkOutAt ? String(r.checkOutAt).slice(11, 16) : "—")}</td><td>${formatAttendanceMinutes(r.durationMinutes)}</td><td>${escapeHtml(attendanceStatusText(r))}${r.correctionStatus === "PENDING" ? `<br><small>Đề nghị: ${escapeHtml(String(r.correctionCheckOutAt || "").slice(11, 16))} — ${escapeHtml(r.correctionReason || "")}</small>` : ""}</td><td>${escapeHtml(r.note || "")}</td><td>${r.canRequestCorrection ? `<button class="btn btn-sm btn-secondary" onclick="openAttendanceCorrection(${Number(r.id)},'${escapeHtml(r.workDate)}','${escapeHtml(String(r.checkInAt || "").slice(0, 16).replace(" ", "T"))}')">Bổ sung check-out</button>` : ""}</td></tr>`).join("") : `<tr><td colspan="7">Chưa có dữ liệu chấm công trong khoảng này.</td></tr>`}</tbody></table></div>`;
+          } const d = result.body.data; document.getElementById("attendanceSummary").innerHTML = attendanceSummaryChips(d.summary); box.innerHTML = `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Check-in</th><th>Check-out</th><th>Thời lượng</th><th>Trạng thái</th><th>Ghi chú</th><th></th></tr></thead><tbody>${d.records.length ? d.records.map(r => `<tr><td>${escapeHtml(r.workDate)}</td><td>${escapeHtml(r.checkInAt ? String(r.checkInAt).slice(11, 16) : "—")}</td><td>${escapeHtml(r.checkOutAt ? String(r.checkOutAt).slice(11, 16) : "—")}</td><td>${formatAttendanceMinutes(r.durationMinutes)}</td><td>${escapeHtml(attendanceStatusText(r))}${r.correctionStatus === "PENDING" ? `<br><small>Đề nghị: ${escapeHtml(String(r.correctionCheckOutAt || "").slice(11, 16))} — ${escapeHtml(r.correctionReason || "")}</small>` : ""}</td><td>${escapeHtml(r.note || "")}</td><td>${r.canRequestCorrection ? `<button class="btn btn-sm btn-secondary" onclick="openAttendanceCorrection(${Number(r.id)},'${escapeHtml(r.workDate)}','${escapeHtml(String(r.checkInAt || "").slice(0, 16).replace(" ", "T"))}')">Bổ sung check-out</button>` : ""}</td></tr>`).join("") : `<tr><td colspan="7">Chưa có dữ liệu chấm công trong khoảng này.</td></tr>`}</tbody></table></div>`;
       }
       let attendanceCorrectionId = null;
       function openAttendanceCorrection(id, workDate, checkInLocal) { attendanceCorrectionId = id; document.getElementById("acDate").innerText = workDate; const input = document.getElementById("acCheckOut"); input.min = checkInLocal; input.value = checkInLocal; document.getElementById("acReason").value = ""; document.getElementById("acError").innerText = ""; document.getElementById("attendanceCorrectionForm").style.display = "block"; }
@@ -10901,7 +11226,7 @@
           return;
         }
         const d = result.body.data;
-        document.getElementById("saSummary").innerText = attendanceSummaryText(d.summary);
+        document.getElementById("saSummary").innerHTML = attendanceSummaryChips(d.summary);
         box.innerHTML = `<div class="table-container"><table><thead><tr><th>Ngày</th><th>Check-in</th><th>Check-out</th><th>Thời lượng</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>${d.records.length ? d.records.map(r => `<tr><td>${escapeHtml(r.workDate)}</td><td>${escapeHtml(r.checkInAt ? String(r.checkInAt).slice(11, 16) : "—")}</td><td>${escapeHtml(r.checkOutAt ? String(r.checkOutAt).slice(11, 16) : "—")}</td><td>${formatAttendanceMinutes(r.durationMinutes)}</td><td>${escapeHtml(attendanceStatusText(r))}</td><td>${escapeHtml(r.note || "")}</td></tr>`).join("") : `<tr><td colspan="6">Chưa có dữ liệu chấm công trong khoảng này.</td></tr>`}</tbody></table></div>`;
       }
       let finalReportOptions = { universities: [], programs: [] };
@@ -11390,7 +11715,7 @@
       }
       function renderWorkScheduleList() {
         const edit = wsCanEdit();
-        document.getElementById("wsList").innerHTML = `<div class="table-container"><table><thead><tr><th>Tên lịch</th><th>Chế độ</th><th>Tóm tắt</th><th>Đang áp dụng</th>${edit ? "<th>Thao tác</th>" : ""}</tr></thead><tbody>${wsSchedules.map((s) => `<tr><td>${escapeHtml(s.name)}${s.id === 1 ? '<span class="fr-sub">Lịch mặc định của hệ thống</span>' : ""}${s.description ? `<span class="fr-sub">${escapeHtml(s.description)}</span>` : ""}</td><td>${s.mode === "FIXED" ? "Giờ cố định" : "Giờ linh hoạt"}</td><td>${escapeHtml(s.summary)}${s.mode === "FIXED" ? `<span class="fr-sub">Dung sai ${s.graceMinutes} phút</span>` : ""}</td><td>${s.assignmentCount} lần áp dụng</td>${edit ? `<td><div class="fr-row-actions"><button class="btn btn-sm btn-secondary" onclick="showWorkScheduleForm(${s.id})">Sửa</button>${s.id === 1 ? "" : `<button class="btn btn-sm btn-danger" onclick="deleteWorkSchedule(${s.id})">Xóa</button>`}</div></td>` : ""}</tr>`).join("")}</tbody></table></div>`;
+        document.getElementById("wsList").innerHTML = `<div class="table-container"><table><thead><tr><th>Tên lịch</th><th>Chế độ</th><th>Tóm tắt</th><th>Đang áp dụng</th>${edit ? "<th>Thao tác</th>" : ""}</tr></thead><tbody>${wsSchedules.map((s) => `<tr><td>${escapeHtml(s.name)}${s.id === 1 ? ' <span class="load-badge ok">Mặc định</span>' : ""}${s.description && !(s.id === 1 && s.description === "Lịch làm việc mặc định toàn hệ thống") ? `<span class="fr-sub">${escapeHtml(s.description)}</span>` : ""}</td><td>${s.mode === "FIXED" ? "Giờ cố định" : "Giờ linh hoạt"}</td><td>${escapeHtml(s.summary)}${s.mode === "FIXED" ? `<span class="fr-sub">Dung sai ${s.graceMinutes} phút</span>` : ""}</td><td>${s.assignmentCount} lần áp dụng</td>${edit ? `<td><div class="fr-row-actions"><button class="btn btn-sm btn-secondary" onclick="showWorkScheduleForm(${s.id})">Sửa</button>${s.id === 1 ? "" : `<button class="btn btn-sm btn-danger" onclick="deleteWorkSchedule(${s.id})">Xóa</button>`}</div></td>` : ""}</tr>`).join("")}</tbody></table></div>`;
       }
       function assignmentStatus(a, today) {
         if (a.effectiveFrom > today) return pill("Sắp áp dụng", "ar-b-pending");
@@ -11495,13 +11820,127 @@
 
       // ---------- Lịch của thực tập sinh trên tab Chấm công ----------
       async function loadAttendanceScheduleInfo() {
-        const el = document.getElementById("attendanceSchedule"); el.textContent = "";
+        const el = document.getElementById("attendanceSchedule"); el.innerHTML = "";
         const result = await wrRequest("/me/work-schedule"); if (!result || !result.res.ok) return;
         const d = result.body.data;
-        let text = `Lịch làm việc của bạn: ${d.schedule.summary} (theo: ${d.source.label}).`;
-        if (d.today.holiday) text += ` Hôm nay là ngày nghỉ chung (${d.today.holiday}); bạn vẫn có thể chấm công nếu làm việc.`;
-        else if (!d.today.rule.isWorkingDay) text += " Hôm nay là ngày nghỉ theo lịch; bạn vẫn có thể chấm công nếu làm việc.";
-        el.textContent = text;
+        let note = "";
+        if (d.today.holiday) note = `Hôm nay là ngày nghỉ chung (${d.today.holiday}); bạn vẫn có thể chấm công nếu làm việc.`;
+        else if (!d.today.rule.isWorkingDay) note = "Hôm nay là ngày nghỉ theo lịch; bạn vẫn có thể chấm công nếu làm việc.";
+        el.innerHTML = `<i class="fa-regular fa-calendar"></i><span>Lịch của bạn: <b>${escapeHtml(d.schedule.summary)}</b> · theo ${escapeHtml(d.source.label)}</span>${note ? `<span class="att-schedule-note">${escapeHtml(note)}</span>` : ""}`;
+      }
+
+      // ---------- US30: HR xem / gán thực tập sinh từ tab Quản lý mentor ----------
+      let miMentorId = null, miAvailable = [];
+      async function mentorInternsOpen(mentorId, name) {
+        miMentorId = mentorId;
+        document.getElementById("miTitle").innerText = `Thực tập sinh của ${name}`;
+        setText("miError", ""); document.getElementById("miSearch").value = "";
+        document.getElementById("miAddBox").open = false;
+        document.getElementById("mentorInternsModal").style.display = "flex";
+        await mentorInternsReload();
+      }
+      function mentorInternsClose() {
+        document.getElementById("mentorInternsModal").style.display = "none";
+        loadMentors();
+      }
+      async function mentorInternsReload() {
+        const [mine, avail] = await Promise.all([wrRequest(`/mentors/${miMentorId}/interns`), wrRequest(`/mentors/${miMentorId}/available-interns`)]);
+        if (!mine || !avail) return;
+        if (!mine.res.ok) return setText("miError", wrApiError(mine, "Không tải được danh sách thực tập sinh."));
+        miAvailable = avail.res.ok ? avail.body.data : [];
+        const rows = mine.body.data;
+        document.getElementById("miRows").innerHTML = rows.length
+          ? rows.map((i) => `<tr><td><b>${escapeHtml(i.fullName)}</b><span class="fr-sub">${escapeHtml(i.studentCode || "")}</span></td><td>${escapeHtml(i.university || "")}</td><td>${escapeHtml(i.status || "")}</td><td><button class="btn btn-sm btn-soft-danger" onclick="mentorInternsRemove(${Number(i.id)}, ${escapeHtml(JSON.stringify(i.fullName))})">Gỡ</button></td></tr>`).join("")
+          : '<tr><td colspan="4">Mentor này chưa phụ trách thực tập sinh nào.</td></tr>';
+        mentorInternsRenderAvailable();
+      }
+      function mentorInternsRenderAvailable() {
+        const q = document.getElementById("miSearch").value.trim().toLocaleLowerCase("vi");
+        const rows = miAvailable.filter((i) => !q || [i.fullName, i.studentCode, i.university].some((v) => String(v || "").toLocaleLowerCase("vi").includes(q)));
+        document.getElementById("miAvailable").innerHTML = rows.length
+          ? rows.map((i) => `<tr><td style="width:36px"><input type="checkbox" class="mi-check" value="${Number(i.id)}" aria-label="Chọn ${escapeHtml(i.fullName)}" /></td><td>${escapeHtml(i.fullName)}<span class="fr-sub">${escapeHtml(i.studentCode || "")}</span></td><td>${escapeHtml(i.university || "")}</td><td>${escapeHtml(i.status || "")}</td><td>${i.mentorName ? `Đang thuộc ${escapeHtml(i.mentorName)}` : "<em>Chưa có mentor</em>"}</td></tr>`).join("")
+          : "<tr><td>Không có thực tập sinh nào để gán.</td></tr>";
+      }
+      async function mentorInternsAdd() {
+        const ids = [...document.querySelectorAll("#miAvailable .mi-check:checked")].map((c) => Number(c.value));
+        if (!ids.length) return setText("miError", "Vui lòng chọn thực tập sinh cần gán.");
+        setText("miError", "");
+        const send = (confirmed) => wrRequest(`/mentors/${miMentorId}/interns`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intern_ids: ids, ...(confirmed ? { confirm_warnings: true } : {}) }),
+        });
+        let result = await send(false);
+        if (result && result.res.status === 409 && result.body.code === "NEEDS_CONFIRMATION") {
+          if (!confirmAssignmentWarnings(result.body.warnings)) return;
+          result = await send(true);
+        }
+        if (!result) return;
+        if (!result.res.ok) return setText("miError", wrApiError(result, "Không gán được thực tập sinh."));
+        const r = result.body.data;
+        showToast(`Đã gán ${r.updated} thực tập sinh cho mentor${r.unchanged ? ` (${r.unchanged} người không đổi)` : ""}.`);
+        await mentorInternsReload();
+      }
+      async function mentorInternsRemove(internId, name) {
+        if (!confirm(`Gỡ ${name} khỏi mentor này? Thực tập sinh sẽ trở về trạng thái chưa có mentor.`)) return;
+        setText("miError", "");
+        const result = await wrRequest(`/interns/${internId}/mentor`, {
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mentor_id: null }),
+        });
+        if (!result) return;
+        if (!result.res.ok) return setText("miError", wrApiError(result, "Không gỡ được thực tập sinh."));
+        await mentorInternsReload();
+      }
+
+      // Cảnh báo mềm khi phân công mentor (server trả 409 NEEDS_CONFIRMATION): hỏi HR rồi gửi lại với confirm_warnings.
+      function confirmAssignmentWarnings(warnings) {
+        return confirm("Cần lưu ý trước khi phân công:\n\n• " + (warnings || []).map((w) => w.message).join("\n• ") + "\n\nVẫn tiếp tục phân công?");
+      }
+
+      // ---------- Chuông thông báo ----------
+      let notifTimer = null, notifUnread = 0, notifFirstLoad = true;
+      function startNotificationPolling() {
+        if (notifTimer) return;
+        loadNotifications();
+        notifTimer = setInterval(() => { if (!document.hidden) loadNotifications(); }, 45000);
+      }
+      function notifTimeAgo(sql) {
+        const t = Date.parse(String(sql).replace(" ", "T") + "+07:00");
+        if (!t) return "";
+        const m = Math.max(0, Math.floor((Date.now() - t) / 60000));
+        if (m < 1) return "Vừa xong";
+        if (m < 60) return `${m} phút trước`;
+        if (m < 1440) return `${Math.floor(m / 60)} giờ trước`;
+        return `${Math.floor(m / 1440)} ngày trước`;
+      }
+      async function loadNotifications() {
+        const result = await wrRequest("/notifications"); if (!result || !result.res.ok) return;
+        const data = (result.body && result.body.data) || { unread: 0, items: [] };
+        if (!notifFirstLoad && data.unread > notifUnread) showToast("Bạn có thông báo mới.", "info");
+        notifFirstLoad = false; notifUnread = data.unread;
+        const badge = document.getElementById("notifBadge");
+        badge.innerText = data.unread > 99 ? "99+" : String(data.unread);
+        badge.classList.toggle("show", data.unread > 0);
+        const list = document.getElementById("notifList");
+        list.innerHTML = data.items.length
+          ? data.items.map((n) => `<button class="notif-item ${n.isRead ? "" : "unread"}" onclick="openNotification(${Number(n.id)}, '${escapeHtml(n.targetTab || "")}')"><strong>${escapeHtml(n.title)}</strong><span>${escapeHtml(n.message)}</span><small>${escapeHtml(notifTimeAgo(n.createdAt))}</small></button>`).join("")
+          : '<div class="notif-empty">Chưa có thông báo nào.</div>';
+      }
+      function toggleNotifications(event) {
+        event.stopPropagation();
+        document.getElementById("userMenuDropdown").classList.remove("open");
+        const dd = document.getElementById("notifDropdown");
+        dd.classList.toggle("open");
+        if (dd.classList.contains("open")) loadNotifications();
+      }
+      async function openNotification(id, tab) {
+        document.getElementById("notifDropdown").classList.remove("open");
+        await wrRequest(`/notifications/${id}/read`, { method: "POST" });
+        if (tab && document.getElementById(tab)) switchTab(tab);
+        loadNotifications();
+      }
+      async function markAllNotificationsRead() {
+        await wrRequest("/notifications/read-all", { method: "POST" });
+        loadNotifications();
       }
 
       // ---------- Nghỉ phép: thực tập sinh ----------
@@ -11531,6 +11970,8 @@
           const result = await wrRequest("/me/leaves", postJson({ leave_type: document.getElementById("lvType").value, from_date: from, to_date: to, reason })); if (!result) return;
           if (!result.res.ok) return setText("lvError", wrApiError(result, "Không gửi được đơn nghỉ."));
           document.getElementById("lvReason").value = ""; document.getElementById("lvReasonCount").innerText = "0/500";
+          const notified = result.body && result.body.data && result.body.data.hrNotified;
+          showToast(notified ? "Đã gửi đơn nghỉ và báo cho HR qua email." : "Đã gửi đơn nghỉ. HR sẽ thấy đơn trong danh sách chờ duyệt.");
           await loadMyLeaves();
         } finally { button.disabled = false; }
       }
