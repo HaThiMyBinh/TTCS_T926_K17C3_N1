@@ -659,7 +659,7 @@ async function initDatabase() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_attendance_intern_date (intern_id, work_date),
     INDEX idx_attendance_date (work_date),
-    CONSTRAINT fk_attendance_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE
+    CONSTRAINT fk_attendance_logs_intern_profile FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   // Phụ cấp của thực tập sinh (HR nhập): mỗi intern chỉ có 1 khoản cho mỗi (loại phụ cấp, kỳ).

@@ -1,11 +1,10 @@
-// Nghiệp vụ phụ cấp thực tập sinh: HR nhập khoản phụ cấp (loại, số tiền VND, kỳ/tháng, ghi chú).
-// Mỗi intern chỉ có 1 khoản cho mỗi (loại phụ cấp, kỳ); nhập trùng trả 409.
+// Nghiệp vụ phụ cấp thực tập sinh.
 const db = require("../db");
 const { HttpError } = require("../errors");
 
 const TYPE_MAX_LENGTH = 100;
 const NOTE_MAX_LENGTH = 500;
-const AMOUNT_MAX = 1_000_000_000_000; // 1.000 tỷ VND - chặn nhập nhầm quá lớn
+const AMOUNT_MAX = 1_000_000_000_000;
 const PERIOD_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 function parseId(rawId, label) {
@@ -22,15 +21,11 @@ function validateAllowanceType(value) {
   }
   const text = value.trim().replace(/\s+/g, " ");
   if (text.length > TYPE_MAX_LENGTH) {
-    throw new HttpError(
-      400,
-      `Loại phụ cấp tối đa ${TYPE_MAX_LENGTH} ký tự!`,
-    );
+    throw new HttpError(400, `Loại phụ cấp tối đa ${TYPE_MAX_LENGTH} ký tự!`);
   }
   return text;
 }
 
-// Chỉ nhận số thật (không nhận chuỗi "500000"), nguyên, > 0.
 function validateAmount(value) {
   if (value === undefined || value === null || value === "") {
     throw new HttpError(400, "Vui lòng nhập số tiền phụ cấp!");
@@ -50,16 +45,12 @@ function validateAmount(value) {
   return value;
 }
 
-// Kỳ/tháng dạng YYYY-MM (tháng 01-12).
 function validatePeriod(value) {
   if (value === undefined || value === null || value === "") {
     throw new HttpError(400, "Vui lòng nhập kỳ phụ cấp (YYYY-MM)!");
   }
   if (typeof value !== "string" || !PERIOD_REGEX.test(value.trim())) {
-    throw new HttpError(
-      400,
-      "Kỳ phụ cấp không hợp lệ, cần định dạng YYYY-MM (tháng 01-12)!",
-    );
+    throw new HttpError(400, "Kỳ phụ cấp không hợp lệ, cần định dạng YYYY-MM (tháng 01-12)!");
   }
   return value.trim();
 }
@@ -86,17 +77,14 @@ function toAllowanceDto(row) {
     period: row.period,
     note: row.note ?? null,
     created_by: row.createdBy == null ? null : Number(row.createdBy),
-    created_at:
-      row.createdAt instanceof Date
-        ? row.createdAt.toISOString()
-        : (row.createdAt ?? null),
+    created_at: row.createdAt instanceof Date
+      ? row.createdAt.toISOString()
+      : (row.createdAt ?? null),
   };
 }
 
-// Tạo khoản phụ cấp. Quyền HR được chặn ở route; service kiểm tra dữ liệu & trùng lặp.
 async function createAllowance(user, input) {
   const body = input && typeof input === "object" ? input : {};
-
   const internId = parseId(body.intern_id, "Mã thực tập sinh");
   const allowanceType = validateAllowanceType(body.allowance_type);
   const amount = validateAmount(body.amount);
@@ -104,9 +92,13 @@ async function createAllowance(user, input) {
   const note = validateNote(body.note);
 
   const intern = await db.findInternProfileById(internId);
-  if (!intern) throw new HttpError(404, "Không tìm thấy thực tập sinh!");
+  if (!intern) {
+    throw new HttpError(404, "Không tìm thấy thực tập sinh!");
+  }
 
-  const duplicateMessage = `Thực tập sinh đã có phụ cấp "${allowanceType}" trong kỳ ${period}!`;
+  const duplicateMessage =
+    `Thực tập sinh đã có phụ cấp "${allowanceType}" trong kỳ ${period}!`;
+
   if (await db.findInternAllowanceByKey(internId, allowanceType, period)) {
     throw new HttpError(409, duplicateMessage);
   }
@@ -119,10 +111,34 @@ async function createAllowance(user, input) {
     note,
     createdBy: user?.id ?? null,
   });
-  // Hai request cùng lúc: UNIQUE (intern_id, allowance_type, period) chặn request đến sau.
-  if (result.duplicate) throw new HttpError(409, duplicateMessage);
+
+  if (result.duplicate) {
+    throw new HttpError(409, duplicateMessage);
+  }
 
   return toAllowanceDto(result.allowance);
+}
+
+async function listMyAllowances(user, rawPeriod) {
+  if (!user || user.role !== "Intern") {
+    throw new HttpError(403, "Bạn không có quyền xem lịch sử phụ cấp!");
+  }
+  if (typeof user.email !== "string" || !user.email.trim()) {
+    throw new HttpError(401, "Không xác định được tài khoản đăng nhập!");
+  }
+
+  let period = null;
+  if (rawPeriod !== undefined && rawPeriod !== "") {
+    period = validatePeriod(rawPeriod);
+  }
+
+  const intern = await db.findInternProfileByEmail(user.email.trim());
+  if (!intern) {
+    throw new HttpError(404, "Không tìm thấy hồ sơ thực tập sinh tương ứng với tài khoản!");
+  }
+
+  const rows = await db.listInternAllowances(intern.id, { period });
+  return rows.map(toAllowanceDto);
 }
 
 module.exports = {
@@ -133,4 +149,5 @@ module.exports = {
   validateNote,
   toAllowanceDto,
   createAllowance,
+  listMyAllowances,
 };

@@ -31,4 +31,20 @@ async function createAllowance(req, res) {
   }
 }
 
-module.exports = { createAllowance };
+// Intern xem lịch sử phụ cấp của chính mình.
+async function listMyAllowances(req, res) {
+  try {
+    const data = await service.listMyAllowances(req.user, req.query.period);
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    return sendError(res, err);
+  }
+}
+
+module.exports = {
+  createAllowance,
+  listMyAllowances,
+};
