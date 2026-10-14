@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Intern - Chức Năng Sửa/Xóa - Task 1.7</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; background-color: #f4f6f9; min-height: 100vh; color: #333; }
+
+        /* Sidebar Navigation Menu */
+        .sidebar { width: 240px; background-color: #1e293b; color: white; padding: 20px 0; flex-shrink: 0; }
+        .sidebar h3 { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #334155; font-size: 18px; color: #38bdf8; }
+        .nav-menu { list-style: none; margin-top: 20px; }
+        .nav-menu li a { display: block; padding: 12px 20px; color: #94a3b8; text-decoration: none; font-weight: 500; transition: 0.2s; }
+        .nav-menu li a.active, .nav-menu li a:hover { background-color: #0f172a; color: #38bdf8; border-left: 4px solid #38bdf8; }
+
+        /* Main Content Area */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; }
+        .header h2 { font-size: 20px; color: #1e293b; }
+
+        /* Table & Action Buttons */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+        th { background-color: #f1f5f9; color: #475569; font-weight: 600; }
+
+        .btn-action { padding: 6px 12px; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-right: 4px; }
+        .btn-edit { background-color: #0284c7; color: white; }
+        .btn-edit:hover { background-color: #0369a1; }
+        .btn-delete { background-color: #ef4444; color: white; }
+        .btn-delete:hover { background-color: #dc2626; }
+
+        /* Modal Overlay */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal { background: #fff; width: 100%; max-width: 480px; border-radius: 10px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; }
+        .modal-header { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-close { cursor: pointer; font-size: 20px; color: #94a3b8; border: none; background: none; }
+
+        /* Form Controls */
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+        .form-group input, .form-group select { width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
+        .form-group input:focus, .form-group select:focus { border-color: #0284c7; }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-cancel { padding: 8px 16px; background: #e2e8f0; color: #475569; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-save { padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-confirm-delete { padding: 8px 16px; background: #ef4444; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+        /* Error & Alert Boxes */
+        .alert-box { padding: 12px; border-radius: 6px; font-size: 14px; margin-bottom: 15px; display: none; }
+        .alert-error { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+        .alert-success { background-color: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR MENU -->
+    <div class="sidebar">
+        <h3>HR PORTAL</h3>
+        <ul class="nav-menu">
+            <li><a href="index.html">Trang chủ</a></li>
+            <li><a href="intern-management.html" class="active">Quản lý Intern</a></li>
+            <li><a href="hr-leave-requests.html">Danh sách đơn nghỉ</a></li>
+            <li><a href="attendance.html">Chấm công</a></li>
+        </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="container">
+            <div class="card">
+                <div class="header">
+                    <h2>👨‍💻 Danh Sách Intern (Chức Năng Sửa / Xóa)</h2>
+                </div>
+
+                <div id="alertGlobal" class="alert-box"></div>
+
+                <!-- BẢNG DANH SÁCH -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã Intern</th>
+                            <th>Họ và Tên</th>
+                            <th>Email</th>
+                            <th>Phòng ban</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="internTableBody">
+                        <!-- Render JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM MODAL SỬA INTERN -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span>✏️ Cập Nhật Thông Tin Intern</span>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="editForm" onsubmit="handleSaveEdit(event)">
+                <input type="hidden" id="editInternId">
+                <div class="form-group">
+                    <label for="editCode">Mã Intern:</label>
+                    <input type="text" id="editCode" disabled style="background-color: #f1f5f9;">
+                </div>
+                <div class="form-group">
+                    <label for="editName">Họ và Tên:</label>
+                    <input type="text" id="editName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEmail">Email:</label>
+                    <input type="email" id="editEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDepartment">Phòng ban:</label>
+                    <select id="editDepartment" required>
+                        <option value="Frontend">Frontend</option>
+                        <option value="Backend">Backend</option>
+                        <option value="Mobile">Mobile</option>
+                        <option value="QA/QC">QA/QC</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editStatus">Trạng thái:</label>
+                    <select id="editStatus" required>
+                        <option value="ACTIVE">Đang thực tập</option>
+                        <option value="COMPLETED">Đã hoàn thành</option>
+                        <option value="INACTIVE">Tạm dừng</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeEditModal()">Hủy</button>
+                    <button type="submit" class="btn-save" id="btnSaveSubmit">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL XÁC NHẬN XÓA -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span style="color: #ef4444;">⚠️ Xác Nhận Xóa Intern</span>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">
+                Bạn có chắc chắn muốn xóa intern <strong id="deleteInternName" style="color: #1e293b;"></strong>? Hành động này không thể hoàn tác.
+            </p>
+            <input type="hidden" id="deleteInternId">
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeDeleteModal()">Hủy</button>
+                <button type="button" class="btn-confirm-delete" id="btnConfirmDelete" onclick="handleConfirmDelete()">Xác nhận Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock Data dùng khi chưa có Backend
+        let mockInterns = [
+            { id: 1, code: 'INT101', name: 'Nguyễn Văn A', email: 'anguyen@example.com', department: 'Frontend', status: 'ACTIVE' },
+            { id: 2, code: 'INT102', name: 'Trần Thị B', email: 'btran@example.com', department: 'Backend', status: 'ACTIVE' },
+            { id: 3, code: 'INT103', name: 'Lê Hoàng C', email: 'cle@example.com', department: 'Mobile', status: 'COMPLETED' },
+            { id: 4, code: 'INT104', name: 'Phạm Minh D', email: 'dpham@example.com', department: 'QA/QC', status: 'INACTIVE' }
+        ];
+
+        function fetchInterns() {
+            renderTable(mockInterns);
+        }
+
+        function renderTable(items) {
+            const tbody = document.getElementById('internTableBody');
+            if (!items || items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b; padding:20px;">Không có dữ liệu intern.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = items.map(item => `
+                <tr>
+                    <td><strong>${item.code}</strong></td>
+                    <td>${item.name}</td>
+                    <td>${item.email}</td>
+                    <td>${item.department}</td>
+                    <td><span style="padding:2px 8px; border-radius:12px; font-size:12px; font-weight:600; background-color:${item.status === 'ACTIVE' ? '#d1fae5' : '#f1f5f9'}; color:${item.status === 'ACTIVE' ? '#059669' : '#475569'};">${item.status}</span></td>
+                    <td>
+                        <button class="btn-action btn-edit" onclick="openEditModal(${item.id})">Sửa</button>
+                        <button class="btn-action btn-delete" onclick="openDeleteModal(${item.id})">Xóa</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        /* ----- CHỨC NĂNG SỬA (API PUT /api/interns/:id) ----- */
+        function openEditModal(id) {
+            const item = mockInterns.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('editInternId').value = item.id;
+            document.getElementById('editCode').value = item.code;
+            document.getElementById('editName').value = item.name;
+            document.getElementById('editEmail').value = item.email;
+            document.getElementById('editDepartment').value = item.department;
+            document.getElementById('editStatus').value = item.status;
+
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        async function handleSaveEdit(e) {
+            e.preventDefault();
+            const id = document.getElementById('editInternId').value;
+            const payload = {
+                name: document.getElementById('editName').value,
+                email: document.getElementById('editEmail').value,
+                department: document.getElementById('editDepartment').value,
+                status: document.getElementById('editStatus').value
+            };
+
+            const saveBtn = document.getElementById('btnSaveSubmit');
+            saveBtn.innerText = 'Đang lưu...';
+            saveBtn.disabled = true;
+
+            try {
+                // Gọi API PUT (nhóm API 1.4)
+                const response = await fetch(`/api/interns/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.status === 401) throw new Error('401: Hết hạn phiên làm việc!');
+                if (response.status === 403) throw new Error('403: Bạn không có quyền chỉnh sửa!');
+                if (response.status >= 500) throw new Error('500: Lỗi máy chủ!');
+                if (!response.ok) throw new Error('Cập nhật thất bại!');
+
+                showAlert('Cập nhật thông tin intern thành công!', 'success');
+
+            } catch (err) {
+                console.warn("API Call Failed, updating Mock Data:", err.message);
+                if (err.message.includes('401') || err.message.includes('403') || err.message.includes('500')) {
+                    showAlert(err.message, 'error');
+                } else {
+                    // Fallback cập nhật Mock Data
+                    const idx = mockInterns.findIndex(i => i.id == id);
+                    if (idx !== -1) {
+                        mockInterns[idx] = { ...mockInterns[idx], ...payload };
+                    }
+                    showAlert('Cập nhật thông tin intern thành công! (Mock)', 'success');
+                }
+            } finally {
+                saveBtn.innerText = 'Lưu thay đổi';
+                saveBtn.disabled = false;
+                closeEditModal();
+                fetchInterns();
+            }
+        }
+
+        /* ----- CHỨC NĂNG XÓA (API DELETE /api/interns/:id) ----- */
+        function openDeleteModal(id) {
+            const item = mockInterns.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('deleteInternId').value = item.id;
+            document.getElementById('deleteInternName').innerText = `${item.name} (${item.code})`;
+            document.getElementById('deleteModal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+        }
+
+        async function handleConfirmDelete() {
+            const id = document.getElementById('deleteInternId').value;
+            const delBtn = document.getElementById('btnConfirmDelete');
+            
+            delBtn.innerText = 'Đang xóa...';
+            delBtn.disabled = true;
+
+            try {
+                // Gọi API DELETE (nhóm API 1.4)
+                const response = await fetch(`/api/interns/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    }
+                });
+
+                if (response.status === 401) throw new Error('401: Hết hạn phiên làm việc!');
+                if (response.status === 403) throw new Error('403: Bạn không có quyền xóa intern!');
+                if (response.status >= 500) throw new Error('500: Lỗi hệ thống máy chủ!');
+                if (!response.ok) throw new Error('Xóa thất bại!');
+
+                showAlert('Đã xóa intern khỏi hệ thống!', 'success');
+
+            } catch (err) {
+                console.warn("API Call Failed, deleting from Mock Data:", err.message);
+                if (err.message.includes('401') || err.message.includes('403') || err.message.includes('500')) {
+                    showAlert(err.message, 'error');
+                } else {
+                    // Fallback xóa trong Mock Data
+                    mockInterns = mockInterns.filter(i => i.id != id);
+                    showAlert('Đã xóa intern thành công! (Mock)', 'success');
+                }
+            } finally {
+                delBtn.innerText = 'Xác nhận Xóa';
+                delBtn.disabled = false;
+                closeDeleteModal();
+                fetchInterns();
+            }
+        }
+
+        function showAlert(msg, type) {
+            const alertBox = document.getElementById('alertGlobal');
+            alertBox.className = `alert-box alert-${type}`;
+            alertBox.innerText = msg;
+            alertBox.style.display = 'block';
+            setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+        }
+
+        window.onload = () => fetchInterns();
+    </script>
+</body>
+</html>
