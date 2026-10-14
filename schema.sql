@@ -311,7 +311,7 @@ CREATE TABLE IF NOT EXISTS `attendance_logs` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `uq_attendance_intern_date` (`intern_id`, `work_date`),
   INDEX `idx_attendance_date` (`work_date`),
-  CONSTRAINT `fk_attendance_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_attendance_logs_intern_profile` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 20. BẢNG PHỤ CẤP CỦA THỰC TẬP SINH (INTERN_ALLOWANCES) - HR nhập
