@@ -5117,6 +5117,162 @@
     </div>
 
     <script>
+      // --- XỬ LÝ TASK 1.6: NỐI API PHỤ CẤP & BÁO LỖI 400/401/403/409 ---
+
+let allowancesList = [];
+
+// 1. Tải danh sách phụ cấp (Kết nối API GET /api/allowances - Task 1.3)
+async function loadAllowances() {
+  const tbody = document.getElementById("allowanceTableBody");
+  try {
+    const res = await fetch(`${API_BASE}/allowances`, {
+      headers: authHeaders()
+    });
+    
+    if (res.status === 401) {
+      return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+    }
+    if (res.status === 403) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #dc2626; padding: 24px;">Bạn không có quyền xem danh sách phụ cấp (Chỉ dành cho HR)!</td></tr>`;
+      return;
+    }
+    
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || body.message || "Không thể tải danh sách phụ cấp.");
+    
+    allowancesList = Array.isArray(body.data) ? body.data : (Array.isArray(body) ? body : []);
+    renderAllowanceTable();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #dc2626; padding: 24px;">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+// 2. Render bảng danh sách phụ cấp
+function renderAllowanceTable() {
+  const tbody = document.getElementById("allowanceTableBody");
+  if (!allowancesList.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #94a3b8; padding: 24px;">Chưa có dữ liệu phụ cấp nào trong hệ thống.</td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = allowancesList.map(item => `
+    <tr>
+      <td style="font-family: monospace; font-size: 12px; color: #64748b;">#${item.id}</td>
+      <td><b>${escapeHtml(item.internName || item.intern_name || "—")}</b></td>
+      <td>${escapeHtml(item.allowanceType || item.allowance_type)}</td>
+      <td><b style="color: #059669;">${Number(item.amount || 0).toLocaleString("vi-VN")} đ</b></td>
+      <td><span class="badge badge-pending">${escapeHtml(item.period)}</span></td>
+      <td>${escapeHtml(item.createdByName || item.created_by_name || "HR")}</td>
+      <td style="font-size: 12.5px; color: #64748b;">${formatDateTime(item.createdAt || item.created_at)}</td>
+      <td align="center">
+        <button class="btn btn-sm btn-danger" onclick="deleteAllowance(${Number(item.id)})" title="Xóa">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+// 3. Xử lý Thêm mới phụ cấp & Bắt lỗi HTTP (Task 1.2: POST /api/allowances)
+async function handleCreateAllowance(e) {
+  e.preventDefault();
+  const alertBox = document.getElementById("allowanceAlert");
+  const btn = document.getElementById("btnSaveAllowance");
+  
+  const payload = {
+    intern_id: Number(document.getElementById("allowanceIntern").value),
+    allowance_type: document.getElementById("allowanceType").value.trim(),
+    amount: Number(document.getElementById("allowanceAmount").value),
+    period: document.getElementById("allowancePeriod").value.trim(),
+    note: document.getElementById("allowanceNote").value.trim()
+  };
+
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...`;
+
+  try {
+    const res = await fetch(`${API_BASE}/allowances`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload)
+    });
+    
+    const body = await res.json().catch(() => ({}));
+
+    if (res.status === 400) {
+      showAlert(alertBox, `Lỗi dữ liệu (400): ${body.error || body.message || "Dữ liệu không hợp lệ hoặc số tiền phải > 0."}`, "error");
+      return;
+    }
+    if (res.status === 401) {
+      return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+    }
+    if (res.status === 403) {
+      showAlert(alertBox, "Lỗi phân quyền (403): Chỉ tài khoản HR mới có quyền thêm phụ cấp.", "error");
+      return;
+    }
+    if (res.status === 409) {
+      showAlert(alertBox, `Trùng lặp (409): ${body.error || body.message || "Thực tập sinh này đã có loại phụ cấp này trong cùng kỳ!"}`, "error");
+      return;
+    }
+    if (!res.ok) {
+      throw new Error(body.error || body.message || "Không thể thêm phụ cấp.");
+    }
+
+    showAlert(alertBox, body.message || "Thêm khoản phụ cấp thành công!", "success");
+    showToast("Thêm phụ cấp thành công!", "success");
+    document.getElementById("allowanceForm").reset();
+    
+    // Đặt tự động kỳ hiện tại theo định dạng YYYY-MM
+    const now = new Date();
+    document.getElementById("allowancePeriod").value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    await loadAllowances();
+  } catch (err) {
+    showAlert(alertBox, err.message || "Không thể kết nối tới server!", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Lưu phụ cấp`;
+  }
+}
+
+// 4. Xóa khoản phụ cấp (Task 1.4: DELETE /api/allowances/:id)
+async function deleteAllowance(id) {
+  if (!confirm("Bạn có chắc chắn muốn xóa khoản phụ cấp này không?")) return;
+  try {
+    const res = await fetch(`${API_BASE}/allowances/${id}`, {
+      method: "DELETE",
+      headers: authHeaders()
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || body.message || "Xóa thất bại.");
+    
+    showToast("Đã xóa khoản phụ cấp.", "success");
+    await loadAllowances();
+  } catch (err) {
+    showToast(err.message || "Lỗi khi xóa phụ cấp!", "error");
+  }
+}
+
+// Tự động điền danh sách thực tập sinh vào ô chọn (Select) khi mở tab
+async function loadInternsForAllowanceSelect() {
+  const select = document.getElementById("allowanceIntern");
+  if (!select) return;
+  try {
+    const res = await fetch(`${API_BASE}/students`, { headers: authHeaders() });
+    const students = await res.json();
+    if (Array.isArray(students)) {
+      select.innerHTML = `<option value="">-- Chọn thực tập sinh --</option>` + 
+        students.map(s => `<option value="${s.id}">${escapeHtml(s.fullName)} (${escapeHtml(s.studentCode || s.email)})</option>`).join("");
+    }
+  } catch (e) { console.error(e); }
+}
+
+// Khởi chạy khi load trang
+document.addEventListener("DOMContentLoaded", () => {
+  const now = new Date();
+  const periodInput = document.getElementById("allowancePeriod");
+  if (periodInput) periodInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+});
       const API_BASE = "/api";
 
       // Danh sách định nghĩa các quyền trong hệ thống
