@@ -331,6 +331,26 @@ CREATE TABLE IF NOT EXISTS `intern_allowances` (
   CONSTRAINT `fk_allowance_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 21. BẢNG YÊU CẦU HỖ TRỢ CỦA THỰC TẬP SINH (SUPPORT_REQUESTS) - xin chứng nhận / giấy tờ / khác
+CREATE TABLE IF NOT EXISTS `support_requests` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `intern_id` BIGINT NOT NULL,
+  `request_type` VARCHAR(20) NOT NULL COMMENT 'CERTIFICATE (chứng nhận) | DOCUMENT (giấy tờ) | OTHER (khác)',
+  `title` VARCHAR(200) NOT NULL,
+  `content` TEXT NOT NULL,
+  `status` VARCHAR(30) NOT NULL DEFAULT 'Chờ xử lý' COMMENT 'Chờ xử lý | Đang xử lý | Đã xử lý | Từ chối',
+  `response` TEXT NULL COMMENT 'Phản hồi của người xử lý',
+  `handled_by` BIGINT NULL COMMENT 'Tài khoản (HR/Mentor) xử lý',
+  `handled_at` DATETIME NULL COMMENT 'Thời điểm xử lý',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_support_intern` (`intern_id`, `created_at`),
+  INDEX `idx_support_status` (`status`),
+  CONSTRAINT `chk_support_type` CHECK (`request_type` IN ('CERTIFICATE', 'DOCUMENT', 'OTHER')),
+  CONSTRAINT `fk_support_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_support_handler` FOREIGN KEY (`handled_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ==============================================================================
 -- DỮ LIỆU MẪU BAN ĐẦU (SEED DATA)
 -- ==============================================================================
