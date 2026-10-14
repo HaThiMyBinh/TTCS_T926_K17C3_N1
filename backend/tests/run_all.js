@@ -47,10 +47,26 @@ const SUITES = [
     needsServer: false,
   },
   { name: "upload-unit", file: "test_upload_unit.js", needsServer: false },
-  { name: "attendance-unit", file: "test_attendance_unit.js", needsServer: false },
-  { name: "work-schedule-unit", file: "test_work_schedule_unit.js", needsServer: false },
-  { name: "attendance-report-unit", file: "test_attendance_report_unit.js", needsServer: false },
-  { name: "final-reports-unit", file: "test_final_reports_unit.js", needsServer: false },
+  {
+    name: "attendance-unit",
+    file: "test_attendance_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "work-schedule-unit",
+    file: "test_work_schedule_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "attendance-report-unit",
+    file: "test_attendance_report_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "final-reports-unit",
+    file: "test_final_reports_unit.js",
+    needsServer: false,
+  },
   {
     name: "contracts-unit",
     file: "test_contracts_unit.js",
@@ -94,6 +110,16 @@ const SUITES = [
     file: "test_intern_schedule_unit.js",
     needsServer: false,
   },
+  {
+    name: "allowance-unit",
+    file: "test_allowance_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "my-allowance-unit",
+    file: "test_my_allowance_unit.js",
+    needsServer: false,
+  },
   { name: "login", file: "test_login.js", needsServer: true },
   { name: "create-account", file: "test_create_account.js", needsServer: true },
   { name: "rbac", file: "test_rbac.js", needsServer: true },
@@ -126,9 +152,21 @@ const SUITES = [
     needsServer: true,
   },
   { name: "attendance-api", file: "test_attendance_api.js", needsServer: true },
-  { name: "work-schedule-api", file: "test_work_schedule_api.js", needsServer: true },
-  { name: "attendance-report-api", file: "test_attendance_report_api.js", needsServer: true },
-  { name: "final-reports-api", file: "test_final_reports_api.js", needsServer: true },
+  {
+    name: "work-schedule-api",
+    file: "test_work_schedule_api.js",
+    needsServer: true,
+  },
+  {
+    name: "attendance-report-api",
+    file: "test_attendance_report_api.js",
+    needsServer: true,
+  },
+  {
+    name: "final-reports-api",
+    file: "test_final_reports_api.js",
+    needsServer: true,
+  },
   { name: "mentors", file: "test_mentors.js", needsServer: true },
   { name: "applications", file: "test_applications.js", needsServer: true },
   { name: "documents-api", file: "test_documents_api.js", needsServer: true },
@@ -163,6 +201,16 @@ const SUITES = [
   {
     name: "intern-schedule-api",
     file: "test_intern_schedule_api.js",
+    needsServer: true,
+  },
+  {
+    name: "allowance-api",
+    file: "test_allowance_api.js",
+    needsServer: true,
+  },
+  {
+    name: "my-allowance-api",
+    file: "test_my_allowance_api.js",
     needsServer: true,
   },
 ];
