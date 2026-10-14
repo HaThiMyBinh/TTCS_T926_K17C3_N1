@@ -1855,6 +1855,7 @@
         margin: 10px 0;
       }
     </style>
+    <script src="mockData.js"></script>
   </head>
   <body>
     <!-- SIDEBAR -->
@@ -3054,6 +3055,58 @@
           </div></div>
           <div class="card"><div class="card-header"><h3>Đơn nghỉ của tôi</h3></div><div class="card-body"><div id="lvList">Đang tải...</div></div></div>
         </div>
+
+        <!-- STORY 2.2: LỊCH SỬ NHẬN PHỤ CẤP CỦA INTERN -->
+<div id="tab-my-allowances" class="tab-pane" style="display: none">
+  <div class="card">
+    <div class="card-header">
+      <h3>
+        <i class="fa-solid fa-money-bill-wave text-primary"></i>
+        Lịch sử nhận phụ cấp
+      </h3>
+    </div>
+
+    <div class="card-body">
+      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:end; margin-bottom:20px">
+        <label class="fr-field">
+          <span>Kỳ phụ cấp</span>
+          <select id="allowancePeriodFilter" onchange="renderAllowanceHistory()">
+            <option value="">Tất cả các kỳ</option>
+          </select>
+        </label>
+
+        <div class="card" style="padding:16px; min-width:220px; margin:0">
+          <div style="color:#64748b; font-size:14px">Tổng phụ cấp đã nhận</div>
+          <div id="allowanceTotal" style="font-size:24px; font-weight:700; color:#2563eb">
+            0 ₫
+          </div>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table style="width:100%; border-collapse:collapse">
+          <thead>
+            <tr style="background:#f1f5f9; text-align:left">
+              <th style="padding:12px">STT</th>
+              <th style="padding:12px">Kỳ phụ cấp</th>
+              <th style="padding:12px">Ngày nhận</th>
+              <th style="padding:12px">Số tiền</th>
+              <th style="padding:12px">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody id="allowanceHistoryBody">
+            <tr>
+              <td colspan="5" style="padding:24px; text-align:center">
+                Chưa có dữ liệu
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- HẾT STORY 2.2 -->
 
         <div id="tab-submissions" class="tab-pane" style="display: none">
           <div id="wrNotIntern" class="card" style="display: none">
@@ -5245,6 +5298,7 @@
         if (tabId === "tab-attendance-report") return role === "HR";
         if (tabId === "tab-work-schedules") return role === "HR" || role === "Admin";
         if (tabId === "tab-my-leaves") return role === "Intern";
+        if (tabId === "tab-my-allowances") return role === "Intern";
         if (tabId === "tab-candidates") {
           return role === "HR" || role === "Admin";
         }
@@ -5324,6 +5378,18 @@
           liMyLeaves.className = "nav-item";
           liMyLeaves.innerHTML = `<a class="nav-link ${currentTab === "tab-my-leaves" ? "active" : ""}" onclick="switchTab('tab-my-leaves')"><i class="fa-solid fa-umbrella-beach"></i><span>Nghỉ phép</span></a>`;
           menuEl.appendChild(liMyLeaves);
+          allowedCount++;
+          const liMyAllowances = document.createElement("li");
+          liMyAllowances.className = "nav-item";
+          liMyAllowances.innerHTML = `
+          <a class="nav-link ${currentTab === "tab-my-allowances" ? "active" : ""}"
+          onclick="switchTab('tab-my-allowances')">
+          <i class="fa-solid fa-money-bill-wave"></i>
+          <span>Lịch sử phụ cấp</span>
+          </a>
+          `;
+          menuEl.appendChild(liMyAllowances);
+
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -5472,8 +5538,75 @@
         document.getElementById("menuCountBadge").innerText =
           `${allowedCount} mục`;
       }
-
       // CHUYỂN TAB VÀ CHẶN TRUY CẬP TRÊN UI
+     function renderAllowanceHistory() {
+  const filter = document.getElementById("allowancePeriodFilter");
+  const tbody = document.getElementById("allowanceHistoryBody");
+  const totalElement = document.getElementById("allowanceTotal");
+
+  if (!filter || !tbody || !totalElement) return;
+
+  const allowances = Array.isArray(window.MOCK_ALLOWANCES)
+    ? window.MOCK_ALLOWANCES
+    : [];
+
+  // Tạo danh sách kỳ phụ cấp từ dữ liệu giả
+  const periods = [...new Set(
+    allowances.map((item) => item.period).filter(Boolean)
+  )].sort((a, b) => b.localeCompare(a));
+
+  // Chỉ thêm các kỳ một lần, không tạo option trùng lặp
+  if (filter.options.length !== periods.length + 1) {
+    filter.innerHTML = '<option value="">Tất cả các kỳ</option>';
+
+    periods.forEach((period) => {
+      const option = document.createElement("option");
+      option.value = period;
+      option.textContent = period;
+      filter.appendChild(option);
+    });
+  }
+
+  const selectedPeriod = filter.value;
+  const filtered = allowances
+    .filter((item) => !selectedPeriod || item.period === selectedPeriod)
+    .sort((a, b) => b.period.localeCompare(a.period));
+
+  const total = filtered.reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0
+  );
+
+  totalElement.textContent = total.toLocaleString("vi-VN") + " ₫";
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="padding:24px;text-align:center;color:#64748b">
+          Không có dữ liệu phụ cấp trong kỳ này.
+        </td>
+      </tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((item, index) => {
+    const date = item.receivedDate
+      ? new Date(item.receivedDate + "T00:00:00").toLocaleDateString("vi-VN")
+      : "--";
+
+    return `
+      <tr style="border-bottom:1px solid #e2e8f0">
+        <td style="padding:12px">${index + 1}</td>
+        <td style="padding:12px">${item.period || "--"}</td>
+        <td style="padding:12px">${date}</td>
+        <td style="padding:12px;font-weight:600">
+          ${(Number(item.amount) || 0).toLocaleString("vi-VN")} ₫
+        </td>
+        <td style="padding:12px">${item.status || "--"}</td>
+      </tr>`;
+  }).join("");
+}
+
       function switchTab(tabId) {
         currentTab = tabId;
         document.querySelector(".content-scroll").scrollTop = 0;
@@ -5564,8 +5697,14 @@
           } else if (tabId === "tab-my-leaves") {
             document.getElementById("pageTitle").innerText = "Nghỉ phép";
             document.getElementById("pageSubtitle").innerText = "Xin nghỉ và theo dõi trạng thái duyệt";
-            loadMyLeaves();
+                       loadMyLeaves();
+          } else if (tabId === "tab-my-allowances") {
+            document.getElementById("pageTitle").innerText = "Lịch sử nhận phụ cấp";
+            document.getElementById("pageSubtitle").innerText =
+            "Theo dõi phụ cấp đã nhận theo từng kỳ thực tập";
+            renderAllowanceHistory();
           } else if (tabId === "tab-my-schedule") {
+
             document.getElementById("pageTitle").innerText =
               "Lịch thực tập của tôi";
             document.getElementById("pageSubtitle").innerText =
