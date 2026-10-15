@@ -344,39 +344,27 @@ CREATE TABLE IF NOT EXISTS `final_reports` (
   CONSTRAINT `fk_final_report_finalizer` FOREIGN KEY (`finalized_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 21. LỊCH SỬ GỬI BÁO CÁO CUỐI KỲ (FINAL_REPORT_SENDS)
-CREATE TABLE IF NOT EXISTS `final_report_sends` (
+-- 21. BẢNG YÊU CẦU HỖ TRỢ CỦA THỰC TẬP SINH (SUPPORT_REQUESTS) - xin chứng nhận / giấy tờ / khác
+CREATE TABLE IF NOT EXISTS `support_requests` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `report_id` BIGINT NOT NULL,
-  `sent_by` BIGINT NULL,
-  `recipients` TEXT NOT NULL,
-  `message` VARCHAR(1000) NULL,
-  `sent_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  KEY `idx_final_report_sends_report` (`report_id`, `sent_at`),
-  CONSTRAINT `fk_final_report_send_report` FOREIGN KEY (`report_id`) REFERENCES `final_reports`(`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_final_report_send_user` FOREIGN KEY (`sent_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+  `intern_id` BIGINT NOT NULL,
+  `request_type` VARCHAR(20) NOT NULL COMMENT 'CERTIFICATE (chứng nhận) | DOCUMENT (giấy tờ) | OTHER (khác)',
+  `title` VARCHAR(200) NOT NULL,
+  `content` TEXT NOT NULL,
+  `status` VARCHAR(30) NOT NULL DEFAULT 'Chờ xử lý' COMMENT 'Chờ xử lý | Đang xử lý | Đã xử lý | Từ chối',
+  `response` TEXT NULL COMMENT 'Phản hồi của người xử lý',
+  `handled_by` BIGINT NULL COMMENT 'Tài khoản (HR/Mentor) xử lý',
+  `handled_at` DATETIME NULL COMMENT 'Thời điểm xử lý',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_support_intern` (`intern_id`, `created_at`),
+  INDEX `idx_support_status` (`status`),
+  CONSTRAINT `chk_support_type` CHECK (`request_type` IN ('CERTIFICATE', 'DOCUMENT', 'OTHER')),
+  CONSTRAINT `fk_support_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_support_handler` FOREIGN KEY (`handled_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 22. EMAIL NGƯỜI NHẬN BÁO CÁO CUỐI KỲ (gợi ý theo phạm vi; scope_value rỗng = ALL)
-CREATE TABLE IF NOT EXISTS `final_report_recipients` (
-  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `email` VARCHAR(254) NOT NULL,
-  `scope_type` ENUM('ALL','UNIVERSITY','PROGRAM') NOT NULL,
-  `scope_value` VARCHAR(255) NOT NULL DEFAULT '',
-  `created_by` BIGINT NULL,
-  `last_used_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `uq_final_report_recipient` (`email`, `scope_type`, `scope_value`),
-  CONSTRAINT `fk_final_report_recipient_user` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- 23. LỊCH LÀM VIỆC, 24. GÁN LỊCH, 25. NGÀY NGHỈ VÀ 26. ĐƠN NGHỈ PHÉP
-CREATE TABLE IF NOT EXISTS `work_schedules` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `name` VARCHAR(150) NOT NULL UNIQUE, `description` TEXT NULL, `mode` ENUM('FIXED','FLEXIBLE') NOT NULL, `grace_minutes` INT NOT NULL DEFAULT 15, `min_daily_minutes` INT NULL, `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE IF NOT EXISTS `work_schedule_days` (`schedule_id` BIGINT NOT NULL, `weekday` TINYINT NOT NULL, `is_working` TINYINT(1) NOT NULL DEFAULT 0, `start_time` TIME NULL, `end_time` TIME NULL, PRIMARY KEY (`schedule_id`,`weekday`), CONSTRAINT `fk_work_schedule_day` FOREIGN KEY (`schedule_id`) REFERENCES `work_schedules`(`id`) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE IF NOT EXISTS `work_schedule_assignments` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `schedule_id` BIGINT NOT NULL, `target_type` ENUM('DEFAULT','UNIVERSITY','PROGRAM','MENTOR','INTERN') NOT NULL, `target_value` VARCHAR(255) NOT NULL DEFAULT '', `effective_from` DATE NOT NULL, `effective_to` DATE NULL, `created_by` BIGINT NULL, INDEX `idx_schedule_assignment_lookup` (`target_type`,`target_value`,`effective_from`,`effective_to`), UNIQUE KEY `uq_schedule_assignment_start` (`target_type`,`target_value`,`effective_from`), CONSTRAINT `fk_work_schedule_assignment` FOREIGN KEY (`schedule_id`) REFERENCES `work_schedules`(`id`) ON DELETE RESTRICT, CONSTRAINT `fk_work_schedule_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE IF NOT EXISTS `work_holidays` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `holiday_date` DATE NOT NULL UNIQUE, `name` VARCHAR(255) NOT NULL, `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE IF NOT EXISTS `leave_requests` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `intern_id` BIGINT NOT NULL, `leave_type` ENUM('SICK','PERSONAL','EXAM','OTHER') NOT NULL, `from_date` DATE NOT NULL, `to_date` DATE NOT NULL, `reason` VARCHAR(500) NOT NULL, `status` ENUM('PENDING','APPROVED','REJECTED','CANCELLED') NOT NULL DEFAULT 'PENDING', `reviewed_by` BIGINT NULL, `reviewed_at` DATETIME NULL, `review_note` VARCHAR(500) NULL, `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, CONSTRAINT `fk_leave_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE, CONSTRAINT `fk_leave_reviewer` FOREIGN KEY (`reviewed_by`) REFERENCES `users`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ============================================================================== 
+-- ==============================================================================
 -- DỮ LIỆU MẪU BAN ĐẦU (SEED DATA)
 -- ==============================================================================
 

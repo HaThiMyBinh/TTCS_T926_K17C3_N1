@@ -54,8 +54,7 @@
     "test:attendance-report-unit": "node tests/test_attendance_report_unit.js",
     "test:final-reports-unit": "node tests/test_final_reports_unit.js",
     "test:final-reports-api": "node tests/test_final_reports_api.js",
-    "test:allowances-unit": "node tests/test_allowances_unit.js",
-    "test:allowances-api": "node tests/test_allowances_api.js"
+    "test:support-requests-unit": "node tests/test_support_requests_unit.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
