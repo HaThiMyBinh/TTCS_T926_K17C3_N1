@@ -54,7 +54,12 @@
     "test:attendance-report-unit": "node tests/test_attendance_report_unit.js",
     "test:final-reports-unit": "node tests/test_final_reports_unit.js",
     "test:final-reports-api": "node tests/test_final_reports_api.js",
-    "test:support-requests-unit": "node tests/test_support_requests_unit.js"
+    "test:allowance-unit": "node tests/test_allowance_unit.js",
+    "test:allowance-api": "node tests/test_allowance_api.js",
+    "test:my-allowance-unit": "node tests/test_my_allowance_unit.js",
+    "test:my-allowance-api": "node tests/test_my_allowance_api.js",
+    "test:support-request-unit": "node tests/test_support_request_unit.js",
+    "test:support-request-api": "node tests/test_support_request_api.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
