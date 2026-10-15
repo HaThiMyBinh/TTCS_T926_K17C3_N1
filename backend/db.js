@@ -265,6 +265,25 @@ async function ensureUniqueScheduleIndex() {
   );
 }
 
+// Story 5.1: view thống kê TTS theo trường/ngành. Định nghĩa trùng schema.sql;
+// CREATE OR REPLACE nên chạy lại nhiều lần vẫn an toàn.
+async function ensureInternSchoolStatsView() {
+  await pool.query(`
+CREATE OR REPLACE VIEW \`v_intern_school_stats\` AS
+SELECT
+    COALESCE(NULLIF(TRIM(\`university\`), ''), 'Chưa cập nhật') AS \`university\`,
+    COALESCE(NULLIF(TRIM(\`major\`), ''), 'Chưa cập nhật') AS \`major\`,
+    COUNT(*) AS \`total_interns\`,
+    SUM(CASE WHEN \`status\` = 'Đang thực tập' THEN 1 ELSE 0 END) AS \`in_progress_count\`,
+    SUM(CASE WHEN \`status\` = 'Hoàn thành' THEN 1 ELSE 0 END) AS \`completed_count\`,
+    SUM(CASE WHEN \`status\` IN ('Tạm dừng', 'Bỏ học') THEN 1 ELSE 0 END) AS \`dropped_count\`,
+    SUM(CASE WHEN \`status\` IS NULL OR \`status\` NOT IN ('Đang thực tập', 'Hoàn thành', 'Tạm dừng', 'Bỏ học') THEN 1 ELSE 0 END) AS \`other_count\`
+FROM \`intern_profiles\`
+GROUP BY COALESCE(NULLIF(TRIM(\`university\`), ''), 'Chưa cập nhật'),
+         COALESCE(NULLIF(TRIM(\`major\`), ''), 'Chưa cập nhật');
+  `);
+}
+
 // Khởi tạo kết nối MySQL, tạo bảng & seed dữ liệu mặc định nếu chưa có
 async function initDatabase() {
   // Repeated initialization replaces the previous pool instead of leaking it.
@@ -813,6 +832,8 @@ async function initDatabase() {
     (2, 4),
     (3, 2);
   `);
+
+  await ensureInternSchoolStatsView();
 
   isMysqlConnected = true;
   console.log(
@@ -3854,7 +3875,43 @@ async function reviewLeave(id, decision, userId, note) {
   return result.affectedRows;
 }
 
+
+// Story 5.1: truy vấn view v_intern_school_stats (mỗi dòng = 1 cặp trường/ngành).
+// Lọc `university` / `major` theo khớp chính xác, không phân biệt hoa thường & dấu cách thừa.
+async function listInternSchoolStats({ university = "", major = "" } = {}) {
+  const conditions = [];
+  const params = [];
+  const collate = (col) => `CONVERT(${col} USING utf8mb4) COLLATE utf8mb4_unicode_ci`;
+  if (university) {
+    conditions.push(`${collate("university")} = CONVERT(? USING utf8mb4) COLLATE utf8mb4_unicode_ci`);
+    params.push(university);
+  }
+  if (major) {
+    conditions.push(`${collate("major")} = CONVERT(? USING utf8mb4) COLLATE utf8mb4_unicode_ci`);
+    params.push(major);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const [rows] = await requireDb().query(
+    `SELECT university, major, total_interns AS total,
+            in_progress_count AS inProgress, completed_count AS completed,
+            dropped_count AS dropped, other_count AS other
+     FROM v_intern_school_stats ${where}
+     ORDER BY total_interns DESC, university COLLATE utf8mb4_unicode_ci, major COLLATE utf8mb4_unicode_ci`,
+    params,
+  );
+  return rows.map((r) => ({
+    university: r.university,
+    major: r.major,
+    total: Number(r.total),
+    inProgress: Number(r.inProgress),
+    completed: Number(r.completed),
+    dropped: Number(r.dropped),
+    other: Number(r.other),
+  }));
+}
+
 module.exports = {
+  listInternSchoolStats,
   initDatabase,
   getPool,
   seedDepartmentsFromMentors,

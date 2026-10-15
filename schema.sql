@@ -414,3 +414,18 @@ CREATE TABLE IF NOT EXISTS intern_allowances (
   CONSTRAINT fk_allowance_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_allowance_updater FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 20. VIEW V_INTERN_SCHOOL_STATS (Story 5.1: thống kê số lượng thực tập sinh theo trường/ngành & trạng thái)
+-- Đang học = 'Đang thực tập' | Hoàn thành = 'Hoàn thành' | Bỏ học = 'Tạm dừng' / 'Bỏ học'
+CREATE OR REPLACE VIEW `v_intern_school_stats` AS
+SELECT
+    COALESCE(NULLIF(TRIM(`university`), ''), 'Chưa cập nhật') AS `university`,
+    COALESCE(NULLIF(TRIM(`major`), ''), 'Chưa cập nhật') AS `major`,
+    COUNT(*) AS `total_interns`,
+    SUM(CASE WHEN `status` = 'Đang thực tập' THEN 1 ELSE 0 END) AS `in_progress_count`,
+    SUM(CASE WHEN `status` = 'Hoàn thành' THEN 1 ELSE 0 END) AS `completed_count`,
+    SUM(CASE WHEN `status` IN ('Tạm dừng', 'Bỏ học') THEN 1 ELSE 0 END) AS `dropped_count`,
+    SUM(CASE WHEN `status` IS NULL OR `status` NOT IN ('Đang thực tập', 'Hoàn thành', 'Tạm dừng', 'Bỏ học') THEN 1 ELSE 0 END) AS `other_count`
+FROM `intern_profiles`
+GROUP BY COALESCE(NULLIF(TRIM(`university`), ''), 'Chưa cập nhật'),
+         COALESCE(NULLIF(TRIM(`major`), ''), 'Chưa cập nhật');

@@ -52,6 +52,7 @@ const SUITES = [
   { name: "attendance-report-unit", file: "test_attendance_report_unit.js", needsServer: false },
   { name: "final-reports-unit", file: "test_final_reports_unit.js", needsServer: false },
   { name: "allowances-unit", file: "test_allowances_unit.js", needsServer: false },
+  { name: "intern-school-stats-unit", file: "test_intern_school_stats_unit.js", needsServer: false },
   {
     name: "contracts-unit",
     file: "test_contracts_unit.js",

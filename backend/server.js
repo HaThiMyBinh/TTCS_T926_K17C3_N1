@@ -25,6 +25,7 @@ const supportRequestsRouter = require("./routes/supportRequests.routes");
 const notificationsRouter = require("./routes/notifications.routes");
 const attendanceReportRouter = require("./routes/attendanceReport.routes");
 const allowancesRouter = require("./routes/allowances.routes");
+const internSchoolStatsRouter = require("./routes/internSchoolStats.routes");
 const {
   applicationEvents,
   REVIEWED_EVENT,
@@ -61,6 +62,7 @@ app.use("/api", authRouter);
 app.use("/api/applications", applicationsRouter);
 app.use("/api/email", emailRouter);
 app.use("/api", mentorsRouter);
+app.use("/api", internSchoolStatsRouter);
 app.use("/api", internsRouter);
 app.use("/api", contractsRouter);
 app.use("/api", programsRouter);
