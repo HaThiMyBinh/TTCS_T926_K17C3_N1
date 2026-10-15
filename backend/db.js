@@ -715,6 +715,21 @@ async function initDatabase() {
     CONSTRAINT fk_leave_intern FOREIGN KEY(intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
     CONSTRAINT fk_leave_reviewer FOREIGN KEY(reviewed_by) REFERENCES users(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  // Phụ cấp thực tập sinh do HR nhập (một khoản = loại + số tiền VND + chu kỳ + khoảng hiệu lực).
+  await pool.query(`CREATE TABLE IF NOT EXISTS intern_allowances (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, intern_id BIGINT NOT NULL,
+    allowance_type ENUM('MEAL','TRANSPORT','PHONE','HOUSING','OTHER') NOT NULL,
+    amount DECIMAL(12,0) NOT NULL, pay_cycle ENUM('MONTHLY','DAILY','ONE_TIME') NOT NULL,
+    effective_from DATE NOT NULL, effective_to DATE NULL, note VARCHAR(500) NULL,
+    created_by BIGINT NULL, updated_by BIGINT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_allowance_intern (intern_id, allowance_type, effective_from),
+    CONSTRAINT chk_allowance_amount CHECK (amount > 0),
+    CONSTRAINT chk_allowance_range CHECK (effective_to IS NULL OR effective_to >= effective_from),
+    CONSTRAINT fk_allowance_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_allowance_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_allowance_updater FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
   await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT NOT NULL, type VARCHAR(50) NOT NULL,
     title VARCHAR(255) NOT NULL, message VARCHAR(500) NOT NULL, target_tab VARCHAR(80) NULL,
@@ -3024,6 +3039,114 @@ async function updateContractFields(internId, contractId, changes) {
 }
 
 // Thực tập sinh đã có ít nhất 1 hợp đồng được xác nhận chưa (điều kiện giao việc / nộp báo cáo / đánh giá).
+// ---------- Phụ cấp thực tập sinh (HR) ----------
+const ALLOWANCE_SELECT = `a.id, a.intern_id AS internId, a.allowance_type AS allowanceType, a.amount,
+  a.pay_cycle AS payCycle, DATE_FORMAT(a.effective_from,'%Y-%m-%d') AS effectiveFrom,
+  DATE_FORMAT(a.effective_to,'%Y-%m-%d') AS effectiveTo, a.note,
+  a.created_by AS createdBy, a.updated_by AS updatedBy, a.created_at AS createdAt, a.updated_at AS updatedAt`;
+// DECIMAL trả về dạng chuỗi; số tiền VND luôn là số nguyên nên đổi sang Number.
+function mapAllowance(row) {
+  return row ? { ...row, amount: Number(row.amount) } : null;
+}
+async function listAllowancesByIntern(internId) {
+  const [rows] = await requireDb().query(
+    `SELECT ${ALLOWANCE_SELECT} FROM intern_allowances a WHERE a.intern_id = ?
+     ORDER BY a.effective_from DESC, a.id DESC`,
+    [internId],
+  );
+  return rows.map(mapAllowance);
+}
+async function findAllowanceById(id) {
+  const [rows] = await requireDb().query(
+    `SELECT ${ALLOWANCE_SELECT} FROM intern_allowances a WHERE a.id = ? LIMIT 1`,
+    [id],
+  );
+  return mapAllowance(rows[0]);
+}
+// Tạo (id = null) hoặc sửa một khoản phụ cấp. Khóa dòng thực tập sinh để hai yêu cầu song song
+// không cùng lọt qua bước kiểm tra trùng khoảng hiệu lực.
+// Trả về { outcome: "SAVED" | "OVERLAP" | "NOT_FOUND", id }.
+async function saveAllowanceAtomic({ id = null, internId, fields, userId }) {
+  return withTransaction(async (conn) => {
+    const [locked] = await conn.query(
+      "SELECT id FROM intern_profiles WHERE id = ? FOR UPDATE",
+      [internId],
+    );
+    if (!locked.length) return { outcome: "NOT_FOUND" };
+    if (id !== null) {
+      const [own] = await conn.query(
+        "SELECT id FROM intern_allowances WHERE id = ? AND intern_id = ? FOR UPDATE",
+        [id, internId],
+      );
+      if (!own.length) return { outcome: "NOT_FOUND" };
+    }
+    const [overlap] = await conn.query(
+      `SELECT id FROM intern_allowances
+       WHERE intern_id = ? AND allowance_type = ? AND id <> ?
+         AND effective_from <= COALESCE(?, '9999-12-31')
+         AND (effective_to IS NULL OR effective_to >= ?) LIMIT 1`,
+      [internId, fields.allowanceType, id ?? 0, fields.effectiveTo, fields.effectiveFrom],
+    );
+    if (overlap.length) return { outcome: "OVERLAP" };
+    const values = [
+      fields.allowanceType, fields.amount, fields.payCycle,
+      fields.effectiveFrom, fields.effectiveTo, fields.note,
+    ];
+    if (id === null) {
+      const [result] = await conn.query(
+        `INSERT INTO intern_allowances (intern_id, allowance_type, amount, pay_cycle,
+           effective_from, effective_to, note, created_by, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [internId, ...values, userId ?? null, userId ?? null],
+      );
+      return { outcome: "SAVED", id: result.insertId };
+    }
+    await conn.query(
+      `UPDATE intern_allowances SET allowance_type = ?, amount = ?, pay_cycle = ?,
+         effective_from = ?, effective_to = ?, note = ?, updated_by = ? WHERE id = ? AND intern_id = ?`,
+      [...values, userId ?? null, id, internId],
+    );
+    return { outcome: "SAVED", id };
+  });
+}
+async function deleteAllowance(id, internId) {
+  const [result] = await requireDb().query(
+    "DELETE FROM intern_allowances WHERE id = ? AND intern_id = ?",
+    [id, internId],
+  );
+  return result.affectedRows > 0;
+}
+// Tổng quan toàn bộ thực tập sinh trong 1 truy vấn (không N+1); khoản "đang hiệu lực" tính theo `today`.
+async function listAllowanceOverview({ filters = {}, today }) {
+  const { buildInternFilterConditions } = require("./utils/internFilters");
+  const { whereSql, params } = buildInternFilterConditions(filters, { includeUnassigned: false });
+  const active = "effective_from <= ? AND (effective_to IS NULL OR effective_to >= ?)";
+  const [rows] = await requireDb().query(
+    `SELECT ip.id, ip.student_code AS studentCode, ip.full_name AS fullName, ip.email,
+            ip.university, ip.major,
+            COALESCE(s.totalCount, 0) AS totalCount,
+            COALESCE(s.activeCount, 0) AS activeCount,
+            COALESCE(s.totalMonthly, 0) AS totalMonthly,
+            EXISTS(SELECT 1 FROM internship_contracts c
+                   WHERE c.intern_id = ip.id AND c.confirmation_status = 'CONFIRMED') AS hasConfirmedContract
+     FROM intern_profiles ip
+     LEFT JOIN (
+       SELECT intern_id, COUNT(*) AS totalCount,
+              SUM(CASE WHEN ${active} THEN 1 ELSE 0 END) AS activeCount,
+              SUM(CASE WHEN pay_cycle = 'MONTHLY' AND ${active} THEN amount ELSE 0 END) AS totalMonthly
+       FROM intern_allowances GROUP BY intern_id
+     ) s ON s.intern_id = ip.id
+     ${whereSql} ORDER BY ip.id DESC`,
+    [today, today, today, today, ...params],
+  );
+  return rows.map((r) => ({
+    ...r,
+    totalCount: Number(r.totalCount),
+    activeCount: Number(r.activeCount),
+    totalMonthly: Number(r.totalMonthly),
+    hasConfirmedContract: Boolean(r.hasConfirmedContract),
+  }));
+}
+
 async function hasConfirmedContract(internId) {
   const [rows] = await requireDb().query(
     `SELECT 1 FROM internship_contracts
@@ -3895,4 +4018,9 @@ module.exports = {
   deleteScheduleMilestone,
   findMilestoneById,
   getOverviewStats,
+  listAllowancesByIntern,
+  findAllowanceById,
+  saveAllowanceAtomic,
+  deleteAllowance,
+  listAllowanceOverview,
 };
