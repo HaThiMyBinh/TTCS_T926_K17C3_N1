@@ -5937,8 +5937,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
       function getSupportRequestStore() {
         try {
-          const parsed = JSON.parse(localStorage.getItem(SUPPORT_REQUEST_STORAGE_KEY) || "[]");
-          return Array.isArray(parsed) ? parsed : [];
+          const raw = localStorage.getItem(SUPPORT_REQUEST_STORAGE_KEY);
+          if (raw !== null) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+
+          // Khởi tạo dữ liệu mẫu từ mockData.js cho lần mở đầu tiên.
+          // Dữ liệu mẫu chỉ thuộc tài khoản Intern đang đăng nhập trên trình duyệt này.
+          const ownerKey = getSupportRequestOwnerKey();
+          const samples = Array.isArray(window.MOCK_SUPPORT_REQUESTS)
+            ? window.MOCK_SUPPORT_REQUESTS
+            : [];
+          const seeded = samples.map((item, index) => ({
+            ...item,
+            id: item.id || ("SR-DEMO-" + (index + 1)),
+            ownerKey,
+            ownerName: item.ownerName || "Thực tập sinh",
+            response: item.response || "",
+            status: item.status || "Chờ xử lý"
+          }));
+          localStorage.setItem(SUPPORT_REQUEST_STORAGE_KEY, JSON.stringify(seeded));
+          return seeded;
         } catch (error) {
           console.error("Không đọc được dữ liệu yêu cầu hỗ trợ:", error);
           return [];
