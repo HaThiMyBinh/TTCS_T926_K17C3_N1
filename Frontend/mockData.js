@@ -47,3 +47,36 @@ window.MOCK_ALLOWANCES = [
     status: "Đã nhận",
   },
 ];
+// Dữ liệu mẫu cho Story 1 - Quản lý phụ cấp
+window.mockAllowances = window.mockAllowances || [
+    {
+        id: 1,
+        intern: "Nguyễn Văn An",
+        type: "Ăn trưa",
+        amount: 500000,
+        period: "2026-10",
+        note: "Phụ cấp ăn trưa tháng 10",
+        createdBy: "HR",
+        createdAt: "15/10/2026"
+    },
+    {
+        id: 2,
+        intern: "Trần Thị Bình",
+        type: "Đi lại",
+        amount: 300000,
+        period: "2026-10",
+        note: "Hỗ trợ đi lại",
+        createdBy: "HR",
+        createdAt: "15/10/2026"
+    },
+    {
+        id: 3,
+        intern: "Lê Minh Đức",
+        type: "Điện thoại",
+        amount: 200000,
+        period: "2026-09",
+        note: "Phụ cấp điện thoại",
+        createdBy: "HR",
+        createdAt: "30/09/2026"
+    }
+];
