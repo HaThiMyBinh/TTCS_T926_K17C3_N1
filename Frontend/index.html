@@ -3197,6 +3197,196 @@
           <div class="card"><div class="card-header"><h3>Đơn nghỉ của tôi</h3></div><div class="card-body"><div id="lvList">Đang tải...</div></div></div>
         </div>
 
+        <!-- STORY 2.2: LỊCH SỬ NHẬN PHỤ CẤP CỦA INTERN -->
+<div id="tab-my-allowances" class="tab-pane" style="display: none">
+  <div class="card">
+    <div class="card-header">
+      <h3>
+        <i class="fa-solid fa-money-bill-wave text-primary"></i>
+        Lịch sử nhận phụ cấp
+      </h3>
+    </div>
+
+    <div class="card-body">
+      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:end; margin-bottom:20px">
+        <label class="fr-field">
+          <span>Kỳ phụ cấp</span>
+          <select id="allowancePeriodFilter" onchange="renderAllowanceHistory()">
+            <option value="">Tất cả các kỳ</option>
+          </select>
+        </label>
+
+        <div class="card" style="padding:16px; min-width:220px; margin:0">
+          <div style="color:#64748b; font-size:14px">Tổng phụ cấp đã nhận</div>
+          <div id="allowanceTotal" style="font-size:24px; font-weight:700; color:#2563eb">
+            0 ₫
+          </div>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table style="width:100%; border-collapse:collapse">
+          <thead>
+            <tr style="background:#f1f5f9; text-align:left">
+              <th style="padding:12px">STT</th>
+              <th style="padding:12px">Kỳ phụ cấp</th>
+              <th style="padding:12px">Ngày nhận</th>
+              <th style="padding:12px">Số tiền</th>
+              <th style="padding:12px">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody id="allowanceHistoryBody">
+            <tr>
+              <td colspan="5" style="padding:24px; text-align:center">
+                Chưa có dữ liệu
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- HẾT STORY 2.2 -->
+ 
+<!-- STORY 3.4: YÊU CẦU HỖ TRỢ CỦA INTERN -->
+<div id="tab-support-requests" class="tab-pane" style="display: none">
+
+  <div class="card">
+    <div class="card-header">
+      <h3>
+        <i class="fa-solid fa-headset text-primary"></i>
+        Gửi yêu cầu hỗ trợ
+      </h3>
+    </div>
+
+    <div class="card-body">
+      <form id="supportRequestForm" onsubmit="submitSupportRequest(event)">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="supportRequestType">Loại yêu cầu *</label>
+            <select id="supportRequestType" class="form-control" required>
+              <option value="">-- Chọn loại yêu cầu --</option>
+              <option value="Chứng nhận">Chứng nhận</option>
+              <option value="Giấy tờ">Giấy tờ</option>
+              <option value="Khác">Khác</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="supportRequestTitle">Tiêu đề *</label>
+            <input
+              id="supportRequestTitle"
+              class="form-control"
+              type="text"
+              maxlength="150"
+              placeholder="Nhập tiêu đề yêu cầu"
+              required
+            />
+          </div>
+
+          <div class="form-group" style="grid-column: 1 / -1">
+            <label for="supportRequestContent">Nội dung *</label>
+            <textarea
+              id="supportRequestContent"
+              class="form-control"
+              rows="5"
+              maxlength="2000"
+              placeholder="Mô tả chi tiết yêu cầu hỗ trợ của bạn..."
+              required
+            ></textarea>
+            <small class="fr-hint">Tối đa 2.000 ký tự.</small>
+          </div>
+
+        </div>
+
+        <div
+          id="supportRequestError"
+          class="text-danger"
+          role="alert"
+          style="margin-top: 12px"
+        ></div>
+
+        <div style="margin-top: 16px">
+          <button type="submit" class="btn btn-primary" id="supportRequestSubmit">
+            <i class="fa-solid fa-paper-plane"></i>
+            Gửi yêu cầu
+          </button>
+          <button
+            type="reset"
+            class="btn btn-soft-gray"
+            style="margin-left: 8px"
+          >
+            Nhập lại
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>
+        <i class="fa-solid fa-clipboard-list text-primary"></i>
+        Yêu cầu hỗ trợ của tôi
+      </h3>
+
+      <button
+        type="button"
+        class="btn btn-sm btn-primary"
+        onclick="renderSupportRequests()"
+      >
+        <i class="fa-solid fa-rotate"></i>
+        Làm mới
+      </button>
+    </div>
+
+    <div class="card-body">
+      <div class="filter-bar">
+        <label class="filter-field">
+          Lọc theo trạng thái
+          <select
+            id="supportRequestStatusFilter"
+            onchange="renderSupportRequests()"
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="Chờ xử lý">Chờ xử lý</option>
+            <option value="Đang xử lý">Đang xử lý</option>
+            <option value="Đã xử lý">Đã xử lý</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã</th>
+              <th>Loại yêu cầu</th>
+              <th>Tiêu đề</th>
+              <th>Ngày gửi</th>
+              <th>Trạng thái</th>
+              <th>Phản hồi</th>
+            </tr>
+          </thead>
+
+          <tbody id="supportRequestList">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 24px">
+                Chưa tải dữ liệu.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+<!-- HẾT STORY 3.4 -->
+
+
         <div id="tab-submissions" class="tab-pane" style="display: none">
           <div id="wrNotIntern" class="card" style="display: none">
             <div class="card-body">
@@ -5580,6 +5770,7 @@
       }
 
       function hasPermissionForTab(tabId, role) {
+        if (tabId === "tab-support-requests") return role === "Intern";
         if (tabId === "tab-reports" && role === "HR") return true; // trang chọn báo cáo luôn mở cho HR
         if (tabId === "tab-programs") return role === "HR" || role === "Admin";
         if (tabId === "tab-my-interns") return role === "Mentor";
@@ -5693,6 +5884,31 @@
           liMyLeaves.className = "nav-item";
           liMyLeaves.innerHTML = `<a class="nav-link ${currentTab === "tab-my-leaves" ? "active" : ""}" onclick="switchTab('tab-my-leaves')"><i class="fa-solid fa-umbrella-beach"></i><span>Nghỉ phép</span></a>`;
           menuEl.appendChild(liMyLeaves);
+          allowedCount++;
+          const liMyAllowances = document.createElement("li");
+          liMyAllowances.className = "nav-item";
+          liMyAllowances.innerHTML = `
+          <a class="nav-link ${currentTab === "tab-my-allowances" ? "active" : ""}"
+          onclick="switchTab('tab-my-allowances')">
+          <i class="fa-solid fa-money-bill-wave"></i>
+          <span>Lịch sử phụ cấp</span>
+          </a>
+          `;
+          menuEl.appendChild(liMyAllowances);
+
+          // STORY 3.4: Yêu cầu hỗ trợ chỉ dành cho Intern
+          const liSupportRequests = document.createElement("li");
+          liSupportRequests.className = "nav-item";
+          liSupportRequests.innerHTML = `
+            <a class="nav-link ${currentTab === "tab-support-requests" ? "active" : ""}"
+               onclick="switchTab('tab-support-requests')">
+              <i class="fa-solid fa-headset"></i>
+              <span>Yêu cầu hỗ trợ</span>
+            </a>
+          `;
+          menuEl.appendChild(liSupportRequests);
+          allowedCount++;
+
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -5850,7 +6066,189 @@
           `${allowedCount} mục`;
       }
 
-      // CHUYỂN TAB VÀ CHẶN TRUY CẬP TRÊN UI
+      // =========================================================================
+      // STORY 3.4: YÊU CẦU HỖ TRỢ CỦA INTERN
+      // Bản giao diện này lưu ở localStorage của trình duyệt hiện tại.
+      // Khi cần chia sẻ dữ liệu giữa nhiều tài khoản/thiết bị, cần nối API backend.
+      // =========================================================================
+      const SUPPORT_REQUEST_STORAGE_KEY = "internSupportRequests_v1";
+
+      function getSupportRequestCurrentUser() {
+        try {
+          return JSON.parse(sessionStorage.getItem("currentUser") || "{}");
+        } catch (error) {
+          return {};
+        }
+      }
+
+      function getSupportRequestOwnerKey() {
+        const user = getSupportRequestCurrentUser();
+        return String(user.id || user.userId || user.email || user.username || user.name || "intern-unknown");
+      }
+
+      function getSupportRequestStore() {
+        try {
+          const raw = localStorage.getItem(SUPPORT_REQUEST_STORAGE_KEY);
+          if (raw !== null) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+
+          // Khởi tạo dữ liệu mẫu từ mockData.js cho lần mở đầu tiên.
+          // Dữ liệu mẫu chỉ thuộc tài khoản Intern đang đăng nhập trên trình duyệt này.
+          const ownerKey = getSupportRequestOwnerKey();
+          const samples = Array.isArray(window.MOCK_SUPPORT_REQUESTS)
+            ? window.MOCK_SUPPORT_REQUESTS
+            : [];
+          const seeded = samples.map((item, index) => ({
+            ...item,
+            id: item.id || ("SR-DEMO-" + (index + 1)),
+            ownerKey,
+            ownerName: item.ownerName || "Thực tập sinh",
+            response: item.response || "",
+            status: item.status || "Chờ xử lý"
+          }));
+          localStorage.setItem(SUPPORT_REQUEST_STORAGE_KEY, JSON.stringify(seeded));
+          return seeded;
+        } catch (error) {
+          console.error("Không đọc được dữ liệu yêu cầu hỗ trợ:", error);
+          return [];
+        }
+      }
+
+      function saveSupportRequestStore(items) {
+        try {
+          localStorage.setItem(SUPPORT_REQUEST_STORAGE_KEY, JSON.stringify(items));
+          return true;
+        } catch (error) {
+          console.error("Không lưu được dữ liệu yêu cầu hỗ trợ:", error);
+          showToast("Không thể lưu dữ liệu trên trình duyệt này.", "error");
+          return false;
+        }
+      }
+
+      function getSupportRequestStatusClass(status) {
+        const normalized = String(status || "").toLowerCase();
+        if (normalized.includes("hoàn thành") || normalized.includes("đã xử lý") || normalized.includes("đã duyệt")) {
+          return "badge-active";
+        }
+        if (normalized.includes("từ chối")) return "badge-rejected";
+        return "badge-pending";
+      }
+
+      function submitSupportRequest(event) {
+        if (event) event.preventDefault();
+
+        if (currentRole !== "Intern") {
+          showToast("Chỉ tài khoản Intern mới được gửi yêu cầu hỗ trợ.", "error");
+          return;
+        }
+
+        const typeEl = document.getElementById("supportRequestType");
+        const titleEl = document.getElementById("supportRequestTitle");
+        const contentEl = document.getElementById("supportRequestContent");
+        const errorEl = document.getElementById("supportRequestError");
+        const form = document.getElementById("supportRequestForm");
+
+        if (!typeEl || !titleEl || !contentEl || !form) return;
+
+        const type = typeEl.value.trim();
+        const title = titleEl.value.trim();
+        const content = contentEl.value.trim();
+
+        if (errorEl) errorEl.textContent = "";
+
+        if (!type || !title || !content) {
+          if (errorEl) errorEl.textContent = "Vui lòng điền đầy đủ loại yêu cầu, tiêu đề và nội dung.";
+          return;
+        }
+        if (title.length > 150) {
+          if (errorEl) errorEl.textContent = "Tiêu đề không được vượt quá 150 ký tự.";
+          return;
+        }
+        if (content.length > 2000) {
+          if (errorEl) errorEl.textContent = "Nội dung không được vượt quá 2.000 ký tự.";
+          return;
+        }
+
+        const user = getSupportRequestCurrentUser();
+        const now = new Date();
+        const request = {
+          id: "SR-" + now.getTime(),
+          ownerKey: getSupportRequestOwnerKey(),
+          ownerName: String(user.name || user.fullName || user.email || "Thực tập sinh"),
+          type,
+          title,
+          content,
+          createdAt: now.toISOString(),
+          status: "Chờ xử lý",
+          response: ""
+        };
+
+        const items = getSupportRequestStore();
+        items.unshift(request);
+
+        if (!saveSupportRequestStore(items)) return;
+
+        form.reset();
+        if (errorEl) errorEl.textContent = "";
+        renderSupportRequests();
+        showToast("Đã gửi yêu cầu hỗ trợ.", "success");
+      }
+
+      function renderSupportRequests() {
+        const tbody = document.getElementById("supportRequestList");
+        const filterEl = document.getElementById("supportRequestStatusFilter");
+        if (!tbody) return;
+
+        if (currentRole !== "Intern") {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px">Chức năng này chỉ dành cho Intern.</td></tr>';
+          return;
+        }
+
+        const ownerKey = getSupportRequestOwnerKey();
+        const filterValue = filterEl ? (filterEl.value || "ALL") : "ALL";
+        const items = getSupportRequestStore()
+          .filter((item) => item && item.ownerKey === ownerKey)
+          .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
+          .filter((item) => filterValue === "ALL" || item.status === filterValue);
+
+        if (!items.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#64748b">Chưa có yêu cầu hỗ trợ nào.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = items.map((item) => {
+          const date = item.createdAt
+            ? new Date(item.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })
+            : "--";
+          const status = String(item.status || "Chờ xử lý");
+          return `
+            <tr>
+              <td>${escapeHtml(item.id || "--")}</td>
+              <td>${escapeHtml(item.type || "--")}</td>
+              <td>
+                <strong>${escapeHtml(item.title || "--")}</strong>
+                <div style="margin-top:4px;white-space:pre-wrap;color:#64748b">${escapeHtml(item.content || "")}</div>
+              </td>
+              <td>${escapeHtml(date)}</td>
+              <td><span class="badge ${getSupportRequestStatusClass(status)}">${escapeHtml(status)}</span></td>
+              <td style="white-space:pre-wrap">${escapeHtml(item.response || "Chưa có phản hồi")}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const supportForm = document.getElementById("supportRequestForm");
+        if (supportForm) {
+          supportForm.addEventListener("reset", () => {
+            const errorEl = document.getElementById("supportRequestError");
+            if (errorEl) errorEl.textContent = "";
+          });
+        }
+      });
+
       function switchTab(tabId) {
         currentTab = tabId;
         document.querySelector(".content-scroll").scrollTop = 0;
@@ -5901,6 +6299,11 @@
                 "Nộp báo cáo kết quả thực tập mỗi tuần (hạn nộp: hết Chủ nhật)";
               loadWeeklyReportsTab();
             }
+          } else if (tabId === "tab-support-requests") {
+            document.getElementById("pageTitle").innerText = "Yêu cầu hỗ trợ";
+            document.getElementById("pageSubtitle").innerText =
+              "Gửi yêu cầu và theo dõi trạng thái xử lý";
+            renderSupportRequests();
           } else if (tabId === "tab-my-profile") {
             document.getElementById("pageTitle").innerText = "Hồ Sơ Của Tôi";
             document.getElementById("pageSubtitle").innerText =
