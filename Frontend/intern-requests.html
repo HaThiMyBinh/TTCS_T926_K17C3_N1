@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intern - Gửi & Quản Lý Yêu Cầu - Task 3.5</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; background-color: #f4f6f9; min-height: 100vh; color: #333; }
+
+        /* Sidebar Navigation Menu */
+        .sidebar { width: 240px; background-color: #1e293b; color: white; padding: 20px 0; flex-shrink: 0; }
+        .sidebar h3 { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #334155; font-size: 18px; color: #38bdf8; }
+        .nav-menu { list-style: none; margin-top: 20px; }
+        .nav-menu li a { display: block; padding: 12px 20px; color: #94a3b8; text-decoration: none; font-weight: 500; transition: 0.2s; }
+        .nav-menu li a.active, .nav-menu li a:hover { background-color: #0f172a; color: #38bdf8; border-left: 4px solid #38bdf8; }
+
+        /* Main Content Area */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 24px; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; }
+        .header h2 { font-size: 20px; color: #1e293b; }
+
+        /* Form Gửi Yêu Cầu */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group.full-width { grid-column: span 2; }
+        .form-group label { font-size: 13px; font-weight: 600; color: #475569; }
+        .form-group input, .form-group select, .form-group textarea { padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #0284c7; }
+        .btn-submit { padding: 10px 20px; background-color: #0284c7; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; align-self: flex-start; }
+        .btn-submit:hover { background-color: #0369a1; }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Alert Boxes */
+        .alert-box { padding: 12px 16px; border-radius: 6px; font-size: 14px; margin-bottom: 20px; display: none; }
+        .alert-error { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+        .alert-success { background-color: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
+
+        /* Table & Badges */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: top; }
+        th { background-color: #f1f5f9; color: #475569; font-weight: 600; }
+
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-pending { background-color: #fef3c7; color: #d97706; }
+        .badge-approved { background-color: #d1fae5; color: #059669; }
+        .badge-rejected { background-color: #fee2e2; color: #dc2626; }
+
+        .response-text { font-size: 13px; color: #475569; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border-left: 3px solid #cbd5e1; margin-top: 4px; }
+
+        /* Loading Spinner */
+        .state-container { text-align: center; padding: 30px 20px; color: #64748b; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #0284c7; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; margin: 0 auto 12px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR MENU -->
+    <div class="sidebar">
+        <h3>INTERN PORTAL</h3>
+        <ul class="nav-menu">
+            <li><a href="index.html">Trang chủ</a></li>
+            <li><a href="work-schedules.html">Lịch thực tập</a></li>
+            <li><a href="tasks.html">Nhiệm vụ</a></li>
+            <li><a href="intern-requests.html" class="active">Gửi yêu cầu / Hỗ trợ</a></li>
+            <li><a href="notifications.html">Thông báo</a></li>
+        </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="container">
+            
+            <!-- THÔNG BÁO LỖI VÀ THÀNH CÔNG -->
+            <div id="alertGlobal" class="alert-box"></div>
+
+            <!-- CARD 1: FORM GỬI YÊU CẦU MỚI -->
+            <div class="card">
+                <div class="header">
+                    <h2>📝 Gửi Yêu Cầu Hỗ Trợ Mới</h2>
+                </div>
+                <form id="requestForm" onsubmit="handleSendRequest(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="requestType">Loại yêu cầu <span style="color:red;">*</span>:</label>
+                            <select id="requestType" required>
+                                <option value="">-- Chọn loại yêu cầu --</option>
+                                <option value="DEVICE">Yêu cầu thiết bị / Tài khoản</option>
+                                <option value="SCHEDULE">Xin đổi lịch thực tập</option>
+                                <option value="FEEDBACK">Góp ý / Khiếu nại</option>
+                                <option value="OTHER">Yêu cầu khác</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="requestTitle">Tiêu đề yêu cầu <span style="color:red;">*</span>:</label>
+                            <input type="text" id="requestTitle" placeholder="Nhập tiêu đề ngắn gọn..." required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="requestContent">Nội dung chi tiết <span style="color:red;">*</span>:</label>
+                            <textarea id="requestContent" rows="4" placeholder="Mô tả chi tiết nội dung cần hỗ trợ..." required></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-submit" id="btnSubmitRequest">Gửi Yêu Cầu</button>
+                </form>
+            </div>
+
+            <!-- CARD 2: DANH SÁCH YÊU CẦU ĐÃ GỬI -->
+            <div class="card">
+                <div class="header">
+                    <h2>📋 Danh Sách Yêu Cầu Đã Gửi</h2>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">Loại yêu cầu</th>
+                            <th style="width: 25%;">Tiêu đề & Nội dung</th>
+                            <th style="width: 15%;">Ngày gửi</th>
+                            <th style="width: 15%;">Trạng thái</th>
+                            <th style="width: 30%;">Phản hồi từ Mentor/HR</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestTableBody">
+                        <!-- Render từ API -->
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api/requests';
+
+        // 1. Tải danh sách yêu cầu từ API thực tế
+        async function fetchRequests() {
+            const tbody = document.getElementById('requestTableBody');
+            
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5">
+                        <div class="state-container">
+                            <div class="spinner"></div>
+                            <p>Đang tải danh sách yêu cầu từ máy chủ...</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    }
+                });
+
+                // Xử lý báo lỗi HTTP 400 / 401 / 403
+                if (response.status === 400) {
+                    throw new Error('400: Yêu cầu không hợp lệ. Vui lòng kiểm tra tham số!');
+                } else if (response.status === 401) {
+                    throw new Error('401: Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
+                } else if (response.status === 403) {
+                    throw new Error('403: Bạn không có quyền truy cập vào danh sách yêu cầu này!');
+                } else if (response.status >= 500) {
+                    throw new Error('500: Lỗi hệ thống máy chủ!');
+                } else if (!response.ok) {
+                    throw new Error('Không thể lấy dữ liệu danh sách yêu cầu!');
+                }
+
+                const data = await response.json();
+                renderTable(data.items || data);
+
+            } catch (err) {
+                showAlert(err.message, 'error');
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#dc2626; padding:20px;">Không thể tải dữ liệu yêu cầu từ hệ thống.</td></tr>`;
+            }
+        }
+
+        function renderTable(items) {
+            const tbody = document.getElementById('requestTableBody');
+
+            if (!items || items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5">
+                            <div class="state-container">
+                                📭 Bạn chưa gửi yêu cầu hỗ trợ nào.
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = items.map(item => {
+                let badgeClass = 'badge-pending';
+                let statusText = 'Chờ xử lý';
+
+                if (item.status === 'APPROVED') { badgeClass = 'badge-approved'; statusText = 'Đã duyệt'; }
+                if (item.status === 'REJECTED') { badgeClass = 'badge-rejected'; statusText = 'Từ chối'; }
+
+                return `
+                    <tr>
+                        <td><strong>${getTypeLabel(item.type)}</strong></td>
+                        <td>
+                            <strong style="color:#0f172a;">${escapeHtml(item.title)}</strong>
+                            <div style="font-size:13px; color:#475569; margin-top:4px;">${escapeHtml(item.content)}</div>
+                        </td>
+                        <td>${item.createdAt ? formatDate(item.createdAt) : 'N/A'}</td>
+                        <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                        <td>
+                            ${item.response 
+                                ? `<div class="response-text"><strong>💬 Phản hồi:</strong> ${escapeHtml(item.response)}</div>` 
+                                : '<span style="color:#94a3b8; font-size:13px;">Chưa có phản hồi</span>'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 2. Gửi yêu cầu mới lên API thực tế
+        async function handleSendRequest(e) {
+            e.preventDefault();
+            
+            const type = document.getElementById('requestType').value;
+            const title = document.getElementById('requestTitle').value.trim();
+            const content = document.getElementById('requestContent').value.trim();
+            const btnSubmit = document.getElementById('btnSubmitRequest');
+
+            // Client Validation báo lỗi 400 trước khi gửi
+            if (!type || !title || !content) {
+                showAlert('400: Vui lòng điền đầy đủ các thông tin bắt buộc!', 'error');
+                return;
+            }
+
+            btnSubmit.innerText = 'Đang gửi yêu cầu...';
+            btnSubmit.disabled = true;
+
+            const payload = { type, title, content };
+
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                // Xử lý báo lỗi HTTP 400 / 401 / 403 / 500
+                if (response.status === 400) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(`400: ${errData.message || 'Dữ liệu gửi lên không đúng định dạng!'}`);
+                } else if (response.status === 401) {
+                    throw new Error('401: Phiên làm việc hết hạn. Vui lòng đăng nhập lại!');
+                } else if (response.status === 403) {
+                    throw new Error('403: Tài khoản của bạn không được cấp quyền gửi yêu cầu!');
+                } else if (response.status >= 500) {
+                    throw new Error('500: Lỗi hệ thống máy chủ khi xử lý yêu cầu!');
+                } else if (!response.ok) {
+                    throw new Error('Gửi yêu cầu thất bại!');
+                }
+
+                showAlert('Gửi yêu cầu hỗ trợ thành công!', 'success');
+                document.getElementById('requestForm').reset();
+                fetchRequests(); // Tải lại danh sách từ API
+
+            } catch (err) {
+                showAlert(err.message, 'error');
+            } finally {
+                btnSubmit.innerText = 'Gửi Yêu Cầu';
+                btnSubmit.disabled = false;
+            }
+        }
+
+        // Utility Functions
+        function getTypeLabel(type) {
+            switch (type) {
+                case 'DEVICE': return '💻 Thiết bị';
+                case 'SCHEDULE': return '📅 Đổi lịch';
+                case 'FEEDBACK': return '💬 Góp ý';
+                default: return '📌 Khác';
+            }
+        }
+
+        function showAlert(msg, type) {
+            const alertBox = document.getElementById('alertGlobal');
+            alertBox.className = `alert-box alert-${type}`;
+            alertBox.innerText = msg;
+            alertBox.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => { alertBox.style.display = 'none'; }, 5000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function formatDate(dateStr) {
+            try {
+                const d = new Date(dateStr);
+                return d.toLocaleDateString('vi-VN');
+            } catch (e) { return dateStr; }
+        }
+
+        window.onload = () => fetchRequests();
+    </script>
+</body>
+</html>
