@@ -74,7 +74,7 @@ chưa từng chạy thử lần nào:
 
 `mail_config.json` chứa mật khẩu nên đã nằm trong `.gitignore`, đừng gửi file này cho người khác.
 
-**Nhật ký gửi email (chỉ HR):** mục **Nhật ký gửi Email** ở thanh bên cho xem trạng thái từng email
+**Nhật ký gửi email (chỉ HR):** mục **Nhật ký gửi Email** trong menu tài khoản (bấm tên người dùng ở góc phải trên, cạnh **Hồ sơ**) cho xem trạng thái từng email
 (Chờ gửi / Đang thử lại / Đã gửi / Thất bại), lọc, phân trang và bấm **Gửi lại** với email thất bại.
 Sau khi duyệt/từ chối, giao diện tự theo dõi và hiện thông báo kết quả gửi mail.
 
@@ -299,3 +299,70 @@ Bảng `attendance_records` có thêm các cột `is_adjusted`, `correction_*`. 
 ### Số thực tập sinh của mentor khi phân công (US 11)
 - Ô chọn mentor khi phân công (bảng thực tập sinh, cửa sổ chương trình) hiện kèm \"· N TTS\" để HR chọn người đang nhẹ việc.
 - API: `GET /api/mentors` có thêm `activeInterns`.
+
+---
+
+## PHỤ CẤP THỰC TẬP SINH (HR)
+
+*User story: "Là HR, tôi muốn nhập thông tin phụ cấp của thực tập sinh để quản lý quyền lợi."*
+(Menu HR → **Phụ cấp thực tập sinh**)
+
+- **Giao diện (chỉ HR):** trang tổng quan liệt kê thực tập sinh kèm số khoản phụ cấp đang hiệu lực và tổng phụ cấp theo tháng,
+  có ô tìm kiếm (họ tên, MSSV, email, trường, ngành) và bộ lọc trường. Bấm **Quản lý** để mở cửa sổ danh sách các khoản
+  phụ cấp của một thực tập sinh và thêm / sửa / xóa từng khoản. Thực tập sinh chưa có hợp đồng đã xác nhận bị khóa nút
+  **Quản lý** (kèm nhãn "Chưa có HĐ xác nhận").
+- **Một khoản phụ cấp gồm:** loại (`MEAL` ăn uống, `TRANSPORT` đi lại, `PHONE` điện thoại, `HOUSING` nhà ở, `OTHER` khác),
+  số tiền VND (số nguyên, 1 – 999.999.999), chu kỳ chi trả (`MONTHLY` theo tháng, `DAILY` theo ngày, `ONE_TIME` một lần),
+  ngày bắt đầu hiệu lực, ngày kết thúc (để trống = kéo dài đến hết hợp đồng) và ghi chú (tối đa 500 ký tự).
+  Trạng thái tính theo giờ Việt Nam: **Đang hiệu lực / Sắp hiệu lực / Hết hạn**.
+- Bảng `intern_allowances` (tự tạo khi khởi động backend, cũng có trong `schema.sql`); xóa hồ sơ thực tập sinh thì xóa theo
+  (`ON DELETE CASCADE`); xóa tài khoản HR thì `created_by` / `updated_by` về NULL. DB có CHECK số tiền > 0 và ngày kết thúc ≥ ngày bắt đầu.
+- API (chỉ vai trò HR; Admin / Mentor / Intern nhận 403, chưa đăng nhập 401; phản hồi có `Cache-Control: private, no-store`):
+  - `GET /api/allowances/overview?q=&university=` — tổng quan + `summary { internCount, withAllowance, totalMonthly }`
+  - `GET /api/interns/:id/allowances` — danh sách (mỗi khoản có `status`) + `summary { totalCount, activeCount, totalMonthly, totalDaily }`
+  - `POST /api/interns/:id/allowances` — body `{ allowance_type, amount, pay_cycle, effective_from, effective_to?, note? }` → 201
+  - `PATCH /api/interns/:id/allowances/:allowanceId` — chỉ gửi trường cần đổi; hệ thống kiểm tra lại toàn bộ dữ liệu sau khi gộp
+  - `DELETE /api/interns/:id/allowances/:allowanceId`
+- Luật nghiệp vụ:
+  - **400** dữ liệu sai: số tiền không phải số nguyên (chuỗi, số thực, âm, 0, quá lớn), loại / chu kỳ ngoài danh sách, ngày sai định
+    dạng hoặc không tồn tại, ngày kết thúc trước ngày bắt đầu, loại `OTHER` thiếu ghi chú, ghi chú quá 500 ký tự, trường lạ
+    (`intern_id`, `created_by`...), ID không hợp lệ, PATCH rỗng.
+  - **404** thực tập sinh hoặc khoản phụ cấp không tồn tại; khoản phụ cấp không thuộc thực tập sinh trong đường dẫn cũng trả 404 (chống IDOR).
+  - **409** thực tập sinh chưa có hợp đồng đã xác nhận (cùng luật trình tự với giao việc, báo cáo tuần, đánh giá); khoảng hiệu lực
+    nằm ngoài kỳ của một hợp đồng đã xác nhận (hợp đồng thiếu ngày = không giới hạn; nếu không nhập ngày kết thúc thì chỉ cần ngày bắt đầu
+    nằm trong hợp đồng); **trùng khoảng hiệu lực với khoản cùng loại** của cùng thực tập sinh (kể cả khoản không có ngày kết thúc).
+    Kiểm tra trùng chạy trong một transaction có khóa dòng thực tập sinh nên hai yêu cầu song song không thể cùng lọt qua.
+  - Tổng theo tháng (`totalMonthly`) chỉ cộng các khoản **theo tháng đang hiệu lực**; khoản theo ngày cộng riêng ở `totalDaily`;
+    khoản một lần không quy đổi.
+  - Số tiền tính bằng số nguyên VND, không dùng số thực. Mọi dữ liệu hiển thị trên giao diện đều được escape (chống XSS ở ghi chú).
+- Chưa có: thực tập sinh xem phụ cấp của mình, Admin / Mentor xem, xuất Excel / CSV, lịch sử thay đổi, duyệt nhiều cấp,
+  tính phụ cấp theo ngày công thực tế, email / chuông thông báo cho thực tập sinh, đưa phụ cấp vào báo cáo cuối kỳ.
+- Kiểm thử: `cd backend && npm run test:allowances-unit` (không cần MySQL); API: `npm run test:allowances-api` (cần MySQL và backend).
+  Cả hai đã được đăng ký trong `npm test` / `npm run test:unit`.
+
+---
+
+## LỊCH SỬ PHỤ CẤP CỦA TÔI (Thực tập sinh)
+
+*User story: "Là thực tập sinh, tôi muốn xem lịch sử nhận phụ cấp để theo dõi thu nhập."*
+(Menu Intern → **Phụ cấp của tôi**)
+
+- **Phạm vi:** chỉ đọc. Thực tập sinh xem các khoản phụ cấp mà HR đã ghi nhận cho mình ở mục *Phụ cấp thực tập sinh*
+  (mỗi khoản gồm loại, số tiền, chu kỳ, khoảng hiệu lực, ghi chú, trạng thái và ngày HR ghi nhận). HR thêm / sửa / xóa
+  thì thực tập sinh thấy ngay khi tải lại. Hệ thống hiện **chưa có dữ liệu chi trả thực tế** (đã trả bao nhiêu, ngày nào),
+  nên "lịch sử nhận" là lịch sử các khoản **được hưởng** theo thời gian.
+- **Giao diện:** thẻ tổng hợp (đang hưởng theo tháng, theo ngày, số khoản đang hiệu lực / sắp hiệu lực / đã hết hạn),
+  bộ lọc theo **Trạng thái** và **Loại phụ cấp**, bảng lịch sử xếp mới nhất trước. Thẻ tổng hợp luôn tính trên toàn bộ
+  các khoản, không đổi theo bộ lọc. Ghi chú được escape (chống XSS).
+- **API:** `GET /api/me/allowances?status=&type=` — chỉ vai trò Intern (HR / Admin / Mentor nhận 403, chưa đăng nhập 401);
+  phản hồi `{ intern, items, summary { totalCount, activeCount, upcomingCount, expiredCount, totalMonthly, totalDaily } }`
+  và có `Cache-Control: private, no-store`.
+- **Bảo mật:** hồ sơ được xác định theo email của tài khoản đăng nhập (giống Nghỉ phép / Hợp đồng của tôi), không có tham số ID
+  nên không thể xem phụ cấp của người khác. Chỉ trả các trường cần thiết, **không** lộ ID người nhập / người sửa hay ID hồ sơ.
+  Không có route ghi nào cho thực tập sinh (POST / PATCH / DELETE của HR vẫn trả 403).
+- **Lỗi:** 400 khi `status` không thuộc `ACTIVE` / `UPCOMING` / `EXPIRED`, `type` ngoài danh sách loại, tham số lạ hoặc lặp lại;
+  404 khi tài khoản chưa có hồ sơ thực tập sinh. Thực tập sinh chưa có phụ cấp nhận danh sách rỗng và tổng bằng 0.
+- Chưa có: ghi nhận chi trả thực tế theo kỳ (bảng lương / phiếu chi), tổng thu nhập theo tháng, xuất Excel / PDF,
+  thông báo cho thực tập sinh khi HR thêm hoặc đổi phụ cấp.
+- Kiểm thử: `npm run test:allowances-unit` (không cần MySQL) và `npm run test:allowances-api` (cần MySQL và backend) —
+  đã gồm các ca của US này.
