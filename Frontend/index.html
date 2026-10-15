@@ -1463,6 +1463,65 @@
           grid-template-columns: 1fr;
         }
       }
+      /* Phụ cấp thực tập sinh (HR) */
+      .modal-box.allowances-modal-box {
+        max-width: 760px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 18px 20px;
+        font-size: 13.5px;
+      }
+      .allowances-modal-box h3 {
+        font-size: 16px;
+      }
+      .allowances-modal-box .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+        align-items: start;
+      }
+      .allowances-modal-box .form-group label {
+        font-size: 12.5px;
+      }
+      .allowances-modal-box textarea {
+        min-height: 56px;
+      }
+      .allowance-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        margin: 10px 0 4px;
+        padding: 10px 12px;
+        background: #f8fafc;
+        border: 1px solid var(--slate-200);
+        border-radius: 8px;
+        font-size: 13px;
+      }
+      .allowance-summary b {
+        color: #0f172a;
+      }
+      .badge-expired {
+        background: #e2e8f0;
+        color: #475569;
+      }
+      .allowance-amount {
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .allowance-form-box {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--slate-200);
+      }
+      .allowance-form-box h4 {
+        font-size: 14px;
+        margin: 0 0 8px;
+      }
+      @media (max-width: 560px) {
+        .allowances-modal-box .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
       .modal-error {
         color: #b91c1c;
         font-size: 12.5px;
@@ -1854,8 +1913,83 @@
         display: block;
         margin: 10px 0;
       }
+      /* Khung Thêm/Sửa chương trình: gọn, cuộn bên trong khi màn hình thấp */
+      #programModal .modal-box {
+        max-width: 520px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 16px 20px;
+      }
+      #programModal .modal-header {
+        margin-bottom: 6px;
+      }
+      #programModal .modal-header h3 {
+        font-size: 16px;
+        margin: 0;
+      }
+      #programModal .btn-close {
+        font-size: 22px;
+      }
+      #programModal label {
+        margin: 8px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+      }
+      #programModal .form-control {
+        display: block;
+        width: 100%;
+        margin-top: 4px;
+        padding: 7px 10px;
+        font-size: 13px;
+        font-weight: 400;
+      }
+      #programModal textarea.form-control {
+        min-height: 60px;
+      }
+      #programModal .program-toolbar {
+        margin: 0;
+        gap: 8px;
+      }
+      #programModal .program-dept-row {
+        flex-wrap: nowrap;
+        margin-top: 4px;
+      }
+      #programModal .program-dept-row .form-control {
+        flex: 1;
+        width: auto;
+        min-width: 0;
+        margin-top: 0;
+      }
+      #programModal .program-dept-row .btn {
+        white-space: nowrap;
+        padding: 7px 10px;
+        font-size: 13px;
+      }
+      #programModal .program-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+      #programModal #programStatus {
+        width: auto;
+        min-width: 140px;
+      }
+      #programModal .program-error {
+        min-height: 16px;
+        margin: 4px 0;
+        font-size: 13px;
+      }
+      #programModal .modal-actions {
+        margin-top: 8px;
+      }
+      @media (max-width: 480px) {
+        #programModal .program-grid-3 {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
-    <script src="mockData.js"></script>
   </head>
   <body>
     <!-- SIDEBAR -->
@@ -1956,6 +2090,15 @@
               >
                 <i class="fa-solid fa-envelope-circle-check"></i> Cấu hình Email
                 (SMTP)
+              </a>
+              <a
+                class="user-menu-item"
+                id="userMenuEmailLogs"
+                href="#"
+                style="display: none"
+                onclick="openEmailLogsFromMenu(event)"
+              >
+                <i class="fa-solid fa-clock-rotate-left"></i> Nhật ký gửi Email
               </a>
             </div>
           </div>
@@ -3020,14 +3163,12 @@
             <div class="fr-form-grid">
               <label class="fr-field"><span>Lịch làm việc</span><select id="wsAsSchedule"></select></label>
               <label class="fr-field"><span>Áp dụng cho</span><select id="wsAsType" onchange="updateAssignmentScope()"><option value="PROGRAM">Chương trình thực tập</option><option value="UNIVERSITY">Trường</option><option value="MENTOR">Nhóm của mentor</option><option value="INTERN">Một thực tập sinh (ngoại lệ)</option><option value="DEFAULT">Mặc định toàn hệ thống</option></select></label>
-              <label class="fr-field" id="wsAsValueWrap"><span id="wsAsValueLabel">Chương trình</span><select id="wsAsValue" onchange="previewAssignment()"></select></label>
+              <label class="fr-field" id="wsAsValueWrap"><span id="wsAsValueLabel">Chương trình</span><select id="wsAsValue"></select></label>
               <label class="fr-field"><span>Hiệu lực từ ngày</span><input id="wsAsFrom" type="date"></label>
               <label class="fr-field"><span>Đến ngày <span class="fr-hint">(để trống nếu không giới hạn)</span></span><input id="wsAsTo" type="date"></label>
             </div>
-            <p id="wsAsPreview" class="fr-hint" aria-live="polite"></p>
             <div id="wsAsError" class="text-danger" role="alert"></div>
             <div class="fr-actions"><button class="btn btn-primary" onclick="submitAssignment()">Áp dụng lịch</button></div>
-            <p class="fr-hint">Khi một thực tập sinh thuộc nhiều nhóm, lịch của nhóm cụ thể hơn được dùng: cá nhân, rồi chương trình, mentor, trường, cuối cùng là mặc định. Áp dụng lịch mới cho một nhóm sẽ tự kết thúc lần áp dụng đang mở trước đó vào ngày hôm trước.</p>
           </div></div>
           <div class="card"><div class="card-header"><h3>Lịch đang được áp dụng</h3></div><div class="card-body"><div id="wsAssignments">Đang tải...</div></div></div>
           <div class="card"><div class="card-header"><h3>Lịch của từng thực tập sinh</h3></div><div class="card-body"><div id="wsResolved">Đang tải...</div></div></div>
@@ -3055,58 +3196,6 @@
           </div></div>
           <div class="card"><div class="card-header"><h3>Đơn nghỉ của tôi</h3></div><div class="card-body"><div id="lvList">Đang tải...</div></div></div>
         </div>
-
-        <!-- STORY 2.2: LỊCH SỬ NHẬN PHỤ CẤP CỦA INTERN -->
-<div id="tab-my-allowances" class="tab-pane" style="display: none">
-  <div class="card">
-    <div class="card-header">
-      <h3>
-        <i class="fa-solid fa-money-bill-wave text-primary"></i>
-        Lịch sử nhận phụ cấp
-      </h3>
-    </div>
-
-    <div class="card-body">
-      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:end; margin-bottom:20px">
-        <label class="fr-field">
-          <span>Kỳ phụ cấp</span>
-          <select id="allowancePeriodFilter" onchange="renderAllowanceHistory()">
-            <option value="">Tất cả các kỳ</option>
-          </select>
-        </label>
-
-        <div class="card" style="padding:16px; min-width:220px; margin:0">
-          <div style="color:#64748b; font-size:14px">Tổng phụ cấp đã nhận</div>
-          <div id="allowanceTotal" style="font-size:24px; font-weight:700; color:#2563eb">
-            0 ₫
-          </div>
-        </div>
-      </div>
-
-      <div style="overflow-x:auto">
-        <table style="width:100%; border-collapse:collapse">
-          <thead>
-            <tr style="background:#f1f5f9; text-align:left">
-              <th style="padding:12px">STT</th>
-              <th style="padding:12px">Kỳ phụ cấp</th>
-              <th style="padding:12px">Ngày nhận</th>
-              <th style="padding:12px">Số tiền</th>
-              <th style="padding:12px">Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody id="allowanceHistoryBody">
-            <tr>
-              <td colspan="5" style="padding:24px; text-align:center">
-                Chưa có dữ liệu
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-<!-- HẾT STORY 2.2 -->
 
         <div id="tab-submissions" class="tab-pane" style="display: none">
           <div id="wrNotIntern" class="card" style="display: none">
@@ -4446,6 +4535,67 @@
             </div>
           </div>
         </div>
+        <div id="tab-my-allowances" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-hand-holding-dollar text-primary"></i>
+                Phụ cấp của tôi
+              </h3>
+              <button class="btn btn-sm btn-primary" onclick="loadMyAllowances()">
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
+            </div>
+            <div id="myAllowanceSummary" class="allowance-summary" style="margin: 12px 20px 0"></div>
+            <div class="filter-toolbar">
+              <div class="filter-group">
+                <label for="myAllowanceStatus">Trạng thái</label>
+                <select id="myAllowanceStatus" class="form-control" onchange="loadMyAllowances()">
+                  <option value="">Tất cả</option>
+                  <option value="ACTIVE">Đang hiệu lực</option>
+                  <option value="UPCOMING">Sắp hiệu lực</option>
+                  <option value="EXPIRED">Hết hạn</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="myAllowanceType">Loại phụ cấp</label>
+                <select id="myAllowanceType" class="form-control" onchange="loadMyAllowances()">
+                  <option value="">Tất cả</option>
+                  <option value="MEAL">Ăn uống</option>
+                  <option value="TRANSPORT">Đi lại</option>
+                  <option value="PHONE">Điện thoại</option>
+                  <option value="HOUSING">Nhà ở</option>
+                  <option value="OTHER">Khác</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Loại phụ cấp</th>
+                      <th style="text-align: right">Số tiền</th>
+                      <th>Chu kỳ</th>
+                      <th>Hiệu lực</th>
+                      <th>Trạng thái</th>
+                      <th>Ghi chú</th>
+                      <th>Ngày ghi nhận</th>
+                    </tr>
+                  </thead>
+                  <tbody id="myAllowancesBody">
+                    <tr>
+                      <td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px">
+                        Đang tải lịch sử phụ cấp...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div id="tab-my-schedule" class="tab-pane" style="display: none">
           <div class="card">
             <div class="card-header">
@@ -4569,6 +4719,66 @@
             </div>
           </div>
         </div>
+
+        <div id="tab-allowances" class="tab-pane" style="display: none">
+          <div class="card">
+            <div class="card-header">
+              <h3>
+                <i class="fa-solid fa-hand-holding-dollar text-primary"></i>
+                Phụ cấp thực tập sinh
+              </h3>
+              <button class="btn btn-sm btn-primary" onclick="loadAllowanceOverview()">
+                <i class="fa-solid fa-rotate"></i> Làm mới
+              </button>
+            </div>
+            <div class="filter-toolbar">
+              <div class="filter-group" style="flex: 1; min-width: 220px">
+                <label for="allowanceSearch">Tìm kiếm</label>
+                <input
+                  id="allowanceSearch"
+                  class="form-control"
+                  type="search"
+                  placeholder="Họ tên, MSSV, email, trường, ngành"
+                  oninput="scheduleAllowanceSearch()"
+                />
+              </div>
+              <div class="filter-group">
+                <label for="allowanceUniversityFilter">Trường</label>
+                <select
+                  id="allowanceUniversityFilter"
+                  class="form-control"
+                  onchange="loadAllowanceOverview()"
+                >
+                  <option value="">Tất cả</option>
+                </select>
+              </div>
+            </div>
+            <div id="allowanceOverviewSummary" class="allowance-summary" style="margin: 12px 20px 0"></div>
+            <div class="card-body" style="padding: 0">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Thực tập sinh</th>
+                      <th>MSSV</th>
+                      <th>Trường</th>
+                      <th style="text-align: center">Khoản đang hiệu lực</th>
+                      <th style="text-align: right">Tổng phụ cấp / tháng</th>
+                      <th style="text-align: center">Chức năng</th>
+                    </tr>
+                  </thead>
+                  <tbody id="allowanceOverviewBody">
+                    <tr>
+                      <td colspan="6" style="text-align: center; color: #94a3b8; padding: 24px">
+                        Đang tải danh sách thực tập sinh...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <!-- /CONTENT SCROLL -->
     </main>
@@ -4678,6 +4888,88 @@
               type="button"
               onclick="closeContracts()"
             >
+              Đóng
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div
+      id="allowancesModal"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeAllowances();"
+      aria-hidden="true"
+    >
+      <div class="modal-box allowances-modal-box">
+        <h3>
+          <i class="fa-solid fa-hand-holding-dollar"></i>
+          Phụ cấp thực tập - <span id="allowancesInternName"></span>
+        </h3>
+        <div id="allowancesSummary" class="allowance-summary"></div>
+        <div id="allowancesList" style="margin: 12px 0">Đang tải danh sách phụ cấp...</div>
+        <form id="allowanceForm" class="allowance-form-box" onsubmit="saveAllowance(event)" novalidate>
+          <h4 id="allowanceFormTitle">Thêm khoản phụ cấp</h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="allowanceType">Loại phụ cấp *</label>
+              <select id="allowanceType" class="form-control" onchange="onAllowanceTypeChange()">
+                <option value="MEAL">Ăn uống</option>
+                <option value="TRANSPORT">Đi lại</option>
+                <option value="PHONE">Điện thoại</option>
+                <option value="HOUSING">Nhà ở</option>
+                <option value="OTHER">Khác</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="allowanceAmount">Số tiền (VND) *</label>
+              <input
+                id="allowanceAmount"
+                class="form-control"
+                type="number"
+                min="1"
+                step="1"
+                max="999999999"
+                inputmode="numeric"
+                placeholder="VD: 500000"
+              />
+            </div>
+            <div class="form-group">
+              <label for="allowanceCycle">Chu kỳ chi trả *</label>
+              <select id="allowanceCycle" class="form-control">
+                <option value="MONTHLY">Theo tháng</option>
+                <option value="DAILY">Theo ngày</option>
+                <option value="ONE_TIME">Một lần</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="allowanceFrom">Hiệu lực từ ngày *</label>
+              <input id="allowanceFrom" class="form-control" type="date" />
+            </div>
+            <div class="form-group">
+              <label for="allowanceTo">Đến ngày (để trống = hết hợp đồng)</label>
+              <input id="allowanceTo" class="form-control" type="date" />
+            </div>
+            <div class="form-group">
+              <label for="allowanceNote">Ghi chú <span id="allowanceNoteRequired" style="color:#b91c1c;display:none">* (bắt buộc với loại Khác)</span></label>
+              <textarea id="allowanceNote" class="form-control" rows="2" maxlength="500"></textarea>
+            </div>
+          </div>
+          <div id="allowanceError" class="modal-error"></div>
+          <div class="modal-actions">
+            <button id="allowanceSubmitBtn" class="btn btn-primary" type="submit">
+              <i class="fa-solid fa-floppy-disk"></i> Lưu phụ cấp
+            </button>
+            <button
+              id="allowanceCancelEditBtn"
+              class="btn btn-outline-primary"
+              type="button"
+              style="display: none"
+              onclick="resetAllowanceForm()"
+            >
+              Hủy sửa
+            </button>
+            <button class="btn btn-secondary" type="button" onclick="closeAllowances()">
               Đóng
             </button>
           </div>
@@ -5052,7 +5344,7 @@
           /></label>
           <label
             >Phòng ban
-            <div class="program-toolbar">
+            <div class="program-toolbar program-dept-row">
               <select
                 id="programDepartment"
                 class="form-control"
@@ -5071,10 +5363,11 @@
             >Mô tả<textarea
               id="programDescription"
               class="form-control"
+              rows="3"
               maxlength="2000"
             ></textarea>
           </label>
-          <div class="program-toolbar">
+          <div class="program-toolbar program-grid-3">
             <label
               >Ngày bắt đầu<input
                 id="programStartDate"
@@ -5243,6 +5536,14 @@
         switchTab("tab-email-config");
       }
 
+      // Mở trang Nhật ký gửi Email từ dropdown tài khoản (chỉ HR)
+      function openEmailLogsFromMenu(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.getElementById("userMenuDropdown").classList.remove("open");
+        switchTab("tab-email-logs");
+      }
+
       // Đóng menu tài khoản khi click ra ngoài
       document.addEventListener("click", (e) => {
         const bell = document.getElementById("notifBell");
@@ -5290,6 +5591,7 @@
         if (tabId === "tab-my-contracts") {
           return role === "Intern";
         }
+        if (tabId === "tab-my-allowances") return role === "Intern";
         if (tabId === "tab-my-schedule") return role === "Intern";
         if (tabId === "tab-my-tasks") return role === "Intern";
         if (tabId === "tab-my-attendance") return role === "Intern";
@@ -5298,7 +5600,6 @@
         if (tabId === "tab-attendance-report") return role === "HR";
         if (tabId === "tab-work-schedules") return role === "HR" || role === "Admin";
         if (tabId === "tab-my-leaves") return role === "Intern";
-        if (tabId === "tab-my-allowances") return role === "Intern";
         if (tabId === "tab-candidates") {
           return role === "HR" || role === "Admin";
         }
@@ -5306,6 +5607,9 @@
           return role === "HR" || role === "Admin";
         }
         if (tabId === "tab-contracts") {
+          return role === "HR";
+        }
+        if (tabId === "tab-allowances") {
           return role === "HR";
         }
         if (tabId === "tab-email-config") {
@@ -5357,6 +5661,17 @@
         `;
           menuEl.appendChild(liMyContracts);
 
+          allowedCount++;
+          const liMyAllowances = document.createElement("li");
+          liMyAllowances.className = "nav-item";
+          liMyAllowances.innerHTML = `
+          <a class="nav-link ${currentTab === "tab-my-allowances" ? "active" : ""}" onclick="switchTab('tab-my-allowances')">
+            <i class="fa-solid fa-hand-holding-dollar"></i>
+            <span>Phụ cấp của tôi</span>
+          </a>
+        `;
+          menuEl.appendChild(liMyAllowances);
+
           const liMySchedule = document.createElement("li");
           liMySchedule.className = "nav-item";
           liMySchedule.innerHTML = `<a class="nav-link ${currentTab === "tab-my-schedule" ? "active" : ""}" onclick="switchTab('tab-my-schedule')"><i class="fa-solid fa-calendar-days"></i><span>Lịch thực tập của tôi</span></a>`;
@@ -5378,18 +5693,6 @@
           liMyLeaves.className = "nav-item";
           liMyLeaves.innerHTML = `<a class="nav-link ${currentTab === "tab-my-leaves" ? "active" : ""}" onclick="switchTab('tab-my-leaves')"><i class="fa-solid fa-umbrella-beach"></i><span>Nghỉ phép</span></a>`;
           menuEl.appendChild(liMyLeaves);
-          allowedCount++;
-          const liMyAllowances = document.createElement("li");
-          liMyAllowances.className = "nav-item";
-          liMyAllowances.innerHTML = `
-          <a class="nav-link ${currentTab === "tab-my-allowances" ? "active" : ""}"
-          onclick="switchTab('tab-my-allowances')">
-          <i class="fa-solid fa-money-bill-wave"></i>
-          <span>Lịch sử phụ cấp</span>
-          </a>
-          `;
-          menuEl.appendChild(liMyAllowances);
-
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -5421,14 +5724,22 @@
           );
         }
 
-        // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh, Hợp đồng, Nhật ký Email
+        // Mục "Nhật ký gửi Email" của HR nằm trong dropdown tài khoản (cạnh "Hồ sơ").
+        const emailLogsMenuItem = document.getElementById("userMenuEmailLogs");
+        if (emailLogsMenuItem) {
+          emailLogsMenuItem.style.display = currentRole === "HR" ? "flex" : "none";
+          emailLogsMenuItem.classList.toggle("active", currentTab === "tab-email-logs");
+        }
+        if (currentRole === "HR") allowedCount++; // vẫn tính vào số mục được phép
+
+        // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh, Hợp đồng, Phụ cấp
         if (currentRole === "HR") {
           allowedCount += 4;
           const isCandidateActive = currentTab === "tab-candidates";
           const isMentorActive = currentTab === "tab-mentors";
           const isStudentActive = currentTab === "tab-students";
           const isContractsActive = currentTab === "tab-contracts";
-          const isEmailLogsActive = currentTab === "tab-email-logs";
+          const isAllowancesActive = currentTab === "tab-allowances";
 
           const liCand = document.createElement("li");
           liCand.className = "nav-item";
@@ -5470,15 +5781,15 @@
         `;
           menuEl.appendChild(liContracts);
 
-          const liEmailLogs = document.createElement("li");
-          liEmailLogs.className = "nav-item";
-          liEmailLogs.innerHTML = `
-          <a class="nav-link ${isEmailLogsActive ? "active" : ""}" onclick="switchTab('tab-email-logs')">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>Nhật ký gửi Email</span>
+          const liAllowances = document.createElement("li");
+          liAllowances.className = "nav-item";
+          liAllowances.innerHTML = `
+          <a class="nav-link ${isAllowancesActive ? "active" : ""}" onclick="switchTab('tab-allowances')">
+            <i class="fa-solid fa-hand-holding-dollar"></i>
+            <span>Phụ cấp thực tập sinh</span>
           </a>
         `;
-          menuEl.appendChild(liEmailLogs);
+          menuEl.appendChild(liAllowances);
 
           // Báo cáo cuối kỳ / chuyên cần nằm trong trang "Báo cáo & Thống kê"; nếu HR bị thu quyền VIEW_REPORTS thì vẫn giữ lối vào.
           if (!rolePerms.includes("VIEW_REPORTS")) {
@@ -5538,75 +5849,8 @@
         document.getElementById("menuCountBadge").innerText =
           `${allowedCount} mục`;
       }
+
       // CHUYỂN TAB VÀ CHẶN TRUY CẬP TRÊN UI
-     function renderAllowanceHistory() {
-  const filter = document.getElementById("allowancePeriodFilter");
-  const tbody = document.getElementById("allowanceHistoryBody");
-  const totalElement = document.getElementById("allowanceTotal");
-
-  if (!filter || !tbody || !totalElement) return;
-
-  const allowances = Array.isArray(window.MOCK_ALLOWANCES)
-    ? window.MOCK_ALLOWANCES
-    : [];
-
-  // Tạo danh sách kỳ phụ cấp từ dữ liệu giả
-  const periods = [...new Set(
-    allowances.map((item) => item.period).filter(Boolean)
-  )].sort((a, b) => b.localeCompare(a));
-
-  // Chỉ thêm các kỳ một lần, không tạo option trùng lặp
-  if (filter.options.length !== periods.length + 1) {
-    filter.innerHTML = '<option value="">Tất cả các kỳ</option>';
-
-    periods.forEach((period) => {
-      const option = document.createElement("option");
-      option.value = period;
-      option.textContent = period;
-      filter.appendChild(option);
-    });
-  }
-
-  const selectedPeriod = filter.value;
-  const filtered = allowances
-    .filter((item) => !selectedPeriod || item.period === selectedPeriod)
-    .sort((a, b) => b.period.localeCompare(a.period));
-
-  const total = filtered.reduce(
-    (sum, item) => sum + (Number(item.amount) || 0),
-    0
-  );
-
-  totalElement.textContent = total.toLocaleString("vi-VN") + " ₫";
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="5" style="padding:24px;text-align:center;color:#64748b">
-          Không có dữ liệu phụ cấp trong kỳ này.
-        </td>
-      </tr>`;
-    return;
-  }
-
-  tbody.innerHTML = filtered.map((item, index) => {
-    const date = item.receivedDate
-      ? new Date(item.receivedDate + "T00:00:00").toLocaleDateString("vi-VN")
-      : "--";
-
-    return `
-      <tr style="border-bottom:1px solid #e2e8f0">
-        <td style="padding:12px">${index + 1}</td>
-        <td style="padding:12px">${item.period || "--"}</td>
-        <td style="padding:12px">${date}</td>
-        <td style="padding:12px;font-weight:600">
-          ${(Number(item.amount) || 0).toLocaleString("vi-VN")} ₫
-        </td>
-        <td style="padding:12px">${item.status || "--"}</td>
-      </tr>`;
-  }).join("");
-}
-
       function switchTab(tabId) {
         currentTab = tabId;
         document.querySelector(".content-scroll").scrollTop = 0;
@@ -5667,6 +5911,11 @@
             document.getElementById("pageSubtitle").innerText =
               "Xem và xác nhận hợp đồng thực tập do HR gửi";
             loadMyContracts();
+          } else if (tabId === "tab-my-allowances") {
+            document.getElementById("pageTitle").innerText = "Phụ Cấp Của Tôi";
+            document.getElementById("pageSubtitle").innerText =
+              "Xem lịch sử các khoản phụ cấp bạn được hưởng để theo dõi thu nhập";
+            loadMyAllowances();
           } else if (tabId === "tab-my-tasks") {
             document.getElementById("pageTitle").innerText = "Nhiệm vụ của tôi";
             document.getElementById("pageSubtitle").innerText =
@@ -5697,14 +5946,8 @@
           } else if (tabId === "tab-my-leaves") {
             document.getElementById("pageTitle").innerText = "Nghỉ phép";
             document.getElementById("pageSubtitle").innerText = "Xin nghỉ và theo dõi trạng thái duyệt";
-                       loadMyLeaves();
-          } else if (tabId === "tab-my-allowances") {
-            document.getElementById("pageTitle").innerText = "Lịch sử nhận phụ cấp";
-            document.getElementById("pageSubtitle").innerText =
-            "Theo dõi phụ cấp đã nhận theo từng kỳ thực tập";
-            renderAllowanceHistory();
+            loadMyLeaves();
           } else if (tabId === "tab-my-schedule") {
-
             document.getElementById("pageTitle").innerText =
               "Lịch thực tập của tôi";
             document.getElementById("pageSubtitle").innerText =
@@ -5747,6 +5990,12 @@
             document.getElementById("pageSubtitle").innerText =
               "Danh sách thực tập sinh được HR phân công cho bạn";
             loadMyAssignedInterns();
+          } else if (tabId === "tab-allowances") {
+            document.getElementById("pageTitle").innerText =
+              "Phụ Cấp Thực Tập Sinh";
+            document.getElementById("pageSubtitle").innerText =
+              "HR nhập và theo dõi các khoản phụ cấp của thực tập sinh để quản lý quyền lợi";
+            loadAllowanceOverview();
           } else if (tabId === "tab-contracts") {
             document.getElementById("pageTitle").innerText =
               "Quản Lý Hợp Đồng Thực Tập";
@@ -11907,18 +12156,6 @@
           setText("wsAsValueLabel", SCOPE_LABEL[type]);
           fillScopeSelect("wsAsValue", type, await loadWorkScopeOptions());
         }
-        await previewAssignment();
-      }
-      async function previewAssignment() {
-        const type = document.getElementById("wsAsType").value, value = document.getElementById("wsAsValue").value, box = document.getElementById("wsAsPreview");
-        if (type !== "DEFAULT" && !value) { box.textContent = ""; return; }
-        const query = new URLSearchParams({ target_type: type }); if (type !== "DEFAULT") query.set("target_value", value);
-        const result = await wrRequest(`/work-schedules/preview?${query}`); if (!result || !result.res.ok) { box.textContent = ""; return; }
-        const p = result.body.data;
-        const names = p.interns.slice(0, 5).map((i) => i.fullName).join(", ");
-        box.textContent = p.count
-          ? `Thuộc phạm vi này: ${p.count} thực tập sinh đang hoặc sắp thực tập${names ? ` (${names}${p.count > 5 ? ", ..." : ""})` : ""}.${p.overriddenCount ? ` ${p.overriddenCount} người đang dùng lịch của nhóm cụ thể hơn nên chưa bị ảnh hưởng.` : ""}`
-          : "Chưa có thực tập sinh đang hoặc sắp thực tập thuộc phạm vi này.";
       }
       async function submitAssignment() {
         const type = document.getElementById("wsAsType").value, value = document.getElementById("wsAsValue").value;
@@ -12139,6 +12376,386 @@
         if (!result.res.ok) { setText("saLeaveError", wrApiError(result, "Không xử lý được đơn nghỉ.")); return; }
         await loadStaffPendingLeaves();
       }
+      // =========================================================================
+      //  PHỤ CẤP THỰC TẬP SINH (HR): nhập, sửa, xóa và xem tổng quan phụ cấp
+      // =========================================================================
+      const ALLOWANCE_TYPE_LABELS = {
+        MEAL: "Ăn uống",
+        TRANSPORT: "Đi lại",
+        PHONE: "Điện thoại",
+        HOUSING: "Nhà ở",
+        OTHER: "Khác",
+      };
+      const ALLOWANCE_CYCLE_LABELS = {
+        MONTHLY: "Theo tháng",
+        DAILY: "Theo ngày",
+        ONE_TIME: "Một lần",
+      };
+      const ALLOWANCE_STATUS_BADGES = {
+        ACTIVE: { label: "Đang hiệu lực", cls: "badge-approved" },
+        UPCOMING: { label: "Sắp hiệu lực", cls: "badge-pending" },
+        EXPIRED: { label: "Hết hạn", cls: "badge-expired" },
+      };
+      let allowancesInternId = null;
+      let allowanceItems = [];
+      let allowanceEditingId = null;
+      let allowanceSaving = false;
+      let allowanceSearchTimer = null;
+      let allowanceOverviewRequest = 0;
+      let allowanceUniversitiesLoaded = false;
+
+      function formatVnd(value) {
+        return `${Number(value || 0).toLocaleString("vi-VN")} đ`;
+      }
+
+      async function loadAllowanceUniversityOptions() {
+        if (allowanceUniversitiesLoaded) return;
+        const select = document.getElementById("allowanceUniversityFilter");
+        try {
+          const res = await fetch(`${API_BASE}/interns/filter-options`, {
+            headers: authHeaders(),
+          });
+          if (!res.ok) return;
+          const options = await res.json();
+          const selected = select.value;
+          select.innerHTML =
+            `<option value="">Tất cả</option>` +
+            (options.universities || [])
+              .map((u) => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`)
+              .join("");
+          select.value = selected;
+          allowanceUniversitiesLoaded = true;
+        } catch (err) {
+          /* bộ lọc trường là tùy chọn, bỏ qua lỗi */
+        }
+      }
+
+      function scheduleAllowanceSearch() {
+        clearTimeout(allowanceSearchTimer);
+        allowanceSearchTimer = setTimeout(loadAllowanceOverview, 300);
+      }
+
+      async function loadAllowanceOverview() {
+        const body = document.getElementById("allowanceOverviewBody");
+        const requestId = ++allowanceOverviewRequest;
+        loadAllowanceUniversityOptions();
+        const params = new URLSearchParams();
+        const q = document.getElementById("allowanceSearch").value.trim();
+        const university = document.getElementById("allowanceUniversityFilter").value;
+        if (q) params.set("q", q);
+        if (university) params.set("university", university);
+        try {
+          const res = await fetch(
+            `${API_BASE}/allowances/overview${params.toString() ? `?${params}` : ""}`,
+            { headers: authHeaders() },
+          );
+          if (!res.ok) {
+            throw new Error(await readErrorMessage(res, "Không tải được danh sách phụ cấp!"));
+          }
+          const payload = await res.json();
+          if (requestId !== allowanceOverviewRequest) return; // đã có yêu cầu mới hơn
+          renderAllowanceOverview(payload.data);
+        } catch (err) {
+          if (requestId !== allowanceOverviewRequest) return;
+          body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#b91c1c;padding:24px">${escapeHtml(err.message)}</td></tr>`;
+        }
+      }
+
+      function renderAllowanceOverview(data) {
+        const body = document.getElementById("allowanceOverviewBody");
+        const { items, summary } = data;
+        document.getElementById("allowanceOverviewSummary").innerHTML =
+          `<span>Thực tập sinh: <b>${summary.internCount}</b></span>` +
+          `<span>Đang có phụ cấp: <b>${summary.withAllowance}</b></span>` +
+          `<span>Tổng phụ cấp theo tháng: <b>${formatVnd(summary.totalMonthly)}</b></span>`;
+        if (!items.length) {
+          body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px">Không có thực tập sinh phù hợp.</td></tr>`;
+          return;
+        }
+        body.innerHTML = items
+          .map((i) => {
+            const noContract = !i.hasConfirmedContract;
+            return `<tr>
+              <td><b>${escapeHtml(i.fullName)}</b><br /><span style="color:#64748b;font-size:12px">${escapeHtml(i.email)}</span></td>
+              <td>${escapeHtml(i.studentCode || "—")}</td>
+              <td>${escapeHtml(i.university || "—")}</td>
+              <td style="text-align:center">${i.activeCount}${i.totalCount > i.activeCount ? ` <span style="color:#94a3b8;font-size:12px">/ ${i.totalCount}</span>` : ""}</td>
+              <td style="text-align:right" class="allowance-amount">${i.totalMonthly ? formatVnd(i.totalMonthly) : "—"}</td>
+              <td style="text-align:center">
+                <button class="btn btn-sm btn-primary" type="button"
+                  data-name="${escapeHtml(i.fullName)}"
+                  ${noContract ? 'disabled title="Cần có hợp đồng đã xác nhận mới nhập được phụ cấp"' : ""}
+                  onclick="openAllowances(${Number(i.id)}, this.dataset.name)">
+                  <i class="fa-solid fa-hand-holding-dollar"></i> Quản lý
+                </button>
+                ${noContract ? '<br /><span class="badge badge-pending" style="margin-top:4px">Chưa có HĐ xác nhận</span>' : ""}
+              </td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      function openAllowances(internId, name) {
+        allowancesInternId = internId;
+        document.getElementById("allowancesInternName").textContent = name;
+        document.getElementById("allowancesModal").classList.add("open");
+        resetAllowanceForm();
+        loadAllowances();
+      }
+
+      function closeAllowances() {
+        document.getElementById("allowancesModal").classList.remove("open");
+        allowancesInternId = null;
+        // Cập nhật lại tổng quan vì số liệu có thể đã thay đổi.
+        if (currentTab === "tab-allowances") loadAllowanceOverview();
+      }
+
+      async function loadAllowances() {
+        const list = document.getElementById("allowancesList");
+        list.textContent = "Đang tải danh sách phụ cấp...";
+        try {
+          const res = await fetch(`${API_BASE}/interns/${allowancesInternId}/allowances`, {
+            headers: authHeaders(),
+          });
+          if (!res.ok) {
+            throw new Error(await readErrorMessage(res, "Không tải được danh sách phụ cấp!"));
+          }
+          const { data } = await res.json();
+          allowanceItems = data.items;
+          renderAllowances(data);
+        } catch (err) {
+          list.innerHTML = `<span style="color:#b91c1c">${escapeHtml(err.message)}</span>`;
+        }
+      }
+
+      function renderAllowances(data) {
+        const { items, summary } = data;
+        document.getElementById("allowancesSummary").innerHTML =
+          `<span>Khoản đang hiệu lực: <b>${summary.activeCount}</b></span>` +
+          `<span>Tổng theo tháng: <b>${formatVnd(summary.totalMonthly)}</b></span>` +
+          `<span>Tổng theo ngày: <b>${formatVnd(summary.totalDaily)}</b></span>`;
+        const list = document.getElementById("allowancesList");
+        if (!items.length) {
+          list.innerHTML = `<div style="color:#94a3b8;padding:12px 0">Chưa có khoản phụ cấp nào. Hãy thêm khoản đầu tiên bên dưới.</div>`;
+          return;
+        }
+        list.innerHTML = `<div class="table-container"><table>
+          <thead><tr>
+            <th>Loại</th><th style="text-align:right">Số tiền</th><th>Chu kỳ</th>
+            <th>Hiệu lực</th><th>Trạng thái</th><th>Ghi chú</th><th style="text-align:center">Chức năng</th>
+          </tr></thead><tbody>${items
+            .map((a) => {
+              const st = ALLOWANCE_STATUS_BADGES[a.status] || ALLOWANCE_STATUS_BADGES.EXPIRED;
+              return `<tr>
+                <td>${escapeHtml(ALLOWANCE_TYPE_LABELS[a.allowanceType] || a.allowanceType)}</td>
+                <td style="text-align:right" class="allowance-amount">${formatVnd(a.amount)}</td>
+                <td>${escapeHtml(ALLOWANCE_CYCLE_LABELS[a.payCycle] || a.payCycle)}</td>
+                <td>${escapeHtml(formatDateOnly(a.effectiveFrom))} – ${a.effectiveTo ? escapeHtml(formatDateOnly(a.effectiveTo)) : "hết hợp đồng"}</td>
+                <td><span class="badge ${st.cls}">${st.label}</span></td>
+                <td>${escapeHtml(a.note || "")}</td>
+                <td style="text-align:center;white-space:nowrap">
+                  <button class="btn btn-sm btn-outline-primary" type="button" onclick="editAllowance(${Number(a.id)})"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-danger" type="button" onclick="deleteAllowance(${Number(a.id)})"><i class="fa-solid fa-trash"></i></button>
+                </td>
+              </tr>`;
+            })
+            .join("")}</tbody></table></div>`;
+      }
+
+      function onAllowanceTypeChange() {
+        const isOther = document.getElementById("allowanceType").value === "OTHER";
+        document.getElementById("allowanceNoteRequired").style.display = isOther ? "inline" : "none";
+      }
+
+      function resetAllowanceForm() {
+        allowanceEditingId = null;
+        document.getElementById("allowanceType").value = "MEAL";
+        document.getElementById("allowanceAmount").value = "";
+        document.getElementById("allowanceCycle").value = "MONTHLY";
+        document.getElementById("allowanceFrom").value = "";
+        document.getElementById("allowanceTo").value = "";
+        document.getElementById("allowanceNote").value = "";
+        document.getElementById("allowanceError").textContent = "";
+        document.getElementById("allowanceFormTitle").textContent = "Thêm khoản phụ cấp";
+        document.getElementById("allowanceCancelEditBtn").style.display = "none";
+        onAllowanceTypeChange();
+      }
+
+      function editAllowance(id) {
+        const item = allowanceItems.find((a) => a.id === id);
+        if (!item) return;
+        allowanceEditingId = id;
+        document.getElementById("allowanceType").value = item.allowanceType;
+        document.getElementById("allowanceAmount").value = item.amount;
+        document.getElementById("allowanceCycle").value = item.payCycle;
+        document.getElementById("allowanceFrom").value = item.effectiveFrom;
+        document.getElementById("allowanceTo").value = item.effectiveTo || "";
+        document.getElementById("allowanceNote").value = item.note || "";
+        document.getElementById("allowanceError").textContent = "";
+        document.getElementById("allowanceFormTitle").textContent = "Sửa khoản phụ cấp";
+        document.getElementById("allowanceCancelEditBtn").style.display = "";
+        onAllowanceTypeChange();
+        document.getElementById("allowanceForm").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      // Kiểm tra phía client giống server; server vẫn là nơi quyết định cuối cùng.
+      function readAllowanceForm() {
+        const type = document.getElementById("allowanceType").value;
+        const rawAmount = document.getElementById("allowanceAmount").value.trim();
+        const from = document.getElementById("allowanceFrom").value;
+        const to = document.getElementById("allowanceTo").value;
+        const note = document.getElementById("allowanceNote").value.trim();
+        if (!/^\d+$/.test(rawAmount) || Number(rawAmount) <= 0) {
+          throw new Error("Số tiền phải là số nguyên dương (VND)!");
+        }
+        const amount = Number(rawAmount);
+        if (amount > 999999999) throw new Error("Số tiền không được vượt quá 999.999.999 đ!");
+        if (!from) throw new Error("Vui lòng chọn ngày bắt đầu hiệu lực!");
+        if (to && to < from) throw new Error("Ngày kết thúc không được trước ngày bắt đầu!");
+        if (type === "OTHER" && !note) throw new Error("Phụ cấp loại Khác bắt buộc phải có ghi chú!");
+        if (note.length > 500) throw new Error("Ghi chú không được vượt quá 500 ký tự!");
+        return {
+          allowance_type: type,
+          amount,
+          pay_cycle: document.getElementById("allowanceCycle").value,
+          effective_from: from,
+          effective_to: to || null,
+          note: note || null,
+        };
+      }
+
+      async function saveAllowance(event) {
+        event.preventDefault();
+        if (allowanceSaving) return; // chặn bấm lưu hai lần
+        const errorEl = document.getElementById("allowanceError");
+        const submitBtn = document.getElementById("allowanceSubmitBtn");
+        errorEl.textContent = "";
+        let payload;
+        try {
+          payload = readAllowanceForm();
+        } catch (err) {
+          errorEl.textContent = err.message;
+          return;
+        }
+        const editing = allowanceEditingId !== null;
+        allowanceSaving = true;
+        submitBtn.disabled = true;
+        try {
+          const res = await fetch(
+            `${API_BASE}/interns/${allowancesInternId}/allowances${editing ? `/${allowanceEditingId}` : ""}`,
+            {
+              method: editing ? "PATCH" : "POST",
+              headers: authHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify(payload),
+            },
+          );
+          if (!res.ok) {
+            throw new Error(await readErrorMessage(res, "Không lưu được khoản phụ cấp!"));
+          }
+          showToast(editing ? "Đã cập nhật khoản phụ cấp!" : "Đã thêm khoản phụ cấp!");
+          resetAllowanceForm();
+          await loadAllowances();
+        } catch (err) {
+          errorEl.textContent = err.message;
+        } finally {
+          allowanceSaving = false;
+          submitBtn.disabled = false;
+        }
+      }
+
+      async function deleteAllowance(id) {
+        const item = allowanceItems.find((a) => a.id === id);
+        const label = item
+          ? `${ALLOWANCE_TYPE_LABELS[item.allowanceType]} ${formatVnd(item.amount)}`
+          : "khoản phụ cấp này";
+        if (!confirm(`Xóa ${label}? Thao tác này không thể hoàn tác.`)) return;
+        try {
+          const res = await fetch(`${API_BASE}/interns/${allowancesInternId}/allowances/${id}`, {
+            method: "DELETE",
+            headers: authHeaders(),
+          });
+          if (!res.ok) throw new Error(await readErrorMessage(res, "Không xóa được khoản phụ cấp!"));
+          showToast("Đã xóa khoản phụ cấp!");
+          if (allowanceEditingId === id) resetAllowanceForm();
+          await loadAllowances();
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+
+      // =========================================================================
+      //  PHỤ CẤP CỦA TÔI (Thực tập sinh): xem lịch sử các khoản phụ cấp, chỉ đọc
+      // =========================================================================
+      let myAllowancesRequest = 0;
+
+      async function loadMyAllowances() {
+        if (currentRole !== "Intern") return;
+        const body = document.getElementById("myAllowancesBody");
+        const requestId = ++myAllowancesRequest;
+        const status = document.getElementById("myAllowanceStatus").value;
+        const type = document.getElementById("myAllowanceType").value;
+        const params = new URLSearchParams();
+        if (status) params.set("status", status);
+        if (type) params.set("type", type);
+        try {
+          const res = await fetch(
+            `${API_BASE}/me/allowances${params.toString() ? `?${params}` : ""}`,
+            { headers: authHeaders() },
+          );
+          if (res.status === 401) {
+            return forceLogout("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+          }
+          const payload = await res.json().catch(() => null);
+          if (!res.ok || !payload || !payload.success) {
+            throw new Error((payload && payload.message) || "Không tải được lịch sử phụ cấp.");
+          }
+          if (requestId !== myAllowancesRequest) return; // đã có yêu cầu mới hơn
+          renderMyAllowances(payload.data, Boolean(status || type));
+        } catch (err) {
+          if (requestId !== myAllowancesRequest) return;
+          body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#b91c1c;padding:24px">${escapeHtml(err.message)}</td></tr>`;
+        }
+      }
+
+      function formatRecordedDate(value) {
+        if (!value) return "—";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "—";
+        return date.toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+      }
+
+      function renderMyAllowances(data, filtered) {
+        const { items, summary } = data;
+        document.getElementById("myAllowanceSummary").innerHTML =
+          `<span>Đang hưởng theo tháng: <b>${formatVnd(summary.totalMonthly)}</b></span>` +
+          `<span>Theo ngày: <b>${formatVnd(summary.totalDaily)}</b></span>` +
+          `<span>Đang hiệu lực: <b>${summary.activeCount}</b></span>` +
+          `<span>Sắp hiệu lực: <b>${summary.upcomingCount}</b></span>` +
+          `<span>Đã hết hạn: <b>${summary.expiredCount}</b></span>`;
+        const body = document.getElementById("myAllowancesBody");
+        if (!items.length) {
+          const message = filtered
+            ? "Không có khoản phụ cấp nào phù hợp bộ lọc."
+            : "HR chưa ghi nhận khoản phụ cấp nào cho bạn.";
+          body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px">${message}</td></tr>`;
+          return;
+        }
+        body.innerHTML = items
+          .map((a) => {
+            const st = ALLOWANCE_STATUS_BADGES[a.status] || ALLOWANCE_STATUS_BADGES.EXPIRED;
+            return `<tr>
+              <td>${escapeHtml(ALLOWANCE_TYPE_LABELS[a.allowanceType] || a.allowanceType)}</td>
+              <td style="text-align:right" class="allowance-amount">${formatVnd(a.amount)}</td>
+              <td>${escapeHtml(ALLOWANCE_CYCLE_LABELS[a.payCycle] || a.payCycle)}</td>
+              <td>${escapeHtml(formatDateOnly(a.effectiveFrom))} – ${a.effectiveTo ? escapeHtml(formatDateOnly(a.effectiveTo)) : "hết hợp đồng"}</td>
+              <td><span class="badge ${st.cls}">${st.label}</span></td>
+              <td>${escapeHtml(a.note || "")}</td>
+              <td>${escapeHtml(formatRecordedDate(a.recordedAt))}</td>
+            </tr>`;
+          })
+          .join("");
+      }
+
     </script>
   </body>
 </html>

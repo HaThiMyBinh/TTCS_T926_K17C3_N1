@@ -1,11 +1,19 @@
-// Nghiệp vụ phụ cấp thực tập sinh.
+// Phụ cấp thực tập sinh: HR nhập các khoản phụ cấp (ăn uống, đi lại, điện thoại, nhà ở, khác) kèm
+// số tiền VND, chu kỳ chi trả và khoảng ngày hiệu lực để quản lý quyền lợi.
 const db = require("../db");
 const { HttpError } = require("../errors");
+const weeks = require("../utils/weeks");
+const { getVietnamToday } = require("../utils/date");
+const { normalizeInternFilters } = require("../utils/internFilters");
+const { contractCovers } = require("./scheduleRules.service");
 
-const TYPE_MAX_LENGTH = 100;
+const ALLOWANCE_TYPES = ["MEAL", "TRANSPORT", "PHONE", "HOUSING", "OTHER"];
+const PAY_CYCLES = ["MONTHLY", "DAILY", "ONE_TIME"];
+const AMOUNT_MAX = 999999999;
 const NOTE_MAX_LENGTH = 500;
-const AMOUNT_MAX = 1_000_000_000_000;
-const PERIOD_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+// Trường client được gửi lên (tên snake_case); trường lạ như intern_id, created_by bị từ chối.
+const INPUT_FIELDS = ["allowance_type", "amount", "pay_cycle", "effective_from", "effective_to", "note"];
+const REQUIRED_FIELDS = ["allowance_type", "amount", "pay_cycle", "effective_from"];
 
 function parseId(rawId, label) {
   const text = String(rawId ?? "");
@@ -15,139 +23,324 @@ function parseId(rawId, label) {
   return Number(text);
 }
 
-function validateAllowanceType(value) {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new HttpError(400, "Vui lòng nhập loại phụ cấp!");
-  }
-  const text = value.trim().replace(/\s+/g, " ");
-  if (text.length > TYPE_MAX_LENGTH) {
-    throw new HttpError(400, `Loại phụ cấp tối đa ${TYPE_MAX_LENGTH} ký tự!`);
-  }
-  return text;
+function has(input, key) {
+  return Object.prototype.hasOwnProperty.call(input, key);
 }
 
-function validateAmount(value) {
-  if (value === undefined || value === null || value === "") {
-    throw new HttpError(400, "Vui lòng nhập số tiền phụ cấp!");
-  }
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new HttpError(400, "Số tiền phụ cấp phải là số!");
-  }
-  if (value <= 0) {
-    throw new HttpError(400, "Số tiền phụ cấp phải lớn hơn 0!");
-  }
-  if (!Number.isInteger(value)) {
-    throw new HttpError(400, "Số tiền phụ cấp (VND) phải là số nguyên!");
-  }
-  if (value > AMOUNT_MAX) {
-    throw new HttpError(400, "Số tiền phụ cấp vượt quá giới hạn cho phép!");
+function validateDate(value, label) {
+  if (!weeks.isValidDate(value)) {
+    throw new HttpError(400, `${label} không hợp lệ (định dạng YYYY-MM-DD)!`);
   }
   return value;
 }
 
-function validatePeriod(value) {
-  if (value === undefined || value === null || value === "") {
-    throw new HttpError(400, "Vui lòng nhập kỳ phụ cấp (YYYY-MM)!");
+/**
+ * Kiểm tra từng trường được gửi. partial = true (PATCH): chỉ kiểm tra các trường có mặt.
+ * Trả về object camelCase chỉ gồm các trường đã gửi.
+ */
+function validateAllowanceFields(input, { partial = false } = {}) {
+  if (input == null || typeof input !== "object" || Array.isArray(input)) {
+    throw new HttpError(400, "Dữ liệu phụ cấp không hợp lệ!");
   }
-  if (typeof value !== "string" || !PERIOD_REGEX.test(value.trim())) {
-    throw new HttpError(400, "Kỳ phụ cấp không hợp lệ, cần định dạng YYYY-MM (tháng 01-12)!");
+  const extra = Object.keys(input).filter((key) => !INPUT_FIELDS.includes(key));
+  if (extra.length > 0) {
+    throw new HttpError(400, `Trường không được phép: ${extra.join(", ")}!`);
   }
-  return value.trim();
+  if (partial && !INPUT_FIELDS.some((key) => has(input, key))) {
+    throw new HttpError(400, "Không có trường nào để cập nhật!");
+  }
+  if (!partial) {
+    const missing = REQUIRED_FIELDS.filter(
+      (key) => input[key] === undefined || input[key] === null || input[key] === "",
+    );
+    if (missing.length > 0) {
+      throw new HttpError(400, `Thiếu thông tin bắt buộc: ${missing.join(", ")}!`);
+    }
+  }
+
+  const out = {};
+  if (has(input, "allowance_type")) {
+    if (!ALLOWANCE_TYPES.includes(input.allowance_type)) {
+      throw new HttpError(400, `Loại phụ cấp phải là một trong: ${ALLOWANCE_TYPES.join(", ")}!`);
+    }
+    out.allowanceType = input.allowance_type;
+  }
+  if (has(input, "pay_cycle")) {
+    if (!PAY_CYCLES.includes(input.pay_cycle)) {
+      throw new HttpError(400, `Chu kỳ chi trả phải là một trong: ${PAY_CYCLES.join(", ")}!`);
+    }
+    out.payCycle = input.pay_cycle;
+  }
+  if (has(input, "amount")) {
+    // Chỉ nhận số nguyên thật (không nhận chuỗi "500000", số thực, true...).
+    if (typeof input.amount !== "number" || !Number.isInteger(input.amount)) {
+      throw new HttpError(400, "Số tiền phụ cấp phải là số nguyên (VND)!");
+    }
+    if (input.amount <= 0 || input.amount > AMOUNT_MAX) {
+      throw new HttpError(
+        400,
+        `Số tiền phụ cấp phải lớn hơn 0 và không vượt quá ${AMOUNT_MAX.toLocaleString("vi-VN")} VND!`,
+      );
+    }
+    out.amount = input.amount;
+  }
+  if (has(input, "effective_from")) {
+    out.effectiveFrom = validateDate(input.effective_from, "Ngày bắt đầu hiệu lực");
+  }
+  if (has(input, "effective_to")) {
+    out.effectiveTo =
+      input.effective_to === null || input.effective_to === ""
+        ? null
+        : validateDate(input.effective_to, "Ngày kết thúc hiệu lực");
+  }
+  if (has(input, "note")) {
+    if (input.note === null || input.note === undefined) {
+      out.note = null;
+    } else if (typeof input.note !== "string") {
+      throw new HttpError(400, "Ghi chú phải là chuỗi!");
+    } else {
+      const text = input.note.trim();
+      if (text.length > NOTE_MAX_LENGTH) {
+        throw new HttpError(400, `Ghi chú không được vượt quá ${NOTE_MAX_LENGTH} ký tự!`);
+      }
+      out.note = text || null;
+    }
+  }
+  return out;
 }
 
-function validateNote(value) {
-  if (value === undefined || value === null) return null;
-  if (typeof value !== "string") {
-    throw new HttpError(400, "Ghi chú phải là chuỗi!");
+// Các luật liên quan giữa nhiều trường, kiểm tra trên dữ liệu đã gộp (quan trọng với PATCH).
+function validateCombination(fields) {
+  if (fields.effectiveTo && fields.effectiveFrom > fields.effectiveTo) {
+    throw new HttpError(400, "Ngày kết thúc hiệu lực không được trước ngày bắt đầu!");
   }
-  const text = value.trim();
-  if (!text) return null;
-  if (text.length > NOTE_MAX_LENGTH) {
-    throw new HttpError(400, `Ghi chú tối đa ${NOTE_MAX_LENGTH} ký tự!`);
+  if (fields.allowanceType === "OTHER" && !fields.note) {
+    throw new HttpError(400, "Phụ cấp loại Khác bắt buộc phải có ghi chú mô tả!");
   }
-  return text;
+  return fields;
 }
 
-function toAllowanceDto(row) {
+// Trạng thái hiệu lực của một khoản phụ cấp tại ngày `today` (YYYY-MM-DD).
+function allowanceStatus(allowance, today) {
+  if (allowance.effectiveFrom > today) return "UPCOMING";
+  if (allowance.effectiveTo && allowance.effectiveTo < today) return "EXPIRED";
+  return "ACTIVE";
+}
+
+// Tổng hợp các khoản đang hiệu lực. Chỉ khoản theo THÁNG mới cộng vào totalMonthly;
+// khoản theo ngày / một lần phụ thuộc ngày công thực tế nên không quy đổi.
+function summarizeAllowances(allowances, today) {
+  const summary = { totalCount: allowances.length, activeCount: 0, totalMonthly: 0, totalDaily: 0 };
+  for (const item of allowances) {
+    if (allowanceStatus(item, today) !== "ACTIVE") continue;
+    summary.activeCount += 1;
+    if (item.payCycle === "MONTHLY") summary.totalMonthly += item.amount;
+    if (item.payCycle === "DAILY") summary.totalDaily += item.amount;
+  }
+  return summary;
+}
+
+// Khoảng hiệu lực phải nằm trong một hợp đồng đã xác nhận. Nếu chưa có ngày kết thúc thì phụ cấp
+// kéo dài đến hết hợp đồng nên chỉ cần ngày bắt đầu nằm trong hợp đồng.
+function isCoveredByContract(contracts, effectiveFrom, effectiveTo) {
+  const last = effectiveTo || effectiveFrom;
+  return contracts.some((c) => contractCovers(c, effectiveFrom) && contractCovers(c, last));
+}
+
+async function requireIntern(rawId) {
+  const internId = parseId(rawId, "ID thực tập sinh");
+  const intern = await db.findInternProfileById(internId);
+  if (!intern) throw new HttpError(404, "Không tìm thấy hồ sơ thực tập sinh!");
+  return intern;
+}
+
+async function assertContractRules(internId, fields) {
+  const contracts = await db.listConfirmedContractsForInterns([internId]);
+  if (contracts.length === 0) {
+    throw new HttpError(409, "Thực tập sinh chưa có hợp đồng đã xác nhận nên chưa thể nhập phụ cấp!");
+  }
+  if (!isCoveredByContract(contracts, fields.effectiveFrom, fields.effectiveTo)) {
+    throw new HttpError(409, "Thời gian hiệu lực phụ cấp phải nằm trong kỳ của một hợp đồng đã xác nhận!");
+  }
+}
+
+function throwForOutcome(result) {
+  if (result.outcome === "NOT_FOUND") {
+    throw new HttpError(404, "Không tìm thấy khoản phụ cấp!");
+  }
+  if (result.outcome === "OVERLAP") {
+    throw new HttpError(
+      409,
+      "Đã có khoản phụ cấp cùng loại trùng khoảng thời gian hiệu lực. Hãy sửa hoặc kết thúc khoản cũ trước!",
+    );
+  }
+}
+
+async function listForIntern(rawInternId) {
+  const intern = await requireIntern(rawInternId);
+  const today = getVietnamToday();
+  const items = (await db.listAllowancesByIntern(intern.id)).map((a) => ({
+    ...a,
+    status: allowanceStatus(a, today),
+  }));
   return {
-    id: Number(row.id),
-    intern_id: Number(row.internId),
-    allowance_type: row.allowanceType,
-    amount: Number(row.amount),
-    period: row.period,
-    note: row.note ?? null,
-    created_by: row.createdBy == null ? null : Number(row.createdBy),
-    created_at: row.createdAt instanceof Date
-      ? row.createdAt.toISOString()
-      : (row.createdAt ?? null),
+    intern: { id: intern.id, fullName: intern.fullName, studentCode: intern.studentCode },
+    items,
+    summary: summarizeAllowances(items, today),
   };
 }
 
-async function createAllowance(user, input) {
-  const body = input && typeof input === "object" ? input : {};
-  const internId = parseId(body.intern_id, "Mã thực tập sinh");
-  const allowanceType = validateAllowanceType(body.allowance_type);
-  const amount = validateAmount(body.amount);
-  const period = validatePeriod(body.period);
-  const note = validateNote(body.note);
-
-  const intern = await db.findInternProfileById(internId);
-  if (!intern) {
-    throw new HttpError(404, "Không tìm thấy thực tập sinh!");
-  }
-
-  const duplicateMessage =
-    `Thực tập sinh đã có phụ cấp "${allowanceType}" trong kỳ ${period}!`;
-
-  if (await db.findInternAllowanceByKey(internId, allowanceType, period)) {
-    throw new HttpError(409, duplicateMessage);
-  }
-
-  const result = await db.insertInternAllowance({
-    internId,
-    allowanceType,
-    amount,
-    period,
-    note,
-    createdBy: user?.id ?? null,
+async function create(user, rawInternId, body) {
+  const intern = await requireIntern(rawInternId);
+  const fields = validateCombination({
+    note: null,
+    effectiveTo: null,
+    ...validateAllowanceFields(body),
   });
-
-  if (result.duplicate) {
-    throw new HttpError(409, duplicateMessage);
-  }
-
-  return toAllowanceDto(result.allowance);
+  await assertContractRules(intern.id, fields);
+  const result = await db.saveAllowanceAtomic({ internId: intern.id, fields, userId: user?.id });
+  throwForOutcome(result);
+  return withStatus(await db.findAllowanceById(result.id));
 }
 
-async function listMyAllowances(user, rawPeriod) {
-  if (!user || user.role !== "Intern") {
-    throw new HttpError(403, "Bạn không có quyền xem lịch sử phụ cấp!");
+async function update(user, rawInternId, rawAllowanceId, body) {
+  const intern = await requireIntern(rawInternId);
+  const allowanceId = parseId(rawAllowanceId, "ID khoản phụ cấp");
+  const patch = validateAllowanceFields(body, { partial: true });
+  const existing = await db.findAllowanceById(allowanceId);
+  if (!existing || existing.internId !== intern.id) {
+    throw new HttpError(404, "Không tìm thấy khoản phụ cấp!");
   }
-  if (typeof user.email !== "string" || !user.email.trim()) {
-    throw new HttpError(401, "Không xác định được tài khoản đăng nhập!");
-  }
+  const fields = validateCombination({
+    allowanceType: existing.allowanceType,
+    amount: existing.amount,
+    payCycle: existing.payCycle,
+    effectiveFrom: existing.effectiveFrom,
+    effectiveTo: existing.effectiveTo,
+    note: existing.note,
+    ...patch,
+  });
+  await assertContractRules(intern.id, fields);
+  const result = await db.saveAllowanceAtomic({
+    id: allowanceId, internId: intern.id, fields, userId: user?.id,
+  });
+  throwForOutcome(result);
+  return withStatus(await db.findAllowanceById(allowanceId));
+}
 
-  let period = null;
-  if (rawPeriod !== undefined && rawPeriod !== "") {
-    period = validatePeriod(rawPeriod);
+async function remove(rawInternId, rawAllowanceId) {
+  const intern = await requireIntern(rawInternId);
+  const allowanceId = parseId(rawAllowanceId, "ID khoản phụ cấp");
+  if (!(await db.deleteAllowance(allowanceId, intern.id))) {
+    throw new HttpError(404, "Không tìm thấy khoản phụ cấp!");
   }
+  return { id: allowanceId };
+}
 
-  const intern = await db.findInternProfileByEmail(user.email.trim());
-  if (!intern) {
-    throw new HttpError(404, "Không tìm thấy hồ sơ thực tập sinh tương ứng với tài khoản!");
+async function overview(query = {}) {
+  // Chỉ nhận q và university; normalizeInternFilters từ chối giá trị không phải chuỗi hoặc quá dài.
+  const picked = {};
+  for (const key of ["q", "university"]) {
+    if (has(query, key)) picked[key] = query[key];
   }
+  let filters;
+  try {
+    filters = normalizeInternFilters(picked);
+  } catch (err) {
+    throw new HttpError(400, err.message);
+  }
+  const items = await db.listAllowanceOverview({ filters, today: getVietnamToday() });
+  return {
+    items,
+    summary: {
+      internCount: items.length,
+      withAllowance: items.filter((i) => i.activeCount > 0).length,
+      totalMonthly: items.reduce((sum, i) => sum + i.totalMonthly, 0),
+    },
+  };
+}
 
-  const rows = await db.listInternAllowances(intern.id, { period });
-  return rows.map(toAllowanceDto);
+// ---------- Thực tập sinh xem lịch sử phụ cấp của chính mình (chỉ đọc) ----------
+const MY_ALLOWANCE_FILTERS = ["status", "type"];
+const ALLOWANCE_STATUSES = ["ACTIVE", "UPCOMING", "EXPIRED"];
+
+// Chỉ trả những trường thực tập sinh cần thấy; không lộ ID người nhập/sửa hay ID hồ sơ.
+function toMyAllowance(allowance, today) {
+  return {
+    id: allowance.id,
+    allowanceType: allowance.allowanceType,
+    amount: allowance.amount,
+    payCycle: allowance.payCycle,
+    effectiveFrom: allowance.effectiveFrom,
+    effectiveTo: allowance.effectiveTo,
+    note: allowance.note,
+    status: allowanceStatus(allowance, today),
+    recordedAt: allowance.createdAt,
+  };
+}
+
+function validateMyAllowanceQuery(query) {
+  if (query == null || typeof query !== "object") return {};
+  const unknown = Object.keys(query).filter((key) => !MY_ALLOWANCE_FILTERS.includes(key));
+  if (unknown.length > 0) throw new HttpError(400, "Tham số lọc không hợp lệ!");
+  const filters = {};
+  if (has(query, "status")) {
+    if (!ALLOWANCE_STATUSES.includes(query.status)) {
+      throw new HttpError(400, `Trạng thái phải là một trong: ${ALLOWANCE_STATUSES.join(", ")}!`);
+    }
+    filters.status = query.status;
+  }
+  if (has(query, "type")) {
+    if (!ALLOWANCE_TYPES.includes(query.type)) {
+      throw new HttpError(400, `Loại phụ cấp phải là một trong: ${ALLOWANCE_TYPES.join(", ")}!`);
+    }
+    filters.type = query.type;
+  }
+  return filters;
+}
+
+// Hồ sơ được xác định theo email của tài khoản đang đăng nhập (giống nghỉ phép / hợp đồng của tôi),
+// nên không có tham số ID nào để xem nhầm dữ liệu người khác. Bộ lọc chỉ áp dụng cho danh sách;
+// phần tổng hợp luôn tính trên toàn bộ các khoản.
+async function listMine(user, query = {}) {
+  const filters = validateMyAllowanceQuery(query);
+  const intern = await db.findInternProfileByEmail(user.email);
+  if (!intern) throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
+  const today = getVietnamToday();
+  const all = (await db.listAllowancesByIntern(intern.id)).map((a) => toMyAllowance(a, today));
+  const items = all.filter(
+    (a) => (!filters.status || a.status === filters.status) && (!filters.type || a.allowanceType === filters.type),
+  );
+  return {
+    intern: { fullName: intern.fullName, studentCode: intern.studentCode },
+    items,
+    summary: {
+      ...summarizeAllowances(all, today),
+      upcomingCount: all.filter((a) => a.status === "UPCOMING").length,
+      expiredCount: all.filter((a) => a.status === "EXPIRED").length,
+    },
+  };
+}
+
+function withStatus(allowance) {
+  return allowance && { ...allowance, status: allowanceStatus(allowance, getVietnamToday()) };
 }
 
 module.exports = {
-  PERIOD_REGEX,
-  validateAllowanceType,
-  validateAmount,
-  validatePeriod,
-  validateNote,
-  toAllowanceDto,
-  createAllowance,
-  listMyAllowances,
+  ALLOWANCE_TYPES,
+  PAY_CYCLES,
+  AMOUNT_MAX,
+  NOTE_MAX_LENGTH,
+  validateAllowanceFields,
+  validateCombination,
+  allowanceStatus,
+  summarizeAllowances,
+  isCoveredByContract,
+  listForIntern,
+  create,
+  update,
+  remove,
+  overview,
+  listMine,
+  ALLOWANCE_STATUSES,
 };

@@ -301,34 +301,47 @@ CREATE TABLE IF NOT EXISTS `intern_evaluations` (
   CONSTRAINT `fk_evaluation_mentor` FOREIGN KEY (`mentor_id`) REFERENCES `mentors`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 19. BẢNG CHẤM CÔNG HẰNG NGÀY CỦA THỰC TẬP SINH (ATTENDANCE_LOGS)
-CREATE TABLE IF NOT EXISTS `attendance_logs` (
+-- 19. BẢNG CHẤM CÔNG THỰC TẬP SINH (ATTENDANCE_RECORDS)
+CREATE TABLE IF NOT EXISTS `attendance_records` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
   `intern_id` BIGINT NOT NULL,
   `work_date` DATE NOT NULL,
   `check_in_at` DATETIME NOT NULL,
-  `is_late` TINYINT(1) NOT NULL DEFAULT 0,
+  `check_out_at` DATETIME NULL,
+  `note` VARCHAR(255) NULL,
+  `is_adjusted` TINYINT(1) NOT NULL DEFAULT 0,
+  `correction_status` ENUM('PENDING','APPROVED','REJECTED') NULL,
+  `correction_check_out_at` DATETIME NULL,
+  `correction_reason` VARCHAR(255) NULL,
+  `correction_requested_at` DATETIME NULL,
+  `correction_reviewed_by` BIGINT NULL,
+  `correction_reviewed_at` DATETIME NULL,
+  `correction_review_note` VARCHAR(255) NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY `uq_attendance_intern_date` (`intern_id`, `work_date`),
-  INDEX `idx_attendance_date` (`work_date`),
-  CONSTRAINT `fk_attendance_logs_intern_profile` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
+  CONSTRAINT `chk_attendance_checkout` CHECK (`check_out_at` IS NULL OR `check_out_at` >= `check_in_at`),
+  CONSTRAINT `fk_attendance_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 20. BẢNG PHỤ CẤP CỦA THỰC TẬP SINH (INTERN_ALLOWANCES) - HR nhập
-CREATE TABLE IF NOT EXISTS `intern_allowances` (
+-- 20. BẢNG BÁO CÁO TỔNG KẾT CUỐI KỲ (FINAL_REPORTS)
+CREATE TABLE IF NOT EXISTS `final_reports` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `intern_id` BIGINT NOT NULL,
-  `allowance_type` VARCHAR(100) NOT NULL,
-  `amount` BIGINT NOT NULL,
-  `period` CHAR(7) NOT NULL COMMENT 'Kỳ/tháng, định dạng YYYY-MM',
-  `note` VARCHAR(500) NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `scope_type` ENUM('ALL','UNIVERSITY','PROGRAM') NOT NULL,
+  `scope_value` VARCHAR(255) NULL,
+  `period_from` DATE NULL,
+  `period_to` DATE NULL,
+  `status` ENUM('DRAFT','FINALIZED') NOT NULL DEFAULT 'DRAFT',
+  `hr_note` TEXT NULL,
+  `snapshot_json` LONGTEXT NULL,
   `created_by` BIGINT NULL,
+  `finalized_by` BIGINT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `uq_allowance_intern_type_period` (`intern_id`, `allowance_type`, `period`),
-  INDEX `idx_allowance_period` (`period`),
-  CONSTRAINT `chk_allowance_amount` CHECK (`amount` > 0),
-  CONSTRAINT `fk_allowance_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_allowance_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+  `finalized_at` DATETIME NULL,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT `fk_final_report_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_final_report_finalizer` FOREIGN KEY (`finalized_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 21. BẢNG YÊU CẦU HỖ TRỢ CỦA THỰC TẬP SINH (SUPPORT_REQUESTS) - xin chứng nhận / giấy tờ / khác
@@ -378,3 +391,26 @@ INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (4, 3);                                 -- Intern: SUBMIT_WORK
 CREATE TABLE IF NOT EXISTS notifications ( id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT NOT NULL, type VARCHAR(50) NOT NULL, title VARCHAR(255) NOT NULL, message VARCHAR(500) NOT NULL, target_tab VARCHAR(80) NULL, ref_id BIGINT NULL, is_read TINYINT(1) NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, dedupe_key VARCHAR(120) NULL, INDEX idx_notifications_user (user_id,is_read,created_at), UNIQUE KEY uq_notification_dedupe (user_id,dedupe_key), CONSTRAINT fk_notification_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE IF NOT EXISTS program_interns (id BIGINT AUTO_INCREMENT PRIMARY KEY, program_id BIGINT NOT NULL, intern_id BIGINT NOT NULL, assigned_by BIGINT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_program_intern (program_id,intern_id), INDEX idx_program_intern_intern (intern_id), CONSTRAINT fk_pi_program FOREIGN KEY(program_id) REFERENCES internship_programs(id) ON DELETE CASCADE, CONSTRAINT fk_pi_intern FOREIGN KEY(intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE, CONSTRAINT fk_pi_user FOREIGN KEY(assigned_by) REFERENCES users(id) ON DELETE SET NULL ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 27. PHỤ CẤP THỰC TẬP SINH (INTERN_ALLOWANCES) - HR nhập để quản lý quyền lợi
+-- Mỗi dòng là một khoản: loại + số tiền (VND, số nguyên) + chu kỳ + khoảng ngày hiệu lực (effective_to NULL = đến hết hợp đồng).
+CREATE TABLE IF NOT EXISTS intern_allowances (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  intern_id BIGINT NOT NULL,
+  allowance_type ENUM('MEAL','TRANSPORT','PHONE','HOUSING','OTHER') NOT NULL,
+  amount DECIMAL(12,0) NOT NULL,
+  pay_cycle ENUM('MONTHLY','DAILY','ONE_TIME') NOT NULL,
+  effective_from DATE NOT NULL,
+  effective_to DATE NULL,
+  note VARCHAR(500) NULL,
+  created_by BIGINT NULL,
+  updated_by BIGINT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_allowance_intern (intern_id, allowance_type, effective_from),
+  CONSTRAINT chk_allowance_amount CHECK (amount > 0),
+  CONSTRAINT chk_allowance_range CHECK (effective_to IS NULL OR effective_to >= effective_from),
+  CONSTRAINT fk_allowance_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
+  CONSTRAINT fk_allowance_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_allowance_updater FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
