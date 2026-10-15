@@ -4,20 +4,20 @@ const controller = require("../controllers/allowances.controller");
 
 const router = express.Router();
 
-// Intern xem lịch sử phụ cấp của chính mình.
-// Tài khoản phải đăng nhập và có role Intern.
-router.get(
-  "/me/allowances",
-  requireRole("Intern"),
-  controller.listMyAllowances
-);
+// Dữ liệu tiền bạc: không để trình duyệt/proxy lưu cache.
+const noStore = (req, res, next) => {
+  res.set("Cache-Control", "private, no-store");
+  next();
+};
+const hrOnly = [noStore, requireRole("HR")];
 
-// Chỉ HR được nhập phụ cấp.
-// Người nhập lấy từ token, không nhận từ body.
-router.post(
-  "/allowances",
-  requireRole("HR"),
-  controller.createAllowance
-);
+// Thực tập sinh xem phụ cấp của chính mình (chỉ đọc).
+router.get("/me/allowances", noStore, requireRole("Intern"), controller.listMine);
+
+router.get("/allowances/overview", ...hrOnly, controller.overview);
+router.get("/interns/:id/allowances", ...hrOnly, controller.list);
+router.post("/interns/:id/allowances", ...hrOnly, controller.create);
+router.patch("/interns/:id/allowances/:allowanceId", ...hrOnly, controller.update);
+router.delete("/interns/:id/allowances/:allowanceId", ...hrOnly, controller.remove);
 
 module.exports = router;
