@@ -80,3 +80,37 @@ window.mockAllowances = window.mockAllowances || [
         createdAt: "30/09/2026"
     }
 ];
+
+/**
+ * Story 3.4 - Dữ liệu giả yêu cầu hỗ trợ của Intern.
+ * Dùng để xây dựng giao diện trước khi kết nối API.
+ */
+window.MOCK_SUPPORT_REQUESTS = [
+    {
+        id: 1,
+        type: "Chứng nhận",
+        title: "Xin giấy xác nhận thực tập",
+        content: "Tôi cần giấy xác nhận đang thực tập tại công ty.",
+        status: "Chờ xử lý",
+        createdAt: "2026-10-14T09:00:00",
+        response: ""
+    },
+    {
+        id: 2,
+        type: "Giấy tờ",
+        title: "Xin bản sao giấy tờ thực tập",
+        content: "Tôi muốn xin bản sao giấy tờ liên quan đến kỳ thực tập.",
+        status: "Đang xử lý",
+        createdAt: "2026-10-13T14:30:00",
+        response: "Bộ phận phụ trách đang kiểm tra yêu cầu."
+    },
+    {
+        id: 3,
+        type: "Khác",
+        title: "Hỏi về thủ tục thực tập",
+        content: "Tôi muốn hỏi về thủ tục hoàn thành kỳ thực tập.",
+        status: "Đã xử lý",
+        createdAt: "2026-10-10T10:00:00",
+        response: "Bạn vui lòng liên hệ bộ phận nhân sự để được hướng dẫn."
+    }
+];
