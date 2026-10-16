@@ -1,6 +1,5 @@
-// errors.js - Lỗi nghiệp vụ có mã HTTP, dùng chung cho các service / controller
+// Shared classification of public 4xx errors and private server failures.
 class HttpError extends Error {
-  // extra: dữ liệu kèm theo lỗi (ví dụ { code, warnings }) để client xử lý tiếp.
   constructor(status, message, extra = null) {
     super(message);
     this.status = status;
@@ -8,13 +7,33 @@ class HttpError extends Error {
   }
 }
 
-// Trả lỗi route theo status nghiệp vụ nếu có, còn lại log và dùng thông báo an toàn.
-function sendRouteError(res, err, fallbackMessage) {
-  if (Number.isInteger(err?.status)) {
-    return res.status(err.status).json({ error: err.message, ...(err.extra || {}) });
+function publicError(
+  err,
+  fallbackMessage = "Lỗi server, vui lòng thử lại sau!",
+  tag = "API",
+) {
+  const isClientError =
+    Number.isInteger(err?.status) && err.status >= 400 && err.status < 500;
+  if (!isClientError) {
+    console.error(`[${tag}]`, err);
+    return { status: 500, message: fallbackMessage, extra: {} };
   }
-  console.error(err);
-  return res.status(500).json({ error: fallbackMessage });
+  return {
+    status: err.status,
+    message:
+      typeof err.message === "string" ? err.message : "Yêu cầu không hợp lệ!",
+    extra:
+      err.extra && typeof err.extra === "object" && !Array.isArray(err.extra)
+        ? err.extra
+        : {},
+  };
 }
 
-module.exports = { HttpError, sendRouteError };
+// Preserve the legacy { error, ...extra } response envelope for existing routes.
+function sendRouteError(res, err, fallbackMessage) {
+  const failure = publicError(err, fallbackMessage);
+  return res
+    .status(failure.status)
+    .json({ ...failure.extra, error: failure.message });
+}
+module.exports = { HttpError, publicError, sendRouteError };

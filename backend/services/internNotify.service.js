@@ -12,10 +12,19 @@ async function toInterns(internIds, payload, deps = {}) {
   try {
     const store = deps.db || db;
     const push = deps.pushSafe || require("./notifications.service").pushSafe;
-    const ids = [...new Set(internIds.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))];
+    const ids = [
+      ...new Set(
+        internIds
+          .map(Number)
+          .filter((id) => Number.isSafeInteger(id) && id > 0),
+      ),
+    ];
     if (!ids.length) return 0;
     const rows = await store.findUserIdsByInternIds(ids);
-    return await push(rows.map((r) => r.userId), payload);
+    return await push(
+      rows.map((r) => r.userId),
+      payload,
+    );
   } catch (err) {
     console.error("[INTERN-NOTIFY] Không tạo được thông báo:", err.message);
     return 0;
@@ -24,10 +33,17 @@ async function toInterns(internIds, payload, deps = {}) {
 
 // Mốc lịch thực tập của một người thay đổi.
 function scheduleChanged(internId, message, deps) {
-  return toInterns([internId], {
-    type: "SCHEDULE_CHANGED", title: "Lịch thực tập có cập nhật",
-    message: String(message).slice(0, 500), targetTab: "tab-my-schedule", refId: internId,
-  }, deps);
+  return toInterns(
+    [internId],
+    {
+      type: "SCHEDULE_CHANGED",
+      title: "Lịch thực tập có cập nhật",
+      message: String(message).slice(0, 500),
+      targetTab: "tab-my-schedule",
+      refId: internId,
+    },
+    deps,
+  );
 }
 
 module.exports = { viDate, toInterns, scheduleChanged };

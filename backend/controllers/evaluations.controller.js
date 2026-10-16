@@ -1,22 +1,5 @@
+const { sendError } = require("./endpoint");
 const service = require("../services/evaluations.service");
-const { HttpError } = require("../errors");
-
-function sendError(res, err) {
-  if (err instanceof HttpError) {
-    return res.status(err.status).json({
-      success: false,
-      message: err.message,
-      error: err.message,
-    });
-  }
-
-  console.error("[EVALUATIONS CONTROLLER]", err);
-  return res.status(500).json({
-    success: false,
-    message: "Lỗi server, vui lòng thử lại sau!",
-    error: "Lỗi server, vui lòng thử lại sau!",
-  });
-}
 
 async function getOverview(req, res) {
   try {
@@ -27,7 +10,7 @@ async function getOverview(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "EVALUATIONS");
   }
 }
 
@@ -42,7 +25,7 @@ async function getEvaluation(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "EVALUATIONS");
   }
 }
 
@@ -59,7 +42,7 @@ async function saveEvaluation(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "EVALUATIONS");
   }
 }
 
@@ -72,8 +55,13 @@ async function deleteEvaluation(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "EVALUATIONS");
   }
 }
 
-module.exports = { getOverview, getEvaluation, saveEvaluation, deleteEvaluation };
+module.exports = {
+  getOverview,
+  getEvaluation,
+  saveEvaluation,
+  deleteEvaluation,
+};

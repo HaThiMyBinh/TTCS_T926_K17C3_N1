@@ -1,22 +1,9 @@
+const { sendError } = require("./endpoint");
 // Cấu hình SMTP và nhật ký gửi email
 const db = require("../db");
 const smtpConfig = require("../services/email/smtpConfig");
 const emailQueue = require("../services/email/emailQueue");
-const emailSender = require("../services/email/emailSender");
 const { HttpError } = require("../errors");
-
-// Nhận mọi lỗi có err.status (HttpError hoặc lỗi từ emailQueue)
-function sendError(res, err) {
-  if (err && typeof err.status === "number") {
-    return res
-      .status(err.status)
-      .json({ success: false, message: err.message });
-  }
-  console.error("[EMAIL]", err);
-  return res
-    .status(500)
-    .json({ success: false, message: "Lỗi server, vui lòng thử lại sau!" });
-}
 
 const PORT_MIN = 1;
 const PORT_MAX = 65535;
@@ -32,7 +19,7 @@ async function getConfig(req, res) {
       data: smtpConfig.toPublicView(config),
     });
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "EMAIL");
   }
 }
 
@@ -82,7 +69,7 @@ async function updateConfig(req, res) {
       data: smtpConfig.toPublicView(saved),
     });
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "EMAIL");
   }
 }
 
@@ -96,21 +83,19 @@ async function testConfig(req, res) {
         "Vui lòng nhập một địa chỉ email hợp lệ để gửi thử!",
       );
     }
+    if (!smtpConfig.isConfigured(smtpConfig.readConfig())) {
+      throw new HttpError(
+        400,
+        "Chưa cấu hình SMTP đầy đủ (SMTP server / port / email gửi / App Password)!",
+      );
+    }
     await emailQueue.sendTestEmail(to.trim());
     res.json({
       success: true,
       message: `Đã gửi email thử nghiệm tới ${to.trim()} thành công!`,
     });
   } catch (err) {
-    if (err instanceof HttpError) {
-      return sendError(res, err);
-    }
-    // Lỗi từ sendTestEmail (chưa cấu hình hoặc gửi thất bại): trả 400 kèm thông báo rút gọn
-    const message =
-      err.classification === "PERMANENT" && !err.code
-        ? err.message
-        : `Gửi email thử nghiệm thất bại: ${emailSender.getSafeErrorMessage(err)}`;
-    return res.status(400).json({ success: false, message });
+    return sendError(res, err, "EMAIL");
   }
 }
 
@@ -137,7 +122,7 @@ async function listLogs(req, res) {
       meta: { maxAttempts: emailQueue.MAX_ATTEMPTS },
     });
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "EMAIL");
   }
 }
 
@@ -150,7 +135,7 @@ async function retryLog(req, res) {
     const updated = await emailQueue.retryLog(Number(req.params.id));
     res.json({ success: true, message: "Đã gửi lại email!", data: updated });
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "EMAIL");
   }
 }
 

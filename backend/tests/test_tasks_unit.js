@@ -223,12 +223,15 @@ function testDto() {
   assert.strictEqual(dto({}).id, 7);
 }
 
-
 async function expect409(promise, label) {
   try {
     await promise;
   } catch (err) {
-    assert.strictEqual(err.status, 409, `${label}: cần 409, nhận ${err.status}`);
+    assert.strictEqual(
+      err.status,
+      409,
+      `${label}: cần 409, nhận ${err.status}`,
+    );
     return err;
   }
   assert.fail(`${label}: mong đợi lỗi 409 nhưng không có lỗi`);

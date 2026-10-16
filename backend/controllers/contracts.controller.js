@@ -1,22 +1,6 @@
+const { sendError } = require("./endpoint");
 const service = require("../services/contracts.service");
 const { HttpError } = require("../errors");
-
-function sendError(res, err) {
-  if (err instanceof HttpError) {
-    return res.status(err.status).json({
-      success: false,
-      message: err.message,
-      error: err.message,
-    });
-  }
-
-  console.error("[CONTRACTS CONTROLLER]", err);
-  return res.status(500).json({
-    success: false,
-    message: "Lỗi server, vui lòng thử lại sau!",
-    error: "Lỗi server, vui lòng thử lại sau!",
-  });
-}
 
 async function list(req, res) {
   try {
@@ -27,7 +11,7 @@ async function list(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "CONTRACTS");
   }
 }
 
@@ -40,7 +24,7 @@ async function listMine(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "CONTRACTS");
   }
 }
 
@@ -56,7 +40,7 @@ async function confirmMine(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "CONTRACTS");
   }
 }
 
@@ -72,7 +56,7 @@ async function upload(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "CONTRACTS");
   }
 }
 
@@ -85,7 +69,7 @@ async function download(req, res) {
 
     return sendContractFile(req, res, file);
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "CONTRACTS");
   }
 }
 
@@ -97,7 +81,7 @@ async function downloadMine(req, res) {
     );
     return sendContractFile(req, res, file);
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "CONTRACTS");
   }
 }
 
@@ -143,7 +127,7 @@ async function remove(req, res) {
       data: null,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "CONTRACTS");
   }
 }
 
@@ -162,7 +146,7 @@ async function updateContract(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "CONTRACTS");
   }
 }
 

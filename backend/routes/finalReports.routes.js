@@ -10,7 +10,11 @@ router.use("/final-reports", (req, res, next) => {
 });
 router.get("/final-reports/preview", ...hrOnly, controller.preview);
 router.get("/final-reports/recipients", ...hrOnly, controller.recipients);
-router.delete("/final-reports/recipients/:id", ...hrOnly, controller.removeRecipient);
+router.delete(
+  "/final-reports/recipients/:id",
+  ...hrOnly,
+  controller.removeRecipient,
+);
 router.get("/final-reports", ...hrOnly, controller.list);
 router.post("/final-reports", ...hrOnly, controller.create);
 router.get("/final-reports/:id/export.csv", ...hrOnly, controller.csv);

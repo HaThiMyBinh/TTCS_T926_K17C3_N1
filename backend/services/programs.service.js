@@ -253,6 +253,16 @@ async function get(rawId) {
 }
 
 function throwSaveError(outcome) {
+  const errors = {
+    OVERLAP:
+      "Khoảng ngày mới làm trùng lịch thực tập sinh với chương trình khác!",
+    DATES_REQUIRED:
+      "Chương trình có thành viên phải có đủ ngày bắt đầu và kết thúc!",
+    RESULTS_FINALIZED:
+      "Không thể đổi khoảng ngày chương trình đã có kết quả chốt!",
+    CAPACITY_BELOW_MEMBERS: "Sức chứa không được nhỏ hơn số thành viên đã xếp!",
+  };
+  if (errors[outcome]) throw new HttpError(409, errors[outcome]);
   if (outcome === "DUPLICATE") {
     throw new HttpError(
       409,
@@ -321,6 +331,11 @@ async function update(rawId, input) {
 
 async function remove(rawId) {
   const result = await db.deleteProgram(parseId(rawId));
+  if (result === "HAS_MEMBERS")
+    throw new HttpError(
+      409,
+      "Không thể xóa chương trình có thành viên/lịch sử kết quả!",
+    );
   if (result === "NOT_FOUND") {
     throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
   }
@@ -332,27 +347,58 @@ async function remove(rawId) {
 // US12: HR xem thực tập sinh của một chương trình và phân công họ cho mentor.
 async function listAvailableInterns(rawId) {
   const id = parseId(rawId);
-  if (!(await db.findProgramById(id))) throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
+  if (!(await db.findProgramById(id)))
+    throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
   return db.listInternsNotInProgram(id);
 }
 
 async function addInterns(rawId, body, user, deps = {}) {
   const id = parseId(rawId);
-  if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some((k) => k !== "intern_ids"))
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body) ||
+    Object.keys(body).some((k) => k !== "intern_ids")
+  )
     throw new HttpError(400, "Dữ liệu thêm thực tập sinh không hợp lệ!");
   const ids = body.intern_ids;
   if (!Array.isArray(ids) || ids.length === 0 || ids.length > MAX_BULK_INTERNS)
-    throw new HttpError(400, `Danh sách thực tập sinh phải có từ 1 đến ${MAX_BULK_INTERNS} người!`);
-  if (ids.some((v) => typeof v !== "number" || !Number.isSafeInteger(v) || v < 1))
+    throw new HttpError(
+      400,
+      `Danh sách thực tập sinh phải có từ 1 đến ${MAX_BULK_INTERNS} người!`,
+    );
+  if (
+    ids.some((v) => typeof v !== "number" || !Number.isSafeInteger(v) || v < 1)
+  )
     throw new HttpError(400, "Mã thực tập sinh phải là số nguyên dương!");
-  if (new Set(ids).size !== ids.length) throw new HttpError(400, "Danh sách thực tập sinh bị trùng!");
+  if (new Set(ids).size !== ids.length)
+    throw new HttpError(400, "Danh sách thực tập sinh bị trùng!");
   const program = await db.findProgramById(id);
-  if (!program) throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
+  if (!program)
+    throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
   const result = await db.addProgramInterns(id, ids, user && user.id);
-  if (result.outcome === "PROGRAM_NOT_FOUND") throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
-  if (result.outcome === "INTERN_NOT_FOUND") throw new HttpError(400, `Không tìm thấy thực tập sinh: ${result.missing.join(", ")}!`);
+  if (result.outcome === "PROGRAM_NOT_FOUND")
+    throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
+  if (result.outcome === "INTERN_NOT_FOUND")
+    throw new HttpError(
+      400,
+      `Không tìm thấy thực tập sinh: ${result.missing.join(", ")}!`,
+    );
+  if (result.outcome === "DATES_REQUIRED")
+    throw new HttpError(
+      409,
+      "Cần đặt đủ ngày bắt đầu và kết thúc trước khi xếp thành viên!",
+    );
+  if (result.outcome === "OVERLAP")
+    throw new HttpError(
+      409,
+      "Thực tập sinh có chương trình trùng thời gian hoặc chưa đặt lịch. Hãy kiểm tra lịch sử chương trình trước khi xếp!",
+    );
   if (result.outcome === "CAPACITY_EXCEEDED")
-    throw new HttpError(409, `Chương trình chỉ nhận tối đa ${result.capacity} thực tập sinh (hiện có ${result.current})!`);
+    throw new HttpError(
+      409,
+      `Chương trình chỉ nhận tối đa ${result.capacity} thực tập sinh (hiện có ${result.current})!`,
+    );
   await notifyInternsAdded(program, result.added, deps);
   return { added: result.added.length, already: result.already };
 }
@@ -365,15 +411,21 @@ async function notifyInternsAdded(program, internIds, deps = {}) {
     const push = deps.pushSafe || require("./notifications.service").pushSafe;
     for (const internId of internIds) {
       const intern = await d.findInternProfileById(internId);
-      const owner = intern && intern.email ? await d.findUserByEmail(intern.email) : null;
+      const owner =
+        intern && intern.email ? await d.findUserByEmail(intern.email) : null;
       if (owner)
         await push([owner.id], {
-          type: "PROGRAM_ASSIGNED", title: "Bạn được xếp vào chương trình thực tập",
-          message: `HR xếp bạn vào chương trình ${program.name}.`.slice(0, 500), refId: program.id,
+          type: "PROGRAM_ASSIGNED",
+          title: "Bạn được xếp vào chương trình thực tập",
+          message: `HR xếp bạn vào chương trình ${program.name}.`.slice(0, 500),
+          refId: program.id,
         });
     }
   } catch (err) {
-    console.error("[PROGRAMS] Không tạo được thông báo xếp chương trình:", err.message);
+    console.error(
+      "[PROGRAMS] Không tạo được thông báo xếp chương trình:",
+      err.message,
+    );
   }
 }
 
@@ -388,57 +440,118 @@ async function removeIntern(rawId, rawInternId) {
 async function listInterns(rawId) {
   const id = parseId(rawId);
   const program = await db.findProgramById(id);
-  if (!program) throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
+  if (!program)
+    throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
   return db.listProgramInterns(id);
 }
 
 const warn = require("./assignmentWarnings.service");
 const MAX_BULK_INTERNS = 500;
 function validateAssignInput(body) {
-  if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some((k) => !["mentor_id", "intern_ids", "confirm_warnings"].includes(k)))
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body) ||
+    Object.keys(body).some(
+      (k) => !["mentor_id", "intern_ids", "confirm_warnings"].includes(k),
+    )
+  )
     throw new HttpError(400, "Dữ liệu phân công không hợp lệ!");
   if (!Object.prototype.hasOwnProperty.call(body, "mentor_id"))
-    throw new HttpError(400, "Vui lòng gửi mentor_id (hoặc null để gỡ mentor)!");
+    throw new HttpError(
+      400,
+      "Vui lòng gửi mentor_id (hoặc null để gỡ mentor)!",
+    );
   const mentorId = body.mentor_id;
-  if (mentorId !== null && (typeof mentorId !== "number" || !Number.isSafeInteger(mentorId) || mentorId < 1))
+  if (
+    mentorId !== null &&
+    (typeof mentorId !== "number" ||
+      !Number.isSafeInteger(mentorId) ||
+      mentorId < 1)
+  )
     throw new HttpError(400, "Mã mentor phải là số nguyên dương hoặc null!");
   let internIds = null;
   if (body.intern_ids !== undefined) {
     const ids = body.intern_ids;
-    if (!Array.isArray(ids) || ids.length === 0 || ids.length > MAX_BULK_INTERNS)
-      throw new HttpError(400, `Danh sách thực tập sinh phải có từ 1 đến ${MAX_BULK_INTERNS} người!`);
-    if (ids.some((v) => typeof v !== "number" || !Number.isSafeInteger(v) || v < 1))
+    if (
+      !Array.isArray(ids) ||
+      ids.length === 0 ||
+      ids.length > MAX_BULK_INTERNS
+    )
+      throw new HttpError(
+        400,
+        `Danh sách thực tập sinh phải có từ 1 đến ${MAX_BULK_INTERNS} người!`,
+      );
+    if (
+      ids.some(
+        (v) => typeof v !== "number" || !Number.isSafeInteger(v) || v < 1,
+      )
+    )
       throw new HttpError(400, "Mã thực tập sinh phải là số nguyên dương!");
-    if (new Set(ids).size !== ids.length) throw new HttpError(400, "Danh sách thực tập sinh bị trùng!");
+    if (new Set(ids).size !== ids.length)
+      throw new HttpError(400, "Danh sách thực tập sinh bị trùng!");
     internIds = ids;
   }
-  return { mentorId, internIds, confirmed: warn.parseConfirm(body.confirm_warnings) };
+  return {
+    mentorId,
+    internIds,
+    confirmed: warn.parseConfirm(body.confirm_warnings),
+  };
 }
 
 async function assignMentor(rawId, body, deps = {}) {
   const id = parseId(rawId);
   const { mentorId, internIds, confirmed } = validateAssignInput(body);
   const program = await db.findProgramById(id);
-  if (!program) throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
+  if (!program)
+    throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
   if (mentorId != null) {
     // Cảnh báo mềm: chỉ tính những người thực sự đổi mentor; phòng ban so với phòng ban của chương trình này.
     const members = await db.listProgramInterns(id);
     const wanted = internIds ? new Set(internIds) : null;
-    const changing = members.filter((m) => (!wanted || wanted.has(Number(m.id))) && Number(m.mentorId) !== mentorId);
+    const changing = members.filter(
+      (m) =>
+        (!wanted || wanted.has(Number(m.id))) &&
+        Number(m.mentorId) !== mentorId,
+    );
     const mentor = await db.findMentorById(mentorId);
     if (mentor)
       warn.requireConfirmation(
-        warn.assignmentWarnings({ mentor, interns: changing, programDepartments: new Map(changing.map((m) => [Number(m.id), [program.department_name]])) }),
+        warn.assignmentWarnings({
+          mentor,
+          interns: changing,
+          programDepartments: new Map(
+            changing.map((m) => [Number(m.id), [program.department_name]]),
+          ),
+        }),
         confirmed,
       );
   }
   const result = await db.assignProgramInternsMentor(id, mentorId, internIds);
-  if (result.outcome === "MENTOR_NOT_FOUND") throw new HttpError(404, "Không tìm thấy mentor!");
-  if (result.outcome === "NO_INTERNS") throw new HttpError(409, "Chương trình chưa có thực tập sinh nào, hãy thêm thực tập sinh vào chương trình trước!");
+  if (result.outcome === "MENTOR_NOT_FOUND")
+    throw new HttpError(404, "Không tìm thấy mentor!");
+  if (result.outcome === "NO_INTERNS")
+    throw new HttpError(
+      409,
+      "Chương trình chưa có thực tập sinh nào, hãy thêm thực tập sinh vào chương trình trước!",
+    );
   if (result.outcome === "INTERN_NOT_IN_PROGRAM")
-    throw new HttpError(400, `Thực tập sinh không thuộc chương trình này: ${result.missing.join(", ")}!`);
-  const { notifyProgramMentorAssignment } = require("./mentorAssignment.service");
-  await notifyProgramMentorAssignment({ program, mentorId, mentorName: result.mentorName, changed: result.changed }, deps);
+    throw new HttpError(
+      400,
+      `Thực tập sinh không thuộc chương trình này: ${result.missing.join(", ")}!`,
+    );
+  const {
+    notifyProgramMentorAssignment,
+  } = require("./mentorAssignment.service");
+  await notifyProgramMentorAssignment(
+    {
+      program,
+      mentorId,
+      mentorName: result.mentorName,
+      changed: result.changed,
+    },
+    deps,
+  );
   return {
     mentor_id: mentorId,
     mentor_name: mentorId == null ? "" : result.mentorName,

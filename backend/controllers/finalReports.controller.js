@@ -1,35 +1,6 @@
 const service = require("../services/finalReports.service");
-const { HttpError } = require("../errors");
-function sendError(res, err) {
-  if (err instanceof HttpError)
-    return res.status(err.status).json({
-      success: false,
-      message: err.message,
-      error: err.message,
-      ...(err.code ? { code: err.code, details: err.details } : {}),
-    });
-  console.error("[FINAL REPORTS]", err);
-  return res.status(500).json({
-    success: false,
-    message: "Lỗi server, vui lòng thử lại sau!",
-    error: "Lỗi server, vui lòng thử lại sau!",
-  });
-}
-function endpoint(fn, message) {
-  return async (req, res) => {
-    try {
-      const data = await fn(req);
-      res.set("Cache-Control", "private, no-store");
-      return res.json({
-        success: true,
-        message,
-        data,
-      });
-    } catch (err) {
-      return sendError(res, err);
-    }
-  };
-}
+const { makeEndpoint, sendError } = require("./endpoint");
+const endpoint = makeEndpoint("FINALREPORTS");
 module.exports = {
   preview: endpoint(
     (req) => service.preview(req.query),
@@ -82,7 +53,7 @@ module.exports = {
       );
       return res.send(result.content);
     } catch (err) {
-      return sendError(res, err);
+      return sendError(res, err, "FINALREPORTS");
     }
   },
 };

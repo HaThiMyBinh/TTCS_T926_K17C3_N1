@@ -1,22 +1,5 @@
+const { sendError } = require("./endpoint");
 const service = require("../services/schedule.service");
-const { HttpError } = require("../errors");
-
-function sendError(res, err) {
-  if (err instanceof HttpError) {
-    return res.status(err.status).json({
-      success: false,
-      message: err.message,
-      error: err.message,
-    });
-  }
-
-  console.error("[SCHEDULE CONTROLLER]", err);
-  return res.status(500).json({
-    success: false,
-    message: "Lỗi server, vui lòng thử lại sau!",
-    error: "Lỗi server, vui lòng thử lại sau!",
-  });
-}
 
 async function getMySchedule(req, res) {
   try {
@@ -32,7 +15,7 @@ async function getMySchedule(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "SCHEDULE");
   }
 }
 
@@ -51,7 +34,7 @@ async function getInternSchedule(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "SCHEDULE");
   }
 }
 
@@ -68,7 +51,7 @@ async function mutateMilestones(req, res, action) {
       .status(action === "create" || action === "template" ? 201 : 200)
       .json({ success: true, message: "Đã cập nhật lịch thực tập!", data });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "SCHEDULE");
   }
 }
 

@@ -142,7 +142,8 @@ async function upload(rawInternId, user, metadata) {
   const programId = program_id ? parseId(program_id, "Mã chương trình") : null;
   if (programId != null) {
     const program = await db.findProgramById(programId);
-    if (!program) throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
+    if (!program)
+      throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
     assertWithinProgramDates(program, start_date, end_date);
   }
 

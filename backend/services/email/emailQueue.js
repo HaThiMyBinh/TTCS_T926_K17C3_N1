@@ -92,7 +92,11 @@ class EmailQueue extends EventEmitter {
       html: built.html,
       text: built.text,
       attachments: [
-        { filename, content: Buffer.from(csv, "utf8"), contentType: "text/csv; charset=utf-8" },
+        {
+          filename,
+          content: Buffer.from(csv, "utf8"),
+          contentType: "text/csv; charset=utf-8",
+        },
       ],
     });
   }

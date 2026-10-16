@@ -21,7 +21,9 @@ function parseId(raw) {
 function describeScope(type, value, programs = []) {
   if (type === "UNIVERSITY") return `Trường: ${value || ""}`.trim();
   if (type === "PROGRAM") {
-    const program = (programs || []).find((p) => String(p.id) === String(value));
+    const program = (programs || []).find(
+      (p) => String(p.id) === String(value),
+    );
     return `Chương trình: ${program ? program.name : `#${value}`}`;
   }
   return "Toàn bộ thực tập sinh";
@@ -521,10 +523,12 @@ async function finalize(rawId, user, body) {
       409,
       `Còn ${snapshot.summary.notEvaluated}/${snapshot.summary.totalInterns} thực tập sinh chưa được đánh giá trong phạm vi này. Hãy xác nhận nếu vẫn muốn chốt báo cáo!`,
     );
-    err.code = "INCOMPLETE_EVALUATION";
-    err.details = {
-      notEvaluated: snapshot.summary.notEvaluated,
-      totalInterns: snapshot.summary.totalInterns,
+    err.extra = {
+      code: "INCOMPLETE_EVALUATION",
+      details: {
+        notEvaluated: snapshot.summary.notEvaluated,
+        totalInterns: snapshot.summary.totalInterns,
+      },
     };
     throw err;
   }

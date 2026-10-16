@@ -71,7 +71,11 @@ async function testReapply(hrToken, conn, emails) {
   emails.push(email);
 
   const first = await register(email);
-  check("Đăng ký lần đầu: 201", first.status === 201, JSON.stringify(first.body));
+  check(
+    "Đăng ký lần đầu: 201",
+    first.status === 201,
+    JSON.stringify(first.body),
+  );
 
   const dup = await register(email);
   check("Đang chờ duyệt mà đăng ký lại cùng email: 400", dup.status === 400);
@@ -80,27 +84,44 @@ async function testReapply(hrToken, conn, emails) {
   check("HR thấy hồ sơ vừa đăng ký", Boolean(app));
 
   // US5: không có cách nào bỏ qua điều kiện đủ tài liệu
-  const bypass = await call("PATCH", `/applications/${app.id}/status`, hrToken, {
-    status: "APPROVED",
-    require_documents: false,
-  });
+  const bypass = await call(
+    "PATCH",
+    `/applications/${app.id}/status`,
+    hrToken,
+    {
+      status: "APPROVED",
+      require_documents: false,
+    },
+  );
   check(
     "Duyệt thiếu tài liệu kể cả có require_documents:false: 400",
     bypass.status === 400,
     JSON.stringify(bypass.body),
   );
 
-  const reject = await call("PATCH", `/applications/${app.id}/status`, hrToken, {
-    status: "REJECTED",
-    rejection_reason: "Hồ sơ chưa phù hợp",
-  });
-  check("HR từ chối hồ sơ: 200", reject.status === 200, JSON.stringify(reject.body));
+  const reject = await call(
+    "PATCH",
+    `/applications/${app.id}/status`,
+    hrToken,
+    {
+      status: "REJECTED",
+      rejection_reason: "Hồ sơ chưa phù hợp",
+    },
+  );
+  check(
+    "HR từ chối hồ sơ: 200",
+    reject.status === 200,
+    JSON.stringify(reject.body),
+  );
 
   const [lockedUser] = await conn.query(
     "SELECT status FROM users WHERE LOWER(email) = LOWER(?)",
     [email],
   );
-  check("Tài khoản bị khóa sau khi từ chối", lockedUser[0]?.status === "LOCKED");
+  check(
+    "Tài khoản bị khóa sau khi từ chối",
+    lockedUser[0]?.status === "LOCKED",
+  );
 
   const again = await register(email, "Tên mới sau khi nộp lại");
   check(
@@ -202,7 +223,8 @@ async function testReconfirm(hrToken, conn, emails) {
   });
   check(
     "Hợp đồng đang chờ xác nhận đổi ngày: 200, không cờ xác nhận lại",
-    again.status === 200 && again.body?.data?.reconfirmation_required === undefined,
+    again.status === 200 &&
+      again.body?.data?.reconfirmation_required === undefined,
   );
 
   // Điền ngày vào hợp đồng đã xác nhận nhưng chưa có ngày -> giữ nguyên xác nhận
@@ -236,7 +258,9 @@ async function testProgramRange(hrToken, conn, emails, cleanup) {
     capacity: 5,
   });
   if (prog.status !== 201) {
-    throw new Error(`Không tạo được chương trình test: ${JSON.stringify(prog.body)}`);
+    throw new Error(
+      `Không tạo được chương trình test: ${JSON.stringify(prog.body)}`,
+    );
   }
   const programId = prog.body.data.id;
 
@@ -250,27 +274,39 @@ async function testProgramRange(hrToken, conn, emails, cleanup) {
     program_id: programId,
     start_date: "2026-05-01",
   });
-  check("Hợp đồng bắt đầu trước chương trình: 400", early.status === 400, JSON.stringify(early.body));
+  check(
+    "Hợp đồng bắt đầu trước chương trình: 400",
+    early.status === 400,
+    JSON.stringify(early.body),
+  );
 
   const late = await patchContract(hrToken, internId, contractId, {
     program_id: programId,
     end_date: "2027-01-15",
   });
-  check("Hợp đồng kết thúc sau chương trình: 400", late.status === 400, JSON.stringify(late.body));
+  check(
+    "Hợp đồng kết thúc sau chương trình: 400",
+    late.status === 400,
+    JSON.stringify(late.body),
+  );
 
   const linked = await patchContract(hrToken, internId, contractId, {
     program_id: programId,
   });
   check(
     "Gắn chương trình khi ngày hợp đồng nằm trong khoảng: 200",
-    linked.status === 200 && Number(linked.body?.data?.program_id) === programId,
+    linked.status === 200 &&
+      Number(linked.body?.data?.program_id) === programId,
     JSON.stringify(linked.body),
   );
 
   const outside = await patchContract(hrToken, internId, contractId, {
     end_date: "2027-03-01",
   });
-  check("Đổi ngày vượt khoảng chương trình đang gắn: 400", outside.status === 400);
+  check(
+    "Đổi ngày vượt khoảng chương trình đang gắn: 400",
+    outside.status === 400,
+  );
 
   // Thu hẹp chương trình làm hợp đồng nằm ngoài -> 409; mở rộng thì được
   const programBody = (patch) => ({
@@ -281,21 +317,48 @@ async function testProgramRange(hrToken, conn, emails, cleanup) {
     capacity: 5,
     ...patch,
   });
-  const shrink = await call("PUT", `/programs/${programId}`, hrToken, programBody({
-    end_date: "2026-09-01",
-  }));
-  check("Thu hẹp chương trình khiến hợp đồng nằm ngoài: 409", shrink.status === 409, JSON.stringify(shrink.body));
+  const shrink = await call(
+    "PUT",
+    `/programs/${programId}`,
+    hrToken,
+    programBody({
+      end_date: "2026-09-01",
+    }),
+  );
+  check(
+    "Thu hẹp chương trình khiến hợp đồng nằm ngoài: 409",
+    shrink.status === 409,
+    JSON.stringify(shrink.body),
+  );
 
-  const widen = await call("PUT", `/programs/${programId}`, hrToken, programBody({
-    end_date: "2027-06-30",
-  }));
-  check("Mở rộng chương trình: 200", widen.status === 200, JSON.stringify(widen.body));
+  const widen = await call(
+    "PUT",
+    `/programs/${programId}`,
+    hrToken,
+    programBody({
+      end_date: "2027-06-30",
+    }),
+  );
+  check(
+    "Mở rộng chương trình: 200",
+    widen.status === 200,
+    JSON.stringify(widen.body),
+  );
 
-  const ok = await call("PUT", `/programs/${programId}`, hrToken, programBody({
-    start_date: "2026-07-01",
-    end_date: "2026-10-01",
-  }));
-  check("Thu hẹp vừa khít với hợp đồng: 200", ok.status === 200, JSON.stringify(ok.body));
+  const ok = await call(
+    "PUT",
+    `/programs/${programId}`,
+    hrToken,
+    programBody({
+      start_date: "2026-07-01",
+      end_date: "2026-10-01",
+    }),
+  );
+  check(
+    "Thu hẹp vừa khít với hợp đồng: 200",
+    ok.status === 200,
+    JSON.stringify(ok.body),
+  );
 }
 
 async function run() {
@@ -322,9 +385,10 @@ async function run() {
           "UPDATE internship_programs SET status = 'DRAFT' WHERE department_id = ?",
           [cleanup.departmentId],
         );
-        await conn.query("DELETE FROM internship_programs WHERE department_id = ?", [
-          cleanup.departmentId,
-        ]);
+        await conn.query(
+          "DELETE FROM internship_programs WHERE department_id = ?",
+          [cleanup.departmentId],
+        );
         await conn.query("DELETE FROM departments WHERE id = ?", [
           cleanup.departmentId,
         ]);
