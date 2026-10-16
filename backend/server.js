@@ -61,6 +61,7 @@ app.use("/api", authRouter);
 app.use("/api/applications", applicationsRouter);
 app.use("/api/email", emailRouter);
 app.use("/api", mentorsRouter);
+app.use("/api", internSchoolStatsRouter);
 app.use("/api", internsRouter);
 app.use("/api", contractsRouter);
 app.use("/api", programsRouter);

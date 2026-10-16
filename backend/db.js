@@ -265,6 +265,25 @@ async function ensureUniqueScheduleIndex() {
   );
 }
 
+// Story 5.1: view thống kê TTS theo trường/ngành. Định nghĩa trùng schema.sql;
+// CREATE OR REPLACE nên chạy lại nhiều lần vẫn an toàn.
+async function ensureInternSchoolStatsView() {
+  await pool.query(`
+CREATE OR REPLACE VIEW \`v_intern_school_stats\` AS
+SELECT
+    COALESCE(NULLIF(TRIM(\`university\`), ''), 'Chưa cập nhật') AS \`university\`,
+    COALESCE(NULLIF(TRIM(\`major\`), ''), 'Chưa cập nhật') AS \`major\`,
+    COUNT(*) AS \`total_interns\`,
+    SUM(CASE WHEN \`status\` = 'Đang thực tập' THEN 1 ELSE 0 END) AS \`in_progress_count\`,
+    SUM(CASE WHEN \`status\` = 'Hoàn thành' THEN 1 ELSE 0 END) AS \`completed_count\`,
+    SUM(CASE WHEN \`status\` IN ('Tạm dừng', 'Bỏ học') THEN 1 ELSE 0 END) AS \`dropped_count\`,
+    SUM(CASE WHEN \`status\` IS NULL OR \`status\` NOT IN ('Đang thực tập', 'Hoàn thành', 'Tạm dừng', 'Bỏ học') THEN 1 ELSE 0 END) AS \`other_count\`
+FROM \`intern_profiles\`
+GROUP BY COALESCE(NULLIF(TRIM(\`university\`), ''), 'Chưa cập nhật'),
+         COALESCE(NULLIF(TRIM(\`major\`), ''), 'Chưa cập nhật');
+  `);
+}
+
 // Khởi tạo kết nối MySQL, tạo bảng & seed dữ liệu mặc định nếu chưa có
 async function initDatabase() {
   // Repeated initialization replaces the previous pool instead of leaking it.
@@ -833,6 +852,8 @@ async function initDatabase() {
     (2, 4),
     (3, 2);
   `);
+
+  await ensureInternSchoolStatsView();
 
   isMysqlConnected = true;
   console.log(
@@ -3951,6 +3972,7 @@ async function countSupportAttachments(requestId,kind) { const [r]=await require
 async function deleteSupportAttachment(id, requestId, kind) { const [r]=await requireDb().query("DELETE FROM support_request_attachments WHERE id=? AND request_id=? AND kind=?",[id,requestId,kind]); return r.affectedRows; }
 
 module.exports = {
+  listInternSchoolStats,
   initDatabase,
   getPool,
   seedDepartmentsFromMentors,
