@@ -34,6 +34,7 @@
     "test:unit": "node tests/run_all.js --unit",
     "test:manual-server": "npm run test:login && npm run test:create-account && npm run test:rbac && npm run test:register && npm run test:interns && npm run test:mentors && npm run test:applications && npm run test:documents-api && npm run test:contracts-api && npm run test:contract-confirm-api && npm run test:review-api && npm run test:email-api && npm run test:programs-unit && npm run test:programs-api && npm run test:programs-safety",
     "test:intern-filter-unit": "node tests/test_intern_filter_unit.js",
+    "test:intern-school-stats-unit": "node tests/test_intern_school_stats_unit.js",
     "test:intern-filter-api": "node tests/test_intern_filter_api.js",
     "test:tasks-unit": "node tests/test_tasks_unit.js",
     "test:tasks-api": "node tests/test_tasks_api.js",
@@ -54,12 +55,10 @@
     "test:attendance-report-unit": "node tests/test_attendance_report_unit.js",
     "test:final-reports-unit": "node tests/test_final_reports_unit.js",
     "test:final-reports-api": "node tests/test_final_reports_api.js",
-    "test:allowance-unit": "node tests/test_allowance_unit.js",
-    "test:allowance-api": "node tests/test_allowance_api.js",
-    "test:my-allowance-unit": "node tests/test_my_allowance_unit.js",
-    "test:my-allowance-api": "node tests/test_my_allowance_api.js",
-    "test:support-request-unit": "node tests/test_support_request_unit.js",
-    "test:support-request-api": "node tests/test_support_request_api.js"
+    "test:allowances-unit": "node tests/test_allowances_unit.js",
+    "test:allowances-api": "node tests/test_allowances_api.js",
+    "test:support-unit": "node tests/test_support_requests_unit.js",
+    "test:support-api": "node tests/test_support_requests_api.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -366,3 +366,26 @@ Bảng `attendance_records` có thêm các cột `is_adjusted`, `correction_*`. 
   thông báo cho thực tập sinh khi HR thêm hoặc đổi phụ cấp.
 - Kiểm thử: `npm run test:allowances-unit` (không cần MySQL) và `npm run test:allowances-api` (cần MySQL và backend) —
   đã gồm các ca của US này.
+
+## YÊU CẦU HỖ TRỢ (Thực tập sinh → HR)
+
+Thực tập sinh có thể gửi yêu cầu cấp giấy xác nhận thực tập, giấy giới thiệu, xác nhận phụ cấp/thu nhập, hỗ trợ giấy tờ hoặc yêu cầu khác. HR tiếp nhận, giải quyết hoặc từ chối; thông báo chuông dẫn người dùng đến đúng trang.
+
+- **API Intern:** `GET /api/me/support-requests?status=&type=`, `POST /api/me/support-requests` (`request_type`, `title`, `description`), tải/xóa file yêu cầu, hủy khi còn `PENDING`.
+- **API HR:** `GET /api/support-requests?status=&type=&q=`, `GET /api/support-requests/:id`, `POST /api/support-requests/:id/process` (`START`, `RESOLVE`, `REJECT`), tải file kết quả.
+- Luật nghiệp vụ: cần hợp đồng đã xác nhận; tối đa 1 yêu cầu cùng loại đang mở và 10 yêu cầu mở tổng cộng; giới hạn 5 file gửi, 3 file kết quả. Từ chối cần lý do; giải quyết cần ghi chú hoặc file kết quả.
+- File được kiểm tra đuôi, dung lượng và magic bytes; lưu dưới tên UUID trong `uploads/`, không phục vụ tĩnh. Tải xuống qua API có phân quyền.
+- **Chưa có:** email thông báo, SLA/hạn xử lý, mẫu giấy tờ tự sinh, gán người xử lý, lịch sử thay đổi.
+
+Kiểm thử: `npm run test:support-unit` (không cần MySQL) và `npm run test:support-api` (cần MySQL/backend).
+
+### HR duyệt & phản hồi
+
+HR xem danh sách tại `GET /api/support-requests?status=&type=&q=&page=&pageSize=`. Kết quả có `items`, `total`, `page`, `pageSize` và phần tổng hợp trạng thái không bị ảnh hưởng bởi bộ lọc. Danh sách ưu tiên yêu cầu `PENDING`, sau đó `IN_PROGRESS`, rồi sắp xếp mới nhất trước.
+
+- `POST /api/support-requests/:id/process`: `START` chỉ từ `PENDING`; `RESOLVE` chỉ từ `IN_PROGRESS` và bắt buộc có ghi chú hoặc file kết quả; `REJECT` từ `PENDING` hoặc `IN_PROGRESS` và bắt buộc có lý do.
+- `POST /api/support-requests/:id/result-attachments`: HR tải tối đa ba file kết quả khi đang xử lý. `DELETE /api/support-requests/:id/result-attachments/:attachmentId` chỉ xóa file kết quả khi yêu cầu vẫn `IN_PROGRESS`.
+- Mọi chuyển trạng thái dùng cập nhật atomic. Khi có thay đổi, thực tập sinh nhận thông báo chuông `SUPPORT_REQUEST_UPDATED` dẫn đến `tab-my-support`; thông báo giải quyết nhắc có file kết quả nếu có.
+- File không được phục vụ tĩnh. Tải xuống qua API có phân quyền, luôn dùng `Content-Disposition: attachment` và `X-Content-Type-Options: nosniff`; tên lưu UUID và `stored_name` không đi vào phản hồi API.
+
+Chưa có: email thông báo, SLA/hạn xử lý, mẫu giấy tờ tự sinh, gán người xử lý riêng và lịch sử thay đổi.

@@ -1989,6 +1989,72 @@
           grid-template-columns: 1fr;
         }
       }
+      /* ===== Yêu cầu hỗ trợ (thực tập sinh + HR) ===== */
+      .sp-stack { display: flex; flex-direction: column; gap: 20px; }
+      .sp-form { display: grid; grid-template-columns: minmax(190px, 1fr) minmax(240px, 2fr); gap: 14px 16px; }
+      .sp-form .sp-full { grid-column: 1 / -1; }
+      .sp-field label { display: block; font-size: 13px; font-weight: 600; color: var(--slate-700); margin-bottom: 6px; }
+      .sp-field .form-control { width: 100%; }
+      .sp-field textarea.form-control { min-height: 84px; resize: vertical; font-family: inherit; }
+      .sp-hint { font-size: 12px; color: #64748b; margin-top: 6px; }
+      .sp-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .sp-msg { font-size: 13px; color: #b91c1c; margin-top: 10px; }
+      .sp-msg:empty { display: none; }
+      .sp-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+      .sp-toolbar .form-control { min-width: 170px; }
+      .sp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+      .sp-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--slate-200); border-radius: 999px; background: #fff; font-size: 12.5px; color: var(--slate-700); cursor: default; font-family: inherit; }
+      button.sp-chip { cursor: pointer; }
+      button.sp-chip:hover { border-color: var(--primary); }
+      .sp-chip b { font-weight: 700; color: var(--slate-900); }
+      .sp-chip.is-active { border-color: var(--primary); background: var(--primary-light); }
+      .sp-list { display: flex; flex-direction: column; gap: 12px; }
+      .sp-empty { padding: 28px 12px; text-align: center; color: #94a3b8; font-size: 13.5px; border: 1px dashed var(--slate-300); border-radius: 10px; }
+      .sp-item { border: 1px solid var(--slate-200); border-radius: 10px; padding: 14px 16px; background: #fff; }
+      .sp-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+      .sp-title { font-size: 15px; font-weight: 600; color: var(--slate-900); word-break: break-word; }
+      .sp-meta { font-size: 12.5px; color: #64748b; margin-top: 2px; }
+      .sp-desc { margin-top: 10px; font-size: 13.5px; color: var(--slate-700); white-space: pre-wrap; word-break: break-word; }
+      .sp-sec { margin-top: 12px; }
+      .sp-sec-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+      .sp-files { display: flex; flex-wrap: wrap; gap: 8px; }
+      .sp-file { display: inline-flex; align-items: center; border: 1px solid var(--slate-200); border-radius: 8px; background: var(--slate-50); font-size: 12.5px; max-width: 100%; }
+      .sp-file button { border: 0; background: transparent; font: inherit; cursor: pointer; padding: 5px 10px; color: var(--primary); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .sp-file button:hover { text-decoration: underline; }
+      .sp-file button.sp-file-del { color: #b91c1c; padding: 5px 9px; border-left: 1px solid var(--slate-200); text-decoration: none; }
+      .sp-note { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border-left: 3px solid var(--slate-300); background: var(--slate-50); font-size: 13.5px; white-space: pre-wrap; word-break: break-word; }
+      .sp-note b { display: block; font-size: 12px; margin-bottom: 2px; color: var(--slate-700); }
+      .sp-note--rejected { border-left-color: #dc2626; background: #fef2f2; }
+      .sp-note--resolved { border-left-color: #16a34a; background: #f0fdf4; }
+      .sp-foot { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--slate-100); display: flex; flex-wrap: wrap; gap: 8px; }
+      .sp-foot label.btn { cursor: pointer; margin: 0; }
+      .sp-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+      .sp-badge--pending { background: #f1f5f9; color: #475569; }
+      .sp-badge--progress { background: #fef3c7; color: #92400e; }
+      .sp-badge--resolved { background: #dcfce7; color: #166534; }
+      .sp-badge--rejected { background: #fee2e2; color: #991b1b; }
+      .sp-badge--cancelled { background: #f1f5f9; color: #94a3b8; }
+      .sp-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); z-index: 1500; align-items: center; justify-content: center; padding: 16px; }
+      .sp-modal { background: #fff; border-radius: 12px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3); }
+      .sp-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--slate-200); position: sticky; top: 0; background: #fff; z-index: 1; }
+      .sp-modal-head h3 { font-size: 16px; margin: 0; word-break: break-word; }
+      .sp-modal-head .sp-badge { margin-top: 6px; }
+      .sp-close { border: 0; background: transparent; font-size: 24px; line-height: 1; cursor: pointer; color: #64748b; padding: 0 8px; border-radius: 6px; }
+      .sp-close:hover { background: var(--slate-100); color: var(--slate-900); }
+      .sp-modal-body { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 16px; }
+      .sp-kv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; margin: 0; }
+      .sp-kv dt { font-size: 11.5px; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+      .sp-kv dd { margin: 2px 0 0; font-size: 13.5px; color: var(--slate-900); word-break: break-word; }
+      .sp-box { border: 1px solid var(--slate-200); border-radius: 8px; padding: 10px 12px; background: var(--slate-50); font-size: 13.5px; white-space: pre-wrap; word-break: break-word; }
+      .sp-reply { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; border-top: 1px solid var(--slate-200); }
+      .sp-reply textarea.form-control { width: 100%; min-height: 76px; resize: vertical; font-family: inherit; }
+      .sp-reply input[type="file"].form-control { width: 100%; }
+      .sp-upload { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      .sp-upload input[type="file"] { flex: 1 1 220px; min-width: 0; }
+      .btn.sp-reject { background: #fff; color: #b91c1c; border: 1px solid #fca5a5; }
+      .btn.sp-reject:hover { background: #fef2f2; }
+      @media (max-width: 560px) { .sp-form, .sp-kv { grid-template-columns: 1fr; } }
+      #supportHrModalBody { display: flex; flex-direction: column; gap: 16px; }
     </style>
   </head>
   <body>
@@ -3196,196 +3262,6 @@
           </div></div>
           <div class="card"><div class="card-header"><h3>Đơn nghỉ của tôi</h3></div><div class="card-body"><div id="lvList">Đang tải...</div></div></div>
         </div>
-
-        <!-- STORY 2.2: LỊCH SỬ NHẬN PHỤ CẤP CỦA INTERN -->
-<div id="tab-my-allowances" class="tab-pane" style="display: none">
-  <div class="card">
-    <div class="card-header">
-      <h3>
-        <i class="fa-solid fa-money-bill-wave text-primary"></i>
-        Lịch sử nhận phụ cấp
-      </h3>
-    </div>
-
-    <div class="card-body">
-      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:end; margin-bottom:20px">
-        <label class="fr-field">
-          <span>Kỳ phụ cấp</span>
-          <select id="allowancePeriodFilter" onchange="renderAllowanceHistory()">
-            <option value="">Tất cả các kỳ</option>
-          </select>
-        </label>
-
-        <div class="card" style="padding:16px; min-width:220px; margin:0">
-          <div style="color:#64748b; font-size:14px">Tổng phụ cấp đã nhận</div>
-          <div id="allowanceTotal" style="font-size:24px; font-weight:700; color:#2563eb">
-            0 ₫
-          </div>
-        </div>
-      </div>
-
-      <div style="overflow-x:auto">
-        <table style="width:100%; border-collapse:collapse">
-          <thead>
-            <tr style="background:#f1f5f9; text-align:left">
-              <th style="padding:12px">STT</th>
-              <th style="padding:12px">Kỳ phụ cấp</th>
-              <th style="padding:12px">Ngày nhận</th>
-              <th style="padding:12px">Số tiền</th>
-              <th style="padding:12px">Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody id="allowanceHistoryBody">
-            <tr>
-              <td colspan="5" style="padding:24px; text-align:center">
-                Chưa có dữ liệu
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-<!-- HẾT STORY 2.2 -->
- 
-<!-- STORY 3.4: YÊU CẦU HỖ TRỢ CỦA INTERN -->
-<div id="tab-support-requests" class="tab-pane" style="display: none">
-
-  <div class="card">
-    <div class="card-header">
-      <h3>
-        <i class="fa-solid fa-headset text-primary"></i>
-        Gửi yêu cầu hỗ trợ
-      </h3>
-    </div>
-
-    <div class="card-body">
-      <form id="supportRequestForm" onsubmit="submitSupportRequest(event)">
-        <div class="form-grid">
-
-          <div class="form-group">
-            <label for="supportRequestType">Loại yêu cầu *</label>
-            <select id="supportRequestType" class="form-control" required>
-              <option value="">-- Chọn loại yêu cầu --</option>
-              <option value="Chứng nhận">Chứng nhận</option>
-              <option value="Giấy tờ">Giấy tờ</option>
-              <option value="Khác">Khác</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="supportRequestTitle">Tiêu đề *</label>
-            <input
-              id="supportRequestTitle"
-              class="form-control"
-              type="text"
-              maxlength="150"
-              placeholder="Nhập tiêu đề yêu cầu"
-              required
-            />
-          </div>
-
-          <div class="form-group" style="grid-column: 1 / -1">
-            <label for="supportRequestContent">Nội dung *</label>
-            <textarea
-              id="supportRequestContent"
-              class="form-control"
-              rows="5"
-              maxlength="2000"
-              placeholder="Mô tả chi tiết yêu cầu hỗ trợ của bạn..."
-              required
-            ></textarea>
-            <small class="fr-hint">Tối đa 2.000 ký tự.</small>
-          </div>
-
-        </div>
-
-        <div
-          id="supportRequestError"
-          class="text-danger"
-          role="alert"
-          style="margin-top: 12px"
-        ></div>
-
-        <div style="margin-top: 16px">
-          <button type="submit" class="btn btn-primary" id="supportRequestSubmit">
-            <i class="fa-solid fa-paper-plane"></i>
-            Gửi yêu cầu
-          </button>
-          <button
-            type="reset"
-            class="btn btn-soft-gray"
-            style="margin-left: 8px"
-          >
-            Nhập lại
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h3>
-        <i class="fa-solid fa-clipboard-list text-primary"></i>
-        Yêu cầu hỗ trợ của tôi
-      </h3>
-
-      <button
-        type="button"
-        class="btn btn-sm btn-primary"
-        onclick="renderSupportRequests()"
-      >
-        <i class="fa-solid fa-rotate"></i>
-        Làm mới
-      </button>
-    </div>
-
-    <div class="card-body">
-      <div class="filter-bar">
-        <label class="filter-field">
-          Lọc theo trạng thái
-          <select
-            id="supportRequestStatusFilter"
-            onchange="renderSupportRequests()"
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="Chờ xử lý">Chờ xử lý</option>
-            <option value="Đang xử lý">Đang xử lý</option>
-            <option value="Đã xử lý">Đã xử lý</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Mã</th>
-              <th>Loại yêu cầu</th>
-              <th>Tiêu đề</th>
-              <th>Ngày gửi</th>
-              <th>Trạng thái</th>
-              <th>Phản hồi</th>
-            </tr>
-          </thead>
-
-          <tbody id="supportRequestList">
-            <tr>
-              <td colspan="6" style="text-align: center; padding: 24px">
-                Chưa tải dữ liệu.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-</div>
-<!-- HẾT STORY 3.4 -->
-
 
         <div id="tab-submissions" class="tab-pane" style="display: none">
           <div id="wrNotIntern" class="card" style="display: none">
@@ -4973,6 +4849,52 @@
           </div>
         </div>
 
+        <div id="tab-my-support" class="tab-pane" style="display:none">
+          <div class="sp-stack">
+            <div class="card">
+              <div class="card-header"><h3>Gửi yêu cầu hỗ trợ</h3></div>
+              <div class="card-body">
+                <form class="sp-form" onsubmit="submitSupport(event)">
+                  <div class="sp-field"><label for="supportType">Loại yêu cầu</label><select id="supportType" class="form-control"><option value="INTERNSHIP_CERTIFICATE">Giấy xác nhận thực tập</option><option value="INTRODUCTION_LETTER">Giấy giới thiệu</option><option value="INCOME_CONFIRMATION">Xác nhận phụ cấp / thu nhập</option><option value="DOCUMENT_SUPPORT">Hỗ trợ giấy tờ</option><option value="OTHER">Khác</option></select></div>
+                  <div class="sp-field"><label for="supportTitle">Tiêu đề</label><input id="supportTitle" class="form-control" maxlength="150" placeholder="VD: Xin giấy xác nhận thực tập" required></div>
+                  <div class="sp-field sp-full"><label for="supportDescription">Mô tả</label><textarea id="supportDescription" class="form-control" maxlength="2000" placeholder="Nêu rõ nội dung, mục đích sử dụng, thời hạn cần..."></textarea></div>
+                  <div class="sp-field sp-full"><label for="supportFiles">File đính kèm (không bắt buộc)</label><input id="supportFiles" type="file" class="form-control" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt"><div class="sp-hint">Tối đa 5 file mỗi yêu cầu (pdf, doc, docx, xls, xlsx, ppt, pptx, png, jpg, txt).</div></div>
+                  <div class="sp-full sp-actions"><button class="btn btn-primary" type="submit">Gửi yêu cầu</button></div>
+                </form>
+                <div id="supportMineError" class="sp-msg"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h3>Yêu cầu của tôi</h3><button class="btn btn-sm btn-primary" onclick="loadSupportMine()">Làm mới</button></div>
+              <div class="card-body">
+                <div id="supportMineSummary" class="sp-chips"></div>
+                <div class="sp-toolbar">
+                  <select id="supportMineStatus" class="form-control" onchange="loadSupportMine()"><option value="">Mọi trạng thái</option><option value="PENDING">Chờ tiếp nhận</option><option value="IN_PROGRESS">Đang xử lý</option><option value="RESOLVED">Đã giải quyết</option><option value="REJECTED">Từ chối</option><option value="CANCELLED">Đã hủy</option></select>
+                  <select id="supportMineType" class="form-control" onchange="loadSupportMine()"><option value="">Mọi loại</option><option value="INTERNSHIP_CERTIFICATE">Giấy xác nhận thực tập</option><option value="INTRODUCTION_LETTER">Giấy giới thiệu</option><option value="INCOME_CONFIRMATION">Xác nhận thu nhập</option><option value="DOCUMENT_SUPPORT">Hỗ trợ giấy tờ</option><option value="OTHER">Khác</option></select>
+                </div>
+                <div id="supportMineList" class="sp-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="tab-support-requests" class="tab-pane" style="display:none">
+          <div class="card">
+            <div class="card-header"><h3>Yêu cầu hỗ trợ</h3><button class="btn btn-sm btn-primary" onclick="loadSupportHr()"><i class="fa-solid fa-rotate"></i> Làm mới</button></div>
+            <div class="card-body">
+              <div id="supportHrSummary" class="sp-chips"></div>
+              <div class="sp-toolbar">
+                <input id="supportHrSearch" class="form-control" placeholder="Tìm họ tên, MSSV, tiêu đề" oninput="scheduleSupportSearch()">
+                <select id="supportHrStatus" class="form-control" onchange="resetSupportPage()"><option value="">Mọi trạng thái</option><option value="PENDING">Chờ tiếp nhận</option><option value="IN_PROGRESS">Đang xử lý</option><option value="RESOLVED">Đã giải quyết</option><option value="REJECTED">Từ chối</option><option value="CANCELLED">Đã hủy</option></select>
+                <select id="supportHrType" class="form-control" onchange="resetSupportPage()"><option value="">Mọi loại</option><option value="INTERNSHIP_CERTIFICATE">Giấy xác nhận thực tập</option><option value="INTRODUCTION_LETTER">Giấy giới thiệu</option><option value="INCOME_CONFIRMATION">Xác nhận thu nhập</option><option value="DOCUMENT_SUPPORT">Hỗ trợ giấy tờ</option><option value="OTHER">Khác</option></select>
+                <button class="btn btn-sm btn-secondary" onclick="clearSupportFilters()">Xóa lọc</button>
+              </div>
+              <div id="supportHrError" class="sp-msg"></div>
+              <div class="table-container"><table><thead><tr><th>Thực tập sinh</th><th>Loại</th><th>Tiêu đề</th><th>Trạng thái</th><th>Ngày gửi</th><th>Cập nhật gần nhất</th><th></th></tr></thead><tbody id="supportHrList"><tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px">Đang tải...</td></tr></tbody></table></div>
+              <div id="supportHrPager" style="display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:12px;font-size:13px;color:#475569"></div>
+            </div>
+          </div>
+        </div>
+        <div id="supportHrModal" class="sp-overlay" style="display:none" onclick="if(event.target===this)closeSupportModal()"><div class="sp-modal" role="dialog" aria-modal="true" aria-labelledby="supportHrModalTitle"><div class="sp-modal-head"><div><h3 id="supportHrModalTitle">Chi tiết yêu cầu hỗ trợ</h3><div id="supportHrModalBadge"></div></div><button type="button" class="sp-close" aria-label="Đóng" onclick="closeSupportModal()">×</button></div><div class="sp-modal-body"><div id="supportHrModalBody"></div><div id="supportHrModalError" class="sp-msg"></div></div></div></div>
         <div id="tab-allowances" class="tab-pane" style="display: none">
           <div class="card">
             <div class="card-header">
@@ -5834,7 +5756,6 @@
       }
 
       function hasPermissionForTab(tabId, role) {
-        if (tabId === "tab-support-requests") return role === "Intern";
         if (tabId === "tab-reports" && role === "HR") return true; // trang chọn báo cáo luôn mở cho HR
         if (tabId === "tab-programs") return role === "HR" || role === "Admin";
         if (tabId === "tab-my-interns") return role === "Mentor";
@@ -5847,6 +5768,8 @@
           return role === "Intern";
         }
         if (tabId === "tab-my-allowances") return role === "Intern";
+        if (tabId === 'tab-my-support') return role === 'Intern';
+        if (tabId === 'tab-support-requests') return role === 'HR';
         if (tabId === "tab-my-schedule") return role === "Intern";
         if (tabId === "tab-my-tasks") return role === "Intern";
         if (tabId === "tab-my-attendance") return role === "Intern";
@@ -5917,6 +5840,21 @@
         `;
           menuEl.appendChild(liMyContracts);
 
+          allowedCount++;
+          const liMyAllowances = document.createElement("li");
+          liMyAllowances.className = "nav-item";
+          liMyAllowances.innerHTML = `
+          <a class="nav-link ${currentTab === "tab-my-allowances" ? "active" : ""}" onclick="switchTab('tab-my-allowances')">
+            <i class="fa-solid fa-hand-holding-dollar"></i>
+            <span>Phụ cấp của tôi</span>
+          </a>
+        `;
+          menuEl.appendChild(liMyAllowances);
+
+          allowedCount++;
+          const liSupport = document.createElement("li"); liSupport.className = "nav-item";
+          liSupport.innerHTML = `<a class="nav-link ${currentTab === "tab-my-support" ? "active" : ""}" onclick="switchTab('tab-my-support')"><i class="fa-solid fa-file-circle-question"></i><span>Yêu cầu hỗ trợ</span></a>`;
+          menuEl.appendChild(liSupport);
           const liMySchedule = document.createElement("li");
           liMySchedule.className = "nav-item";
           liMySchedule.innerHTML = `<a class="nav-link ${currentTab === "tab-my-schedule" ? "active" : ""}" onclick="switchTab('tab-my-schedule')"><i class="fa-solid fa-calendar-days"></i><span>Lịch thực tập của tôi</span></a>`;
@@ -5938,31 +5876,6 @@
           liMyLeaves.className = "nav-item";
           liMyLeaves.innerHTML = `<a class="nav-link ${currentTab === "tab-my-leaves" ? "active" : ""}" onclick="switchTab('tab-my-leaves')"><i class="fa-solid fa-umbrella-beach"></i><span>Nghỉ phép</span></a>`;
           menuEl.appendChild(liMyLeaves);
-          allowedCount++;
-          const liMyAllowances = document.createElement("li");
-          liMyAllowances.className = "nav-item";
-          liMyAllowances.innerHTML = `
-          <a class="nav-link ${currentTab === "tab-my-allowances" ? "active" : ""}"
-          onclick="switchTab('tab-my-allowances')">
-          <i class="fa-solid fa-money-bill-wave"></i>
-          <span>Lịch sử phụ cấp</span>
-          </a>
-          `;
-          menuEl.appendChild(liMyAllowances);
-
-          // STORY 3.4: Yêu cầu hỗ trợ chỉ dành cho Intern
-          const liSupportRequests = document.createElement("li");
-          liSupportRequests.className = "nav-item";
-          liSupportRequests.innerHTML = `
-            <a class="nav-link ${currentTab === "tab-support-requests" ? "active" : ""}"
-               onclick="switchTab('tab-support-requests')">
-              <i class="fa-solid fa-headset"></i>
-              <span>Yêu cầu hỗ trợ</span>
-            </a>
-          `;
-          menuEl.appendChild(liSupportRequests);
-          allowedCount++;
-
         }
 
         PERMISSIONS_DEF.forEach((item) => {
@@ -6004,7 +5917,7 @@
 
         // Thêm các tab đặc thù cho HR: Hồ sơ ứng tuyển online, Mentor & phòng ban, Hồ sơ thực tập sinh, Hợp đồng, Phụ cấp
         if (currentRole === "HR") {
-          allowedCount += 4;
+          allowedCount += 5;
           const isCandidateActive = currentTab === "tab-candidates";
           const isMentorActive = currentTab === "tab-mentors";
           const isStudentActive = currentTab === "tab-students";
@@ -6051,6 +5964,10 @@
         `;
           menuEl.appendChild(liContracts);
 
+          allowedCount++;
+          const liSupportHr = document.createElement("li"); liSupportHr.className = "nav-item";
+          liSupportHr.innerHTML = `<a class="nav-link ${currentTab === "tab-support-requests" ? "active" : ""}" onclick="switchTab('tab-support-requests')"><i class="fa-solid fa-file-circle-question"></i><span>Yêu cầu hỗ trợ</span></a>`;
+          menuEl.appendChild(liSupportHr);
           const liAllowances = document.createElement("li");
           liAllowances.className = "nav-item";
           liAllowances.innerHTML = `
@@ -6120,189 +6037,7 @@
           `${allowedCount} mục`;
       }
 
-      // =========================================================================
-      // STORY 3.4: YÊU CẦU HỖ TRỢ CỦA INTERN
-      // Bản giao diện này lưu ở localStorage của trình duyệt hiện tại.
-      // Khi cần chia sẻ dữ liệu giữa nhiều tài khoản/thiết bị, cần nối API backend.
-      // =========================================================================
-      const SUPPORT_REQUEST_STORAGE_KEY = "internSupportRequests_v1";
-
-      function getSupportRequestCurrentUser() {
-        try {
-          return JSON.parse(sessionStorage.getItem("currentUser") || "{}");
-        } catch (error) {
-          return {};
-        }
-      }
-
-      function getSupportRequestOwnerKey() {
-        const user = getSupportRequestCurrentUser();
-        return String(user.id || user.userId || user.email || user.username || user.name || "intern-unknown");
-      }
-
-      function getSupportRequestStore() {
-        try {
-          const raw = localStorage.getItem(SUPPORT_REQUEST_STORAGE_KEY);
-          if (raw !== null) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-          }
-
-          // Khởi tạo dữ liệu mẫu từ mockData.js cho lần mở đầu tiên.
-          // Dữ liệu mẫu chỉ thuộc tài khoản Intern đang đăng nhập trên trình duyệt này.
-          const ownerKey = getSupportRequestOwnerKey();
-          const samples = Array.isArray(window.MOCK_SUPPORT_REQUESTS)
-            ? window.MOCK_SUPPORT_REQUESTS
-            : [];
-          const seeded = samples.map((item, index) => ({
-            ...item,
-            id: item.id || ("SR-DEMO-" + (index + 1)),
-            ownerKey,
-            ownerName: item.ownerName || "Thực tập sinh",
-            response: item.response || "",
-            status: item.status || "Chờ xử lý"
-          }));
-          localStorage.setItem(SUPPORT_REQUEST_STORAGE_KEY, JSON.stringify(seeded));
-          return seeded;
-        } catch (error) {
-          console.error("Không đọc được dữ liệu yêu cầu hỗ trợ:", error);
-          return [];
-        }
-      }
-
-      function saveSupportRequestStore(items) {
-        try {
-          localStorage.setItem(SUPPORT_REQUEST_STORAGE_KEY, JSON.stringify(items));
-          return true;
-        } catch (error) {
-          console.error("Không lưu được dữ liệu yêu cầu hỗ trợ:", error);
-          showToast("Không thể lưu dữ liệu trên trình duyệt này.", "error");
-          return false;
-        }
-      }
-
-      function getSupportRequestStatusClass(status) {
-        const normalized = String(status || "").toLowerCase();
-        if (normalized.includes("hoàn thành") || normalized.includes("đã xử lý") || normalized.includes("đã duyệt")) {
-          return "badge-active";
-        }
-        if (normalized.includes("từ chối")) return "badge-rejected";
-        return "badge-pending";
-      }
-
-      function submitSupportRequest(event) {
-        if (event) event.preventDefault();
-
-        if (currentRole !== "Intern") {
-          showToast("Chỉ tài khoản Intern mới được gửi yêu cầu hỗ trợ.", "error");
-          return;
-        }
-
-        const typeEl = document.getElementById("supportRequestType");
-        const titleEl = document.getElementById("supportRequestTitle");
-        const contentEl = document.getElementById("supportRequestContent");
-        const errorEl = document.getElementById("supportRequestError");
-        const form = document.getElementById("supportRequestForm");
-
-        if (!typeEl || !titleEl || !contentEl || !form) return;
-
-        const type = typeEl.value.trim();
-        const title = titleEl.value.trim();
-        const content = contentEl.value.trim();
-
-        if (errorEl) errorEl.textContent = "";
-
-        if (!type || !title || !content) {
-          if (errorEl) errorEl.textContent = "Vui lòng điền đầy đủ loại yêu cầu, tiêu đề và nội dung.";
-          return;
-        }
-        if (title.length > 150) {
-          if (errorEl) errorEl.textContent = "Tiêu đề không được vượt quá 150 ký tự.";
-          return;
-        }
-        if (content.length > 2000) {
-          if (errorEl) errorEl.textContent = "Nội dung không được vượt quá 2.000 ký tự.";
-          return;
-        }
-
-        const user = getSupportRequestCurrentUser();
-        const now = new Date();
-        const request = {
-          id: "SR-" + now.getTime(),
-          ownerKey: getSupportRequestOwnerKey(),
-          ownerName: String(user.name || user.fullName || user.email || "Thực tập sinh"),
-          type,
-          title,
-          content,
-          createdAt: now.toISOString(),
-          status: "Chờ xử lý",
-          response: ""
-        };
-
-        const items = getSupportRequestStore();
-        items.unshift(request);
-
-        if (!saveSupportRequestStore(items)) return;
-
-        form.reset();
-        if (errorEl) errorEl.textContent = "";
-        renderSupportRequests();
-        showToast("Đã gửi yêu cầu hỗ trợ.", "success");
-      }
-
-      function renderSupportRequests() {
-        const tbody = document.getElementById("supportRequestList");
-        const filterEl = document.getElementById("supportRequestStatusFilter");
-        if (!tbody) return;
-
-        if (currentRole !== "Intern") {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px">Chức năng này chỉ dành cho Intern.</td></tr>';
-          return;
-        }
-
-        const ownerKey = getSupportRequestOwnerKey();
-        const filterValue = filterEl ? (filterEl.value || "ALL") : "ALL";
-        const items = getSupportRequestStore()
-          .filter((item) => item && item.ownerKey === ownerKey)
-          .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
-          .filter((item) => filterValue === "ALL" || item.status === filterValue);
-
-        if (!items.length) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#64748b">Chưa có yêu cầu hỗ trợ nào.</td></tr>';
-          return;
-        }
-
-        tbody.innerHTML = items.map((item) => {
-          const date = item.createdAt
-            ? new Date(item.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })
-            : "--";
-          const status = String(item.status || "Chờ xử lý");
-          return `
-            <tr>
-              <td>${escapeHtml(item.id || "--")}</td>
-              <td>${escapeHtml(item.type || "--")}</td>
-              <td>
-                <strong>${escapeHtml(item.title || "--")}</strong>
-                <div style="margin-top:4px;white-space:pre-wrap;color:#64748b">${escapeHtml(item.content || "")}</div>
-              </td>
-              <td>${escapeHtml(date)}</td>
-              <td><span class="badge ${getSupportRequestStatusClass(status)}">${escapeHtml(status)}</span></td>
-              <td style="white-space:pre-wrap">${escapeHtml(item.response || "Chưa có phản hồi")}</td>
-            </tr>
-          `;
-        }).join("");
-      }
-
-      document.addEventListener("DOMContentLoaded", () => {
-        const supportForm = document.getElementById("supportRequestForm");
-        if (supportForm) {
-          supportForm.addEventListener("reset", () => {
-            const errorEl = document.getElementById("supportRequestError");
-            if (errorEl) errorEl.textContent = "";
-          });
-        }
-      });
-
+      // CHUYỂN TAB VÀ CHẶN TRUY CẬP TRÊN UI
       function switchTab(tabId) {
         currentTab = tabId;
         document.querySelector(".content-scroll").scrollTop = 0;
@@ -6353,15 +6088,6 @@
                 "Nộp báo cáo kết quả thực tập mỗi tuần (hạn nộp: hết Chủ nhật)";
               loadWeeklyReportsTab();
             }
-          } else if (tabId === "tab-school-reports") {
-            document.getElementById("pageTitle").innerText = "Thống kê thực tập sinh theo trường/ngành";
-            document.getElementById("pageSubtitle").innerText = "Báo cáo dành cho HR";
-            renderSchoolReport();
-          } else if (tabId === "tab-support-requests") {
-            document.getElementById("pageTitle").innerText = "Yêu cầu hỗ trợ";
-            document.getElementById("pageSubtitle").innerText =
-              "Gửi yêu cầu và theo dõi trạng thái xử lý";
-            renderSupportRequests();
           } else if (tabId === "tab-my-profile") {
             document.getElementById("pageTitle").innerText = "Hồ Sơ Của Tôi";
             document.getElementById("pageSubtitle").innerText =
@@ -6372,6 +6098,12 @@
             document.getElementById("pageSubtitle").innerText =
               "Xem và xác nhận hợp đồng thực tập do HR gửi";
             loadMyContracts();
+          } else if (tabId === "tab-my-support") {
+            document.getElementById("pageTitle").innerText = "Yêu cầu hỗ trợ";
+            loadSupportMine();
+          } else if (tabId === "tab-support-requests") {
+            document.getElementById("pageTitle").innerText = "Yêu cầu hỗ trợ";
+            loadSupportHr();
           } else if (tabId === "tab-my-allowances") {
             document.getElementById("pageTitle").innerText = "Phụ Cấp Của Tôi";
             document.getElementById("pageSubtitle").innerText =
@@ -13350,6 +13082,252 @@
           .join("");
       }
 
+      const escapeSupport = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+      const SUPPORT_TYPE_LABELS = { INTERNSHIP_CERTIFICATE: "Giấy xác nhận thực tập", INTRODUCTION_LETTER: "Giấy giới thiệu", INCOME_CONFIRMATION: "Xác nhận phụ cấp / thu nhập", DOCUMENT_SUPPORT: "Hỗ trợ giấy tờ", OTHER: "Khác" };
+      const SUPPORT_STATUS_LABELS = { PENDING: "Chờ tiếp nhận", IN_PROGRESS: "Đang xử lý", RESOLVED: "Đã giải quyết", REJECTED: "Từ chối", CANCELLED: "Đã hủy" };
+      const SUPPORT_MAX_REQUEST_FILES = 5, SUPPORT_MAX_RESULT_FILES = 3;
+      let supportPage = 1, supportSearchTimer = null, supportCurrent = null, supportActionBusy = false, supportNoteDraft = "";
+      function supportHeaders(extra) { return { Authorization: `Bearer ${getAuthToken()}`, ...(extra || {}) }; }
+      function supportStatusLabel(status) { return SUPPORT_STATUS_LABELS[status] || status; }
+      function supportTypeLabel(type) { return SUPPORT_TYPE_LABELS[type] || type; }
+      function supportDate(value) { return value ? escapeSupport(new Date(value).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })) : "—"; }
+      function supportBadge(status) {
+        const cls = { PENDING: "pending", IN_PROGRESS: "progress", RESOLVED: "resolved", REJECTED: "rejected", CANCELLED: "cancelled" }[status] || "pending";
+        return `<span class="sp-badge sp-badge--${cls}">${escapeSupport(supportStatusLabel(status))}</span>`;
+      }
+      // Nhãn ghi chú của HR theo trạng thái để thực tập sinh phân biệt được lý do từ chối và kết quả.
+      function supportNoteLabel(status) { return status === "REJECTED" ? "Lý do từ chối" : status === "RESOLVED" ? "Kết quả / ghi chú của HR" : "Phản hồi của HR"; }
+      // Thời điểm xử lý gần nhất: đã kết thúc → resolvedAt; đang xử lý / đã hủy → lần cập nhật cuối; chờ tiếp nhận → chưa có.
+      function supportHandledAt(x) { return x.resolvedAt || (x.status === "IN_PROGRESS" || x.status === "CANCELLED" ? x.updatedAt : null); }
+      async function supportReadJson(res) { try { return await res.json(); } catch (e) { return {}; } }
+      function supportFileNameFrom(res, fallback) {
+        const header = res.headers.get("Content-Disposition") || "";
+        const star = /filename\*=UTF-8''([^;]+)/i.exec(header);
+        if (star) { try { return decodeURIComponent(star[1]); } catch (e) { /* dùng tên dự phòng */ } }
+        const plain = /filename="?([^";]+)"?/i.exec(header);
+        return plain ? plain[1] : fallback;
+      }
+      async function downloadSupport(id, attachmentId, errorBoxId, fallbackName) {
+        const box = document.getElementById(errorBoxId || "supportMineError");
+        if (box) box.textContent = "";
+        try {
+          const res = await fetch(`${API_BASE}/support-requests/${id}/attachments/${attachmentId}/download`, { headers: supportHeaders() });
+          if (!res.ok) throw new Error((await supportReadJson(res)).message || "Không tải được file");
+          const blob = await res.blob();
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = supportFileNameFrom(res, fallbackName || "tai-lieu");
+          document.body.appendChild(link); link.click(); link.remove();
+          setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        } catch (e) { if (box) box.textContent = e.message; }
+      }
+      async function uploadSupportFile(id, file) {
+        const form = new FormData(); form.append("file", file);
+        const res = await fetch(`${API_BASE}/me/support-requests/${id}/attachments`, { method: "POST", headers: supportHeaders(), body: form });
+        const data = await supportReadJson(res);
+        if (!res.ok) throw new Error(data.message || "Không tải được file");
+        return data;
+      }
+      function supportMineMessage(text, isError) { const box = document.getElementById("supportMineError"); if (!box) return; box.textContent = text || ""; box.style.color = isError === false ? "#15803d" : ""; }
+
+      // ===== Thực tập sinh =====
+      async function submitSupport(event) {
+        event.preventDefault();
+        const button = event.submitter;
+        if (button.disabled) return;
+        const form = event.target, files = Array.from(document.getElementById("supportFiles").files);
+        supportMineMessage("");
+        if (files.length > SUPPORT_MAX_REQUEST_FILES) { supportMineMessage(`Chỉ được đính kèm tối đa ${SUPPORT_MAX_REQUEST_FILES} file mỗi yêu cầu.`); return; }
+        button.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/me/support-requests`, { method: "POST", headers: supportHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ request_type: document.getElementById("supportType").value, title: document.getElementById("supportTitle").value, description: document.getElementById("supportDescription").value }) });
+          const data = await supportReadJson(res);
+          if (!res.ok) throw new Error(data.message || "Không gửi được yêu cầu");
+          const failed = [];
+          for (const file of files) { try { await uploadSupportFile(data.data.id, file); } catch (e) { failed.push(`${file.name}: ${e.message}`); } }
+          form.reset();
+          await loadSupportMine();
+          if (failed.length) supportMineMessage(`Yêu cầu đã được gửi nhưng một số file chưa tải lên được (${failed.join("; ")}). Bạn có thể thêm lại file trong yêu cầu bên dưới khi yêu cầu còn chờ tiếp nhận.`);
+          else supportMineMessage("Đã gửi yêu cầu hỗ trợ.", false);
+        } catch (e) { supportMineMessage(e.message); } finally { button.disabled = false; }
+      }
+      function supportFileButtons(request, files, canDelete) {
+        return `<div class="sp-files">${files.map(a => `<span class="sp-file"><button type="button" title="${escapeSupport(a.originalName)}" data-name="${escapeSupport(a.originalName)}" onclick="downloadSupport(${Number(request.id)},${Number(a.id)},'supportMineError',this.dataset.name)">${escapeSupport(a.originalName)}</button>${canDelete ? `<button type="button" class="sp-file-del" title="Xóa file" aria-label="Xóa ${escapeSupport(a.originalName)}" onclick="removeSupportFile(${Number(request.id)},${Number(a.id)})">×</button>` : ""}</span>`).join("")}</div>`;
+      }
+      function renderSupportMineItem(x) {
+        const requestFiles = (x.attachments || []).filter(a => a.kind === "REQUEST"), resultFiles = (x.attachments || []).filter(a => a.kind === "RESULT");
+        const pending = x.status === "PENDING", handledAt = supportHandledAt(x);
+        const noteClass = x.status === "REJECTED" ? " sp-note--rejected" : x.status === "RESOLVED" ? " sp-note--resolved" : "";
+        return `<article class="sp-item">
+          <div class="sp-item-head">
+            <div><div class="sp-title">${escapeSupport(x.title)}</div><div class="sp-meta">${escapeSupport(supportTypeLabel(x.requestType))} · Gửi ${supportDate(x.createdAt)}${handledAt ? ` · Cập nhật ${supportDate(handledAt)}` : ""}</div></div>
+            ${supportBadge(x.status)}
+          </div>
+          ${x.description ? `<div class="sp-desc">${escapeSupport(x.description)}</div>` : ""}
+          ${requestFiles.length ? `<div class="sp-sec"><div class="sp-sec-label">File đã gửi</div>${supportFileButtons(x, requestFiles, pending)}</div>` : ""}
+          ${x.resolutionNote ? `<div class="sp-note${noteClass}"><b>${escapeSupport(supportNoteLabel(x.status))}</b>${escapeSupport(x.resolutionNote)}</div>` : ""}
+          ${resultFiles.length ? `<div class="sp-sec"><div class="sp-sec-label">File kết quả từ HR</div>${supportFileButtons(x, resultFiles, false)}</div>` : ""}
+          ${pending ? `<div class="sp-foot"><button type="button" class="btn btn-sm btn-secondary" onclick="cancelSupport(${Number(x.id)})">Hủy yêu cầu</button>${requestFiles.length < SUPPORT_MAX_REQUEST_FILES ? `<label class="btn btn-sm btn-secondary">Thêm file<input type="file" hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt" onchange="addSupportFile(${Number(x.id)},this)"></label>` : ""}</div>` : ""}
+        </article>`;
+      }
+      async function loadSupportMine() {
+        const host = document.getElementById("supportMineList"); if (!host) return;
+        try {
+          const res = await fetch(`${API_BASE}/me/support-requests?status=${encodeURIComponent(document.getElementById("supportMineStatus")?.value || "")}&type=${encodeURIComponent(document.getElementById("supportMineType")?.value || "")}`, { headers: supportHeaders() });
+          const data = await supportReadJson(res);
+          if (!res.ok) throw new Error(data.message || "Không tải được danh sách yêu cầu");
+          const s = data.data.summary || {};
+          const summary = document.getElementById("supportMineSummary");
+          if (summary) summary.innerHTML = [["Tổng", s.total], ["Chờ tiếp nhận", s.pending], ["Đang xử lý", s.inProgress], ["Đã giải quyết", s.resolved], ["Từ chối", s.rejected], ["Đã hủy", s.cancelled]].map(([label, n]) => `<span class="sp-chip">${label} <b>${Number(n || 0)}</b></span>`).join("");
+          const items = data.data.items || [];
+          host.innerHTML = items.map(renderSupportMineItem).join("") || `<div class="sp-empty">${Number(s.total || 0) ? "Không có yêu cầu phù hợp với bộ lọc." : "Bạn chưa gửi yêu cầu hỗ trợ nào."}</div>`;
+        } catch (e) { supportMineMessage(e.message); }
+      }
+      async function cancelSupport(id) {
+        if (!confirm("Hủy yêu cầu này?")) return;
+        supportMineMessage("");
+        try {
+          const res = await fetch(`${API_BASE}/me/support-requests/${id}/cancel`, { method: "POST", headers: supportHeaders() });
+          const data = await supportReadJson(res);
+          if (!res.ok) throw new Error(data.message || "Không hủy được yêu cầu");
+        } catch (e) { supportMineMessage(e.message); }
+        await loadSupportMine();
+      }
+      async function addSupportFile(id, input) {
+        const file = input.files[0]; input.value = "";
+        if (!file) return;
+        supportMineMessage("");
+        try { await uploadSupportFile(id, file); } catch (e) { supportMineMessage(e.message); }
+        await loadSupportMine();
+      }
+      async function removeSupportFile(id, attachmentId) {
+        if (!confirm("Xóa file đính kèm này?")) return;
+        supportMineMessage("");
+        try {
+          const res = await fetch(`${API_BASE}/me/support-requests/${id}/attachments/${attachmentId}`, { method: "DELETE", headers: supportHeaders() });
+          const data = await supportReadJson(res);
+          if (!res.ok) throw new Error(data.message || "Không xóa được file");
+        } catch (e) { supportMineMessage(e.message); }
+        await loadSupportMine();
+      }
+
+      // ===== HR =====
+      function resetSupportPage() { supportPage = 1; loadSupportHr(); }
+      function scheduleSupportSearch() { clearTimeout(supportSearchTimer); supportSearchTimer = setTimeout(resetSupportPage, 300); }
+      function clearSupportFilters() { document.getElementById("supportHrSearch").value = ""; document.getElementById("supportHrStatus").value = ""; document.getElementById("supportHrType").value = ""; resetSupportPage(); }
+      function filterSupportStatus(status) { const select = document.getElementById("supportHrStatus"); select.value = select.value === status ? "" : status; resetSupportPage(); }
+      function renderSupportSummary(summary) {
+        const current = document.getElementById("supportHrStatus").value;
+        document.getElementById("supportHrSummary").innerHTML = [["PENDING", "pending"], ["IN_PROGRESS", "inProgress"], ["RESOLVED", "resolved"], ["REJECTED", "rejected"], ["CANCELLED", "cancelled"]].map(([status, key]) => `<button type="button" class="sp-chip${current === status ? " is-active" : ""}" onclick="filterSupportStatus('${status}')">${supportStatusLabel(status)} <b>${Number(summary[key] || 0)}</b></button>`).join("");
+      }
+      async function loadSupportHr() {
+        const host = document.getElementById("supportHrList"); if (!host) return;
+        host.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px">Đang tải...</td></tr>';
+        document.getElementById("supportHrError").textContent = "";
+        try {
+          const q = encodeURIComponent(document.getElementById("supportHrSearch").value || ""), st = encodeURIComponent(document.getElementById("supportHrStatus").value || ""), ty = encodeURIComponent(document.getElementById("supportHrType").value || "");
+          const res = await fetch(`${API_BASE}/support-requests?q=${q}&status=${st}&type=${ty}&page=${supportPage}&pageSize=20`, { headers: supportHeaders() });
+          const body = await supportReadJson(res);
+          if (!res.ok) throw new Error(body.message || "Không tải được danh sách");
+          const data = body.data;
+          renderSupportSummary(data.summary);
+          host.innerHTML = (data.items || []).map(x => `<tr><td><b>${escapeSupport(x.fullName)}</b><br><small>${escapeSupport(x.studentCode || "—")} · ${escapeSupport(x.university || "—")}</small></td><td>${escapeSupport(supportTypeLabel(x.requestType))}</td><td>${escapeSupport(x.title)}</td><td>${supportBadge(x.status)}</td><td>${supportDate(x.createdAt)}</td><td>${supportDate(supportHandledAt(x))}</td><td><button class="btn btn-sm btn-secondary" onclick="openSupportDetail(${Number(x.id)})">Xem</button></td></tr>`).join("") || '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8">Không có yêu cầu phù hợp.</td></tr>';
+          const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
+          if (data.page > pages) { supportPage = pages; return loadSupportHr(); }
+          document.getElementById("supportHrPager").innerHTML = `<button class="btn btn-sm btn-secondary" ${data.page <= 1 ? "disabled" : ""} onclick="supportPage--;loadSupportHr()">Trước</button><span>Trang ${data.page}/${pages} · ${data.total} yêu cầu</span><button class="btn btn-sm btn-secondary" ${data.page >= pages ? "disabled" : ""} onclick="supportPage++;loadSupportHr()">Sau</button>`;
+        } catch (e) { host.innerHTML = ""; document.getElementById("supportHrError").textContent = e.message; }
+      }
+      function closeSupportModal() { document.getElementById("supportHrModal").style.display = "none"; supportCurrent = null; supportNoteDraft = ""; }
+      document.addEventListener("keydown", (event) => { const modal = document.getElementById("supportHrModal"); if (event.key === "Escape" && modal && modal.style.display === "flex") closeSupportModal(); });
+      async function openSupportDetail(id, keepDraft) {
+        const modal = document.getElementById("supportHrModal"), body = document.getElementById("supportHrModalBody");
+        if (!keepDraft) supportNoteDraft = "";
+        modal.style.display = "flex"; body.textContent = "Đang tải..."; if (!keepDraft) { document.getElementById("supportHrModalTitle").textContent = "Chi tiết yêu cầu hỗ trợ"; document.getElementById("supportHrModalBadge").innerHTML = ""; } document.getElementById("supportHrModalError").textContent = "";
+        try {
+          const res = await fetch(`${API_BASE}/support-requests/${id}`, { headers: supportHeaders() });
+          const data = await supportReadJson(res);
+          if (!res.ok) throw new Error(data.message || "Không tải được chi tiết");
+          supportCurrent = data.data; renderSupportModal();
+        } catch (e) { body.textContent = ""; document.getElementById("supportHrModalError").textContent = e.message; }
+      }
+      function renderSupportModal() {
+        const x = supportCurrent; if (!x) return;
+        const requestFiles = (x.attachments || []).filter(a => a.kind === "REQUEST"), resultFiles = (x.attachments || []).filter(a => a.kind === "RESULT");
+        const files = (list, canDelete) => list.length ? `<div class="sp-files">${list.map(a => `<span class="sp-file"><button type="button" title="${escapeSupport(a.originalName)}" data-name="${escapeSupport(a.originalName)}" onclick="downloadSupport(${Number(x.id)},${Number(a.id)},'supportHrModalError',this.dataset.name)">${escapeSupport(a.originalName)}</button>${canDelete ? `<button type="button" class="sp-file-del" title="Xóa file" aria-label="Xóa ${escapeSupport(a.originalName)}" onclick="deleteSupportResult(${Number(x.id)},${Number(a.id)})">×</button>` : ""}</span>`).join("")}</div>` : `<span style="color:#94a3b8;font-size:13px">Không có</span>`;
+        const handledAt = supportHandledAt(x);
+        const noteClass = x.status === "REJECTED" ? " sp-note--rejected" : x.status === "RESOLVED" ? " sp-note--resolved" : "";
+        const canUpload = resultFiles.length < SUPPORT_MAX_RESULT_FILES;
+        const kv = (label, value) => `<div><dt>${label}</dt><dd>${value}</dd></div>`;
+        document.getElementById("supportHrModalTitle").textContent = x.title || "Yêu cầu hỗ trợ";
+        document.getElementById("supportHrModalBadge").innerHTML = supportBadge(x.status);
+        let reply = "";
+        if (x.status === "PENDING") {
+          reply = `<div class="sp-reply">
+            <div class="sp-sec-label" style="margin:0">Phản hồi</div>
+            <textarea id="supportResponseNote" class="form-control" maxlength="1000" placeholder="Lý do từ chối (bắt buộc khi từ chối)" oninput="supportNoteDraft=this.value">${escapeSupport(supportNoteDraft)}</textarea>
+            <div class="sp-actions"><button class="btn btn-danger sp-reject" onclick="processSupport(${Number(x.id)},'REJECT')">Từ chối</button><button class="btn btn-primary" onclick="processSupport(${Number(x.id)},'START')">Bắt đầu xử lý</button></div>
+          </div>`;
+        } else if (x.status === "IN_PROGRESS") {
+          reply = `<div class="sp-reply">
+            <div class="sp-sec-label" style="margin:0">Phản hồi</div>
+            <textarea id="supportResponseNote" class="form-control" maxlength="1000" placeholder="Ghi chú kết quả cho thực tập sinh (bắt buộc nếu chưa có file kết quả; bắt buộc khi từ chối)" oninput="supportNoteDraft=this.value">${escapeSupport(supportNoteDraft)}</textarea>
+            ${canUpload ? `<div class="sp-upload"><input id="supportResultFile" type="file" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt"><button class="btn btn-secondary" onclick="uploadSupportResult(${Number(x.id)})">Tải file lên</button></div>` : `<div class="sp-hint">Đã đủ ${SUPPORT_MAX_RESULT_FILES} file kết quả.</div>`}
+            <div class="sp-actions"><button class="btn btn-danger sp-reject" onclick="processSupport(${Number(x.id)},'REJECT')">Từ chối</button><button class="btn btn-success" onclick="processSupport(${Number(x.id)},'RESOLVE')">Giải quyết</button></div>
+          </div>`;
+        }
+        document.getElementById("supportHrModalBody").innerHTML = `
+          <dl class="sp-kv">
+            ${kv("Thực tập sinh", escapeSupport(x.fullName))}
+            ${kv("MSSV", escapeSupport(x.studentCode || "—"))}
+            ${kv("Trường", escapeSupport(x.university || "—"))}
+            ${kv("Loại yêu cầu", escapeSupport(supportTypeLabel(x.requestType)))}
+            ${kv("Gửi lúc", supportDate(x.createdAt))}
+            ${kv(x.status === "PENDING" ? "Người xử lý" : "Người xử lý · cập nhật", `${escapeSupport(x.handledByName || "—")}${handledAt ? ` · ${supportDate(handledAt)}` : ""}`)}
+          </dl>
+          <div class="sp-sec" style="margin:0"><div class="sp-sec-label">Nội dung yêu cầu</div><div class="sp-box">${x.description ? escapeSupport(x.description) : '<span style="color:#94a3b8">Không có mô tả</span>'}</div></div>
+          <div class="sp-sec" style="margin:0"><div class="sp-sec-label">File thực tập sinh gửi</div>${files(requestFiles, false)}</div>
+          ${x.status === "PENDING" ? "" : `<div class="sp-sec" style="margin:0"><div class="sp-sec-label">File kết quả (${resultFiles.length}/${SUPPORT_MAX_RESULT_FILES})</div>${files(resultFiles, x.status === "IN_PROGRESS")}</div>`}
+          ${x.resolutionNote ? `<div class="sp-note${noteClass}" style="margin:0"><b>${escapeSupport(supportNoteLabel(x.status))}</b>${escapeSupport(x.resolutionNote)}</div>` : ""}
+          ${reply}`;
+      }
+      async function uploadSupportResult(id) {
+        const input = document.getElementById("supportResultFile"), file = input && input.files[0];
+        if (!file || supportActionBusy) return;
+        supportActionBusy = true;
+        try {
+          const body = new FormData(); body.append("file", file);
+          const res = await fetch(`${API_BASE}/support-requests/${id}/result-attachments`, { method: "POST", headers: supportHeaders(), body });
+          const data = await supportReadJson(res);
+          if (!res.ok) throw new Error(data.message || "Không tải được file");
+          await openSupportDetail(id, true);
+        } catch (e) { document.getElementById("supportHrModalError").textContent = e.message; } finally { supportActionBusy = false; }
+      }
+      async function deleteSupportResult(id, attachmentId) {
+        if (!confirm("Xóa file kết quả này?") || supportActionBusy) return;
+        supportActionBusy = true;
+        try {
+          const res = await fetch(`${API_BASE}/support-requests/${id}/result-attachments/${attachmentId}`, { method: "DELETE", headers: supportHeaders() });
+          const data = await supportReadJson(res);
+          if (!res.ok) throw new Error(data.message || "Không xóa được file");
+          await openSupportDetail(id, true);
+        } catch (e) { document.getElementById("supportHrModalError").textContent = e.message; } finally { supportActionBusy = false; }
+      }
+      async function processSupport(id, decision) {
+        if (supportActionBusy) return;
+        const errorBox = document.getElementById("supportHrModalError"); errorBox.textContent = "";
+        const note = decision === "START" ? "" : String(document.getElementById("supportResponseNote")?.value || "").trim();
+        if (decision === "REJECT" && !note) { errorBox.textContent = "Vui lòng nhập lý do từ chối."; return; }
+        if (decision === "RESOLVE" && !note && !(supportCurrent?.attachments || []).some(a => a.kind === "RESULT")) { errorBox.textContent = "Giải quyết yêu cầu cần ghi chú hoặc file kết quả."; return; }
+        if ((decision === "REJECT" || decision === "RESOLVE") && !confirm(decision === "REJECT" ? "Xác nhận từ chối yêu cầu?" : "Xác nhận giải quyết yêu cầu?")) return;
+        supportActionBusy = true;
+        try {
+          const res = await fetch(`${API_BASE}/support-requests/${id}/process`, { method: "POST", headers: supportHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ decision, note }) });
+          const data = await supportReadJson(res);
+          if (!res.ok) throw new Error(res.status === 409 ? "Yêu cầu đã được xử lý ở nơi khác." : (data.message || "Không xử lý được yêu cầu"));
+          supportNoteDraft = "";
+          await loadSupportHr(); await openSupportDetail(id);
+        } catch (e) { errorBox.textContent = e.message; if (String(e.message).includes("nơi khác")) { await loadSupportHr(); await openSupportDetail(id); errorBox.textContent = e.message; } } finally { supportActionBusy = false; }
+      }
     </script>
   </body>
 </html>
