@@ -24,6 +24,7 @@ const TEST_EMAIL_PREFIXES = [
   "bizrule_test_", // test_business_rules_api.js — dữ liệu test luật nghiệp vụ bổ sung
   "evalx_test_", // test_evaluations_api.js — dữ liệu test đánh giá thực tập sinh
   "allowx_test_", // test_allowances_api.js — dữ liệu test phụ cấp thực tập sinh
+  "support_test_", // test_support_requests_api.js
 ];
 
 (async () => {

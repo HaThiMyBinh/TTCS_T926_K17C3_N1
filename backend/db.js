@@ -749,6 +749,26 @@ async function initDatabase() {
     CONSTRAINT fk_allowance_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_allowance_updater FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS support_requests (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, intern_id BIGINT NOT NULL,
+    request_type ENUM('INTERNSHIP_CERTIFICATE','INTRODUCTION_LETTER','INCOME_CONFIRMATION','DOCUMENT_SUPPORT','OTHER') NOT NULL,
+    title VARCHAR(150) NOT NULL, description VARCHAR(2000) NOT NULL DEFAULT '',
+    status ENUM('PENDING','IN_PROGRESS','RESOLVED','REJECTED','CANCELLED') NOT NULL DEFAULT 'PENDING',
+    handled_by BIGINT NULL, resolution_note VARCHAR(1000) NULL, resolved_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_support_intern_status (intern_id,status), INDEX idx_support_status_created (status,created_at),
+    CONSTRAINT fk_support_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_support_handler FOREIGN KEY (handled_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS support_request_attachments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, request_id BIGINT NOT NULL,
+    kind ENUM('REQUEST','RESULT') NOT NULL, original_name VARCHAR(255) NOT NULL,
+    stored_name CHAR(36) NOT NULL, mime_type VARCHAR(150) NOT NULL, size_bytes BIGINT UNSIGNED NOT NULL,
+    uploaded_by BIGINT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_support_attachment_request (request_id,kind),
+    CONSTRAINT fk_support_attachment_request FOREIGN KEY (request_id) REFERENCES support_requests(id) ON DELETE CASCADE,
+    CONSTRAINT fk_support_attachment_uploader FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
   await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT NOT NULL, type VARCHAR(50) NOT NULL,
     title VARCHAR(255) NOT NULL, message VARCHAR(500) NOT NULL, target_tab VARCHAR(80) NULL,
@@ -1694,6 +1714,10 @@ async function deleteStudent(id) {
        WHERE wr.intern_id = ?`,
       [id],
     );
+    const [supportFiles] = await conn.query(
+      `SELECT a.stored_name AS storedName FROM support_request_attachments a
+       JOIN support_requests sr ON sr.id=a.request_id WHERE sr.intern_id=?`, [id],
+    );
     const [rows] = await conn.query(
       "SELECT email FROM intern_profiles WHERE id = ?",
       [id],
@@ -1705,7 +1729,7 @@ async function deleteStudent(id) {
         [rows[0].email, internRoleId],
       );
     }
-    return [...contracts, ...taskFiles, ...reportFiles];
+    return [...contracts, ...taskFiles, ...reportFiles, ...supportFiles];
   });
   return contractRows.map((row) => row.storedName);
 }
@@ -3875,40 +3899,77 @@ async function reviewLeave(id, decision, userId, note) {
   return result.affectedRows;
 }
 
-
-// Story 5.1: truy vấn view v_intern_school_stats (mỗi dòng = 1 cặp trường/ngành).
-// Lọc `university` / `major` theo khớp chính xác, không phân biệt hoa thường & dấu cách thừa.
-async function listInternSchoolStats({ university = "", major = "" } = {}) {
-  const conditions = [];
-  const params = [];
-  const collate = (col) => `CONVERT(${col} USING utf8mb4) COLLATE utf8mb4_unicode_ci`;
-  if (university) {
-    conditions.push(`${collate("university")} = CONVERT(? USING utf8mb4) COLLATE utf8mb4_unicode_ci`);
-    params.push(university);
-  }
-  if (major) {
-    conditions.push(`${collate("major")} = CONVERT(? USING utf8mb4) COLLATE utf8mb4_unicode_ci`);
-    params.push(major);
-  }
-  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-  const [rows] = await requireDb().query(
-    `SELECT university, major, total_interns AS total,
-            in_progress_count AS inProgress, completed_count AS completed,
-            dropped_count AS dropped, other_count AS other
-     FROM v_intern_school_stats ${where}
-     ORDER BY total_interns DESC, university COLLATE utf8mb4_unicode_ci, major COLLATE utf8mb4_unicode_ci`,
-    params,
-  );
-  return rows.map((r) => ({
-    university: r.university,
-    major: r.major,
-    total: Number(r.total),
-    inProgress: Number(r.inProgress),
-    completed: Number(r.completed),
-    dropped: Number(r.dropped),
-    other: Number(r.other),
-  }));
+const SUPPORT_SELECT = `sr.id, sr.intern_id AS internId, sr.request_type AS requestType, sr.title, sr.description, sr.status,
+  sr.handled_by AS handledBy, sr.resolution_note AS resolutionNote, sr.resolved_at AS resolvedAt,
+  sr.created_at AS createdAt, sr.updated_at AS updatedAt, u.name AS handledByName`;
+function buildSupportRequestWhere(internId, filters) {
+  const where = [internId ? "sr.intern_id = ?" : "1=1"];
+  const params = internId ? [internId] : [];
+  if (filters.status) { where.push("sr.status = ?"); params.push(filters.status); }
+  if (filters.type) { where.push("sr.request_type = ?"); params.push(filters.type); }
+  if (filters.q) { where.push("(ip.full_name LIKE ? OR ip.student_code LIKE ? OR sr.title LIKE ?)"); params.push(...Array(3).fill(`%${String(filters.q).replace(/[\\%_]/g, "\\$&")}%`)); }
+  return { where, params };
 }
+async function listSupportRequests(internId, filters = {}, pagination = null) {
+  const { where, params } = buildSupportRequestWhere(internId, filters);
+  const joins = "FROM support_requests sr JOIN intern_profiles ip ON ip.id=sr.intern_id LEFT JOIN users u ON u.id=sr.handled_by";
+  const order = "ORDER BY FIELD(sr.status, 'PENDING', 'IN_PROGRESS', 'RESOLVED', 'REJECTED', 'CANCELLED'), sr.created_at DESC, sr.id DESC";
+  if (pagination) {
+    const [countRows] = await requireDb().query(`SELECT COUNT(*) AS total ${joins} WHERE ${where.join(" AND ")}`, params);
+    const [rows] = await requireDb().query(`SELECT ${SUPPORT_SELECT}, ip.full_name AS fullName, ip.student_code AS studentCode, ip.university ${joins} WHERE ${where.join(" AND ")} ${order} LIMIT ? OFFSET ?`, [...params, pagination.pageSize, (pagination.page - 1) * pagination.pageSize]);
+    return { items: rows, total: Number(countRows[0].total) };
+  }
+  const [rows] = await requireDb().query(`SELECT ${SUPPORT_SELECT}, ip.full_name AS fullName, ip.student_code AS studentCode, ip.university ${joins} WHERE ${where.join(" AND ")} ${order}`, params);
+  return rows;
+}
+async function supportSummary(internId) {
+  const [rows] = await requireDb().query(`SELECT COUNT(*) total, SUM(status='PENDING') pending, SUM(status='IN_PROGRESS') inProgress,
+    SUM(status='RESOLVED') resolved, SUM(status='REJECTED') rejected, SUM(status='CANCELLED') cancelled
+    FROM support_requests ${internId ? "WHERE intern_id=?" : ""}`, internId ? [internId] : []);
+  return Object.fromEntries(Object.entries(rows[0]).map(([k,v])=>[k, Number(v || 0)]));
+}
+async function createSupportRequest({ internId, requestType, title, description }) {
+  return withTransaction(async (conn) => {
+    await conn.query("SELECT id FROM intern_profiles WHERE id=? FOR UPDATE", [internId]);
+    const [rows] = await conn.query("SELECT request_type,COUNT(*) n FROM support_requests WHERE intern_id=? AND status IN ('PENDING','IN_PROGRESS') GROUP BY request_type", [internId]);
+    if (rows.reduce((n,r)=>n+Number(r.n),0) >= 10) return { outcome:"LIMIT" };
+    if (rows.some(r=>r.request_type===requestType)) return { outcome:"DUPLICATE" };
+    const [result] = await conn.query("INSERT INTO support_requests (intern_id,request_type,title,description) VALUES (?,?,?,?)", [internId,requestType,title,description]);
+    return { outcome:"CREATED", id:result.insertId };
+  });
+}
+async function findSupportRequest(id, internId) {
+  const [rows] = await requireDb().query(`SELECT ${SUPPORT_SELECT}, ip.full_name AS fullName, ip.student_code AS studentCode, ip.university FROM support_requests sr JOIN intern_profiles ip ON ip.id=sr.intern_id LEFT JOIN users u ON u.id=sr.handled_by WHERE sr.id=? ${internId ? "AND sr.intern_id=?" : ""}`, internId ? [id,internId] : [id]);
+  return rows[0] || null;
+}
+async function processSupportRequest(id, allowed, status, userId, note) {
+  const [result] = await requireDb().query(`UPDATE support_requests SET status=?,handled_by=?,resolution_note=COALESCE(?,resolution_note),resolved_at=IF(? IN ('RESOLVED','REJECTED'),NOW(),resolved_at) WHERE id=? AND status IN (${allowed.map(()=>"?").join(",")})`, [status,userId,note||null,status,id,...allowed]);
+  return result.affectedRows;
+}
+async function cancelSupportRequest(id, internId) {
+  const [result]=await requireDb().query("UPDATE support_requests SET status='CANCELLED' WHERE id=? AND intern_id=? AND status='PENDING'",[id,internId]); return result.affectedRows;
+}
+async function insertSupportAttachment(row) {
+  // Chỉ chèn khi yêu cầu còn đúng trạng thái (atomic, tránh lệch với START/RESOLVE của HR); trả 0 nếu không còn phù hợp.
+  const [result] = await requireDb().query(
+    `INSERT INTO support_request_attachments (request_id,kind,original_name,stored_name,mime_type,size_bytes,uploaded_by)
+     SELECT id,?,?,?,?,?,? FROM support_requests WHERE id=? AND status=?`,
+    [row.kind,row.originalName,row.storedName,row.mimeType,row.sizeBytes,row.uploadedBy,row.requestId,row.requiredStatus]);
+  return result.affectedRows ? result.insertId : 0;
+}
+async function listSupportAttachments(requestId) {
+  const [rows]=await requireDb().query("SELECT id,request_id AS requestId,kind,original_name AS originalName,stored_name AS storedName,mime_type AS mimeType,size_bytes AS sizeBytes FROM support_request_attachments WHERE request_id=? ORDER BY id",[requestId]); return rows;
+}
+async function listSupportAttachmentsByRequestIds(ids) {
+  if (!ids.length) return [];
+  const [rows]=await requireDb().query(`SELECT id,request_id AS requestId,kind,original_name AS originalName,stored_name AS storedName,mime_type AS mimeType,size_bytes AS sizeBytes FROM support_request_attachments WHERE request_id IN (${ids.map(()=>"?").join(",")}) ORDER BY id`,ids);
+  return rows;
+}
+async function findSupportAttachment(id, requestId) {
+  const [rows]=await requireDb().query("SELECT id,request_id AS requestId,kind,original_name AS originalName,stored_name AS storedName,mime_type AS mimeType,size_bytes AS sizeBytes FROM support_request_attachments WHERE id=? AND request_id=?",[id,requestId]); return rows[0]||null;
+}
+async function countSupportAttachments(requestId,kind) { const [r]=await requireDb().query("SELECT COUNT(*) n FROM support_request_attachments WHERE request_id=? AND kind=?",[requestId,kind]); return Number(r[0].n); }
+async function deleteSupportAttachment(id, requestId, kind) { const [r]=await requireDb().query("DELETE FROM support_request_attachments WHERE id=? AND request_id=? AND kind=?",[id,requestId,kind]); return r.affectedRows; }
 
 module.exports = {
   listInternSchoolStats,
@@ -4080,4 +4141,7 @@ module.exports = {
   saveAllowanceAtomic,
   deleteAllowance,
   listAllowanceOverview,
+  listSupportRequests, supportSummary, createSupportRequest, findSupportRequest, processSupportRequest,
+  cancelSupportRequest, insertSupportAttachment, listSupportAttachments, listSupportAttachmentsByRequestIds, findSupportAttachment,
+  countSupportAttachments, deleteSupportAttachment,
 };
