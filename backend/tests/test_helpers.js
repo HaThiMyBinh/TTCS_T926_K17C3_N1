@@ -111,6 +111,10 @@ async function cleanupTestData(emails) {
        JOIN weekly_reports wr ON wr.id = wa.report_id
        JOIN intern_profiles i ON i.id = wr.intern_id
        WHERE LOWER(i.email) IN (?)`,
+      `SELECT sa.stored_name FROM support_request_attachments sa
+       JOIN support_requests sr ON sr.id = sa.request_id
+       JOIN intern_profiles i ON i.id = sr.intern_id
+       WHERE LOWER(i.email) IN (?)`,
     ]) {
       try {
         const [files] = await conn.query(sql, [list]);
@@ -230,6 +234,24 @@ async function cleanupByPattern(prefixes) {
       }
     } catch {
       /* bảng hợp đồng có thể chưa tồn tại */
+    }
+
+    try {
+      for (const prefix of list) {
+        const [files] = await conn.query(
+          `SELECT sa.stored_name FROM support_request_attachments sa
+           JOIN support_requests sr ON sr.id = sa.request_id
+           JOIN intern_profiles i ON i.id = sr.intern_id
+           WHERE LEFT(LOWER(i.email), CHAR_LENGTH(?)) = LOWER(?)`,
+          [prefix.toLowerCase(), prefix.toLowerCase()],
+        );
+        const uploadsDir = path.join(__dirname, "..", "uploads");
+        for (const file of files) {
+          try { fs.unlinkSync(path.join(uploadsDir, file.stored_name)); } catch { /* best-effort cleanup */ }
+        }
+      }
+    } catch {
+      /* bảng support có thể chưa tồn tại */
     }
 
     for (const table of [
