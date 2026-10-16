@@ -3708,6 +3708,11 @@
               <strong>Báo cáo chuyên cần</strong>
               <span>Tổng hợp đi làm, nghỉ phép và vắng mặt</span>
             </button>
+            <button class="report-hub-card" onclick="switchTab('tab-school-reports')">
+              <i class="fa-solid fa-graduation-cap"></i>
+              <strong>Thống kê theo trường/ngành</strong>
+              <span>Phân tích số lượng thực tập sinh theo trường, ngành và trạng thái</span>
+            </button>
           </div>
           <div class="card" id="reportsOverviewCard">
             <div class="card-header">
@@ -3737,6 +3742,64 @@
                   <h2 id="reportMentorRate">--</h2>
                   <p>Thực tập sinh đã có mentor</p>
                   <small id="reportMentorDetail"></small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STORY 5.3: BÁO CÁO INTERN THEO TRƯỜNG/NGÀNH (HR) -->
+        <div id="tab-school-reports" class="tab-pane" style="display: none">
+          <div class="report-back">
+            <button class="btn btn-secondary btn-sm" onclick="switchTab('tab-reports')">
+              <i class="fa-solid fa-arrow-left"></i> Quay lại Báo cáo &amp; Thống kê
+            </button>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-graduation-cap text-primary"></i> Thống kê thực tập sinh theo trường/ngành</h3>
+            </div>
+            <div class="card-body">
+              <p style="color:#64748b;font-size:14px;margin-bottom:16px">
+                Dữ liệu mẫu phục vụ giao diện Story 5.3; sẽ thay bằng API báo cáo khi Story 5.2 sẵn sàng.
+              </p>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:20px">
+                <label style="display:flex;flex-direction:column;gap:6px;font-weight:600">Trường
+                  <select id="schoolReportSchoolFilter" class="form-control" onchange="renderSchoolReport()">
+                    <option value="">Tất cả trường</option>
+                  </select>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:6px;font-weight:600">Ngành
+                  <select id="schoolReportMajorFilter" class="form-control" onchange="renderSchoolReport()">
+                    <option value="">Tất cả ngành</option>
+                  </select>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:6px;font-weight:600">Trạng thái
+                  <select id="schoolReportStatusFilter" class="form-control" onchange="renderSchoolReport()">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="studying">Đang học</option>
+                    <option value="completed">Hoàn thành</option>
+                    <option value="dropped">Bỏ học</option>
+                  </select>
+                </label>
+              </div>
+              <div id="schoolReportSummary" class="report-grid" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px"></div>
+              <div class="card" style="margin-bottom:24px">
+                <div class="card-header"><h4><i class="fa-solid fa-chart-column"></i> Biểu đồ số lượng theo trường/ngành</h4></div>
+                <div class="card-body">
+                  <div id="schoolReportChart" role="img" aria-label="Biểu đồ cột số lượng thực tập sinh theo trường và ngành"></div>
+                  <p id="schoolReportEmpty" style="display:none;color:#64748b;text-align:center;padding:20px">Không có dữ liệu phù hợp với bộ lọc.</p>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header"><h4>Chi tiết thống kê</h4></div>
+                <div class="card-body">
+                  <div style="overflow-x:auto">
+                    <table class="table">
+                      <thead><tr><th>Trường</th><th>Ngành</th><th>Đang học</th><th>Hoàn thành</th><th>Bỏ học</th><th>Tổng số</th></tr></thead>
+                      <tbody id="schoolReportTable"><tr><td colspan="6" style="text-align:center">Đang tải dữ liệu mẫu...</td></tr></tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
@@ -5599,6 +5662,7 @@
       </div>
     </div>
 
+    <script src="mockData.js"></script>
     <script>
       const API_BASE = "/api";
 
@@ -5636,7 +5700,7 @@
         },
       ];
 
-      const REPORT_SUBTABS = ["tab-final-reports", "tab-attendance-report"];
+      const REPORT_SUBTABS = ["tab-final-reports", "tab-attendance-report", "tab-school-reports"];
       let currentRole = "Admin";
       let currentTab = "tab-users";
       let permissionsMap = {};
@@ -5789,6 +5853,7 @@
         if (tabId === "tab-staff-attendance") return role === "Mentor" || role === "HR";
         if (tabId === "tab-final-reports") return role === "HR";
         if (tabId === "tab-attendance-report") return role === "HR";
+        if (tabId === "tab-school-reports") return role === "HR";
         if (tabId === "tab-work-schedules") return role === "HR" || role === "Admin";
         if (tabId === "tab-my-leaves") return role === "Intern";
         if (tabId === "tab-candidates") {
@@ -5851,17 +5916,6 @@
           </a>
         `;
           menuEl.appendChild(liMyContracts);
-
-          allowedCount++;
-          const liMyAllowances = document.createElement("li");
-          liMyAllowances.className = "nav-item";
-          liMyAllowances.innerHTML = `
-          <a class="nav-link ${currentTab === "tab-my-allowances" ? "active" : ""}" onclick="switchTab('tab-my-allowances')">
-            <i class="fa-solid fa-hand-holding-dollar"></i>
-            <span>Phụ cấp của tôi</span>
-          </a>
-        `;
-          menuEl.appendChild(liMyAllowances);
 
           const liMySchedule = document.createElement("li");
           liMySchedule.className = "nav-item";
@@ -6299,6 +6353,10 @@
                 "Nộp báo cáo kết quả thực tập mỗi tuần (hạn nộp: hết Chủ nhật)";
               loadWeeklyReportsTab();
             }
+          } else if (tabId === "tab-school-reports") {
+            document.getElementById("pageTitle").innerText = "Thống kê thực tập sinh theo trường/ngành";
+            document.getElementById("pageSubtitle").innerText = "Báo cáo dành cho HR";
+            renderSchoolReport();
           } else if (tabId === "tab-support-requests") {
             document.getElementById("pageTitle").innerText = "Yêu cầu hỗ trợ";
             document.getElementById("pageSubtitle").innerText =
@@ -6430,6 +6488,139 @@
       // ---- Báo cáo & Thống kê: số liệu thật từ GET /api/reports ----
       function formatReportRate(rate) {
         return rate === null || rate === undefined ? "--" : `${rate}%`;
+      }
+
+      // STORY 5.3: Dữ liệu mẫu báo cáo thực tập sinh theo trường/ngành.
+      let schoolReportFiltersInitialized = false;
+
+      function renderSchoolReport() {
+        const rows = Array.isArray(window.MOCK_SCHOOL_REPORTS) ? window.MOCK_SCHOOL_REPORTS : [];
+        const schoolSelect = document.getElementById("schoolReportSchoolFilter");
+        const majorSelect = document.getElementById("schoolReportMajorFilter");
+        const statusSelect = document.getElementById("schoolReportStatusFilter");
+        const table = document.getElementById("schoolReportTable");
+        const summary = document.getElementById("schoolReportSummary");
+        const chart = document.getElementById("schoolReportChart");
+        const empty = document.getElementById("schoolReportEmpty");
+        if (!schoolSelect || !majorSelect || !statusSelect || !table || !summary || !chart || !empty) return;
+
+        if (!schoolReportFiltersInitialized) {
+          const schools = [...new Set(rows.map((row) => row.school).filter(Boolean))].sort();
+          const majors = [...new Set(rows.map((row) => row.major).filter(Boolean))].sort();
+          schools.forEach((value) => {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = value;
+            schoolSelect.appendChild(option);
+          });
+          majors.forEach((value) => {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = value;
+            majorSelect.appendChild(option);
+          });
+          schoolReportFiltersInitialized = true;
+        }
+
+        const schoolValue = schoolSelect.value;
+        const majorValue = majorSelect.value;
+        const statusValue = statusSelect.value;
+        const filtered = rows.filter((row) =>
+          (!schoolValue || row.school === schoolValue) &&
+          (!majorValue || row.major === majorValue)
+        );
+        const countFor = (row, key) => Math.max(0, Number(row[key]) || 0);
+        const totalFor = (row) => countFor(row, "studying") + countFor(row, "completed") + countFor(row, "dropped");
+        const total = filtered.reduce((sum, row) => sum + totalFor(row), 0);
+        const studying = filtered.reduce((sum, row) => sum + countFor(row, "studying"), 0);
+        const completed = filtered.reduce((sum, row) => sum + countFor(row, "completed"), 0);
+        const dropped = filtered.reduce((sum, row) => sum + countFor(row, "dropped"), 0);
+
+        const metrics = [
+          ["Tổng thực tập sinh", total, "fa-users"],
+          ["Đang học", studying, "fa-user-graduate"],
+          ["Hoàn thành", completed, "fa-circle-check"],
+          ["Bỏ học", dropped, "fa-user-xmark"]
+        ];
+        summary.replaceChildren();
+        metrics.forEach(([label, value, icon]) => {
+          const card = document.createElement("div");
+          card.className = "report-metric";
+          const heading = document.createElement("h2");
+          heading.textContent = value.toLocaleString("vi-VN");
+          const paragraph = document.createElement("p");
+          paragraph.textContent = label;
+          const symbol = document.createElement("i");
+          symbol.className = `fa-solid ${icon} text-primary`;
+          card.append(symbol, heading, paragraph);
+          summary.appendChild(card);
+        });
+
+        const statusLabels = { studying: "Đang học", completed: "Hoàn thành", dropped: "Bỏ học" };
+        const statusColors = { studying: "#2563eb", completed: "#16a34a", dropped: "#dc2626" };
+        const chartKeys = statusValue ? [statusValue] : ["studying", "completed", "dropped"];
+        const maxValue = Math.max(1, ...filtered.map((row) => chartKeys.reduce((sum, key) => sum + countFor(row, key), 0)));
+        chart.replaceChildren();
+        chart.style.cssText = "display:flex;align-items:stretch;gap:16px;min-height:250px;overflow-x:auto;padding:18px 8px 4px";
+        filtered.forEach((row) => {
+          const value = chartKeys.reduce((sum, key) => sum + countFor(row, key), 0);
+          const column = document.createElement("div");
+          column.style.cssText = "flex:1;min-width:100px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px";
+          const valueLabel = document.createElement("strong");
+          valueLabel.textContent = value.toLocaleString("vi-VN");
+          const barArea = document.createElement("div");
+          barArea.style.cssText = "height:170px;width:100%;display:flex;align-items:flex-end;justify-content:center;border-bottom:1px solid #cbd5e1";
+          if (statusValue) {
+            const bar = document.createElement("div");
+            bar.title = `${statusLabels[statusValue]}: ${value}`;
+            bar.style.cssText = `width:min(58px,75%);height:${Math.max(value ? 4 : 0, value / maxValue * 150)}px;background:${statusColors[statusValue]};border-radius:6px 6px 0 0`;
+            barArea.appendChild(bar);
+          } else {
+            const stack = document.createElement("div");
+            stack.style.cssText = "width:min(58px,75%);display:flex;flex-direction:column;justify-content:flex-end;border-radius:6px 6px 0 0;overflow:hidden";
+            ["completed", "studying", "dropped"].forEach((key) => {
+              const amount = countFor(row, key);
+              if (!amount) return;
+              const segment = document.createElement("div");
+              segment.style.cssText = `height:${amount / maxValue * 150}px;background:${statusColors[key]};min-height:2px`;
+              segment.title = `${statusLabels[key]}: ${amount}`;
+              stack.appendChild(segment);
+            });
+            barArea.appendChild(stack);
+          }
+          const caption = document.createElement("div");
+          caption.style.cssText = "font-size:12px;text-align:center;max-width:150px;overflow-wrap:anywhere;color:#475569";
+          caption.textContent = `${row.school} — ${row.major}`;
+          column.append(valueLabel, barArea, caption);
+          chart.appendChild(column);
+        });
+
+        if (!filtered.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 6;
+          td.style.textAlign = "center";
+          td.textContent = "Không có dữ liệu phù hợp với bộ lọc.";
+          tr.appendChild(td);
+          table.replaceChildren(tr);
+          empty.style.display = "block";
+          chart.style.display = "none";
+        } else {
+          empty.style.display = "none";
+          chart.style.display = "flex";
+          const fragment = document.createDocumentFragment();
+          filtered.forEach((row) => {
+            const tr = document.createElement("tr");
+            const values = [row.school || "", row.major || "", countFor(row, "studying"), countFor(row, "completed"), countFor(row, "dropped"), totalFor(row)];
+            values.forEach((value) => {
+              const td = document.createElement("td");
+              td.textContent = typeof value === "number" ? value.toLocaleString("vi-VN") : value;
+              tr.appendChild(td);
+            });
+            fragment.appendChild(tr);
+          });
+          table.replaceChildren(fragment);
+        }
       }
 
       async function loadReports() {
