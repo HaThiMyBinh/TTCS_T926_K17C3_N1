@@ -62,7 +62,9 @@
     "test:school-report-unit": "node tests/test_school_report_unit.js",
     "test:school-report-api": "node tests/test_school_report_api.js",
     "test:completion-rate-unit": "node tests/test_completion_rate_unit.js",
-    "test:completion-rate-api": "node tests/test_completion_rate_api.js"
+    "test:completion-rate-api": "node tests/test_completion_rate_api.js",
+    "test:report-export-unit": "node tests/test_report_export_unit.js",
+    "test:report-export-api": "node tests/test_report_export_api.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

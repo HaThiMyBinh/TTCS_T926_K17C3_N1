@@ -88,6 +88,11 @@ const SUITES = [
     needsServer: false,
   },
   {
+    name: "report-export-unit",
+    file: "test_report_export_unit.js",
+    needsServer: false,
+  },
+  {
     name: "contracts-unit",
     file: "test_contracts_unit.js",
     needsServer: false,
@@ -191,6 +196,11 @@ const SUITES = [
   {
     name: "completion-rate-api",
     file: "test_completion_rate_api.js",
+    needsServer: true,
+  },
+  {
+    name: "report-export-api",
+    file: "test_report_export_api.js",
     needsServer: true,
   },
   { name: "mentors", file: "test_mentors.js", needsServer: true },

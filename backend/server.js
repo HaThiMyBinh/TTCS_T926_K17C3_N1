@@ -23,6 +23,8 @@ const workSchedulesRouter = require("./routes/workSchedules.routes");
 const leavesRouter = require("./routes/leaves.routes");
 const notificationsRouter = require("./routes/notifications.routes");
 const attendanceReportRouter = require("./routes/attendanceReport.routes");
+const reportExportRouter = require("./routes/reportExport.routes");
+const internSchoolStatsRouter = require("./routes/internSchoolStats.routes");
 const allowancesRouter = require("./routes/allowances.routes");
 const supportRequestsRouter = require("./routes/supportRequests.routes");
 const {
@@ -75,6 +77,7 @@ app.use("/api", workSchedulesRouter);
 app.use("/api", leavesRouter);
 app.use("/api", notificationsRouter);
 app.use("/api", attendanceReportRouter);
+app.use("/api", reportExportRouter);
 app.use("/api", allowancesRouter);
 app.use("/api", supportRequestsRouter);
 
