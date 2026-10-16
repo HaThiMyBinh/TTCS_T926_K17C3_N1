@@ -1,0 +1,50 @@
+
+<section id="intern-report">
+    <h2>Báo cáo thực tập sinh theo trường/ngành</h2>
+
+    <div class="report-filters">
+        <input id="filter-school" type="text"
+               placeholder="Nhập trường học">
+
+        <input id="filter-major" type="text"
+               placeholder="Nhập ngành học">
+
+        <select id="filter-status">
+            <option value="">Tất cả trạng thái</option>
+            <option value="studying">Đang học</option>
+            <option value="completed">Hoàn thành</option>
+            <option value="dropped">Bỏ học</option>
+        </select>
+
+        <input id="filter-period" type="text"
+               placeholder="Kỳ thực tập">
+
+        <button id="btn-filter">Lọc dữ liệu</button>
+    </div>
+
+    <p id="report-loading" hidden>Đang tải dữ liệu...</p>
+    <p id="report-error" role="alert" hidden></p>
+    <p id="report-empty" hidden>Không có dữ liệu báo cáo.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Trường</th>
+                <th>Ngành</th>
+                <th>Đang học</th>
+                <th>Hoàn thành</th>
+                <th>Bỏ học</th>
+            </tr>
+        </thead>
+        <tbody id="report-body"></tbody>
+    </table>
+
+    <div class="report-pagination">
+        <button id="btn-prev">Trang trước</button>
+        <span id="report-page">Trang 1</span>
+        <button id="btn-next">Trang sau</button>
+    </div>
+</section>
+
+<script src="js/reportApi.js"></script>
+<script src="js/reportPage.js"></script>

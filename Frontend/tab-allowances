@@ -1,0 +1,69 @@
+<!-- TAB QUẢN LÝ PHỤ CẤP CHO HR (Task 1.5 & 1.6) -->
+<div id="tab-allowances" class="tab-pane" style="display: none;">
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fa-solid fa-money-bill-wave text-primary"></i> Quản Lý Phụ Cấp Thực Tập Sinh</h3>
+      <button class="btn btn-sm btn-primary" onclick="loadAllowances()"><i class="fa-solid fa-rotate"></i> Làm mới</button>
+    </div>
+    <div class="card-body">
+      <div id="allowanceAlert" class="alert-box" style="display: none;"></div>
+      
+      <!-- Form thêm mới phụ cấp (Task 1.2: POST /api/allowances) -->
+      <form id="allowanceForm" onsubmit="handleCreateAllowance(event)" style="margin-bottom: 24px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--slate-200);">
+        <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--slate-800);"><i class="fa-solid fa-plus"></i> Thêm mới khoản phụ cấp</h4>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Chọn Thực tập sinh *</label>
+            <select id="allowanceIntern" class="form-control" required>
+              <option value="">-- Chọn thực tập sinh --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Loại phụ cấp *</label>
+            <input type="text" id="allowanceType" class="form-control" placeholder="Ví dụ: Phụ cấp gửi xe, Ăn trưa..." required />
+          </div>
+          <div class="form-group">
+            <label>Số tiền (VND) *</label>
+            <input type="number" id="allowanceAmount" class="form-control" placeholder="Ví dụ: 500000" min="1" required />
+          </div>
+          <div class="form-group">
+            <label>Kỳ / Tháng (YYYY-MM) *</label>
+            <input type="text" id="allowancePeriod" class="form-control" placeholder="YYYY-MM (Ví dụ: 2026-10)" pattern="^\d{4}-(0[1-9]|1[0-2])$" required />
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label>Ghi chú</label>
+            <textarea id="allowanceNote" class="form-control" rows="2" placeholder="Ghi chú chi tiết (nếu có)..."></textarea>
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <button type="submit" id="btnSaveAllowance" class="btn btn-primary">
+              <i class="fa-solid fa-floppy-disk"></i> Lưu phụ cấp
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Bảng danh sách phụ cấp (Task 1.3: GET /api/allowances) -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Thực tập sinh</th>
+              <th>Loại phụ cấp</th>
+              <th>Số tiền (VND)</th>
+              <th>Kỳ (Tháng)</th>
+              <th>Người nhập</th>
+              <th>Ngày nhập</th>
+              <th style="text-align: center;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="allowanceTableBody">
+            <tr>
+              <td colspan="8" style="text-align: center; color: #94a3b8; padding: 24px;">Đang tải danh sách phụ cấp...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
