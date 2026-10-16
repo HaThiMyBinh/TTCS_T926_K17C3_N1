@@ -58,7 +58,11 @@
     "test:allowances-unit": "node tests/test_allowances_unit.js",
     "test:allowances-api": "node tests/test_allowances_api.js",
     "test:support-unit": "node tests/test_support_requests_unit.js",
-    "test:support-api": "node tests/test_support_requests_api.js"
+    "test:support-api": "node tests/test_support_requests_api.js",
+    "test:school-report-unit": "node tests/test_school_report_unit.js",
+    "test:school-report-api": "node tests/test_school_report_api.js",
+    "test:completion-rate-unit": "node tests/test_completion_rate_unit.js",
+    "test:completion-rate-api": "node tests/test_completion_rate_api.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
