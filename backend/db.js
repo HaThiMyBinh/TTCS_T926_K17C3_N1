@@ -285,6 +285,39 @@ GROUP BY COALESCE(NULLIF(TRIM(\`university\`), ''), 'Chưa cập nhật'),
   `);
 }
 
+// Story 5.1: đọc view v_intern_school_stats, lọc theo trường/ngành (chứa chuỗi, không phân biệt hoa thường).
+async function listInternSchoolStats(filters = {}) {
+  const escapeLike = (v) => String(v).replace(/[\\%_]/g, "\\$&");
+  const where = [];
+  const params = [];
+  if (filters.university) {
+    where.push("`university` LIKE ?");
+    params.push(`%${escapeLike(filters.university)}%`);
+  }
+  if (filters.major) {
+    where.push("`major` LIKE ?");
+    params.push(`%${escapeLike(filters.major)}%`);
+  }
+  const [rows] = await requireDb().query(
+    `SELECT \`university\`, \`major\`,
+            \`total_interns\` AS total, \`in_progress_count\` AS inProgress,
+            \`completed_count\` AS completed, \`dropped_count\` AS dropped, \`other_count\` AS other
+     FROM \`v_intern_school_stats\`
+     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+     ORDER BY \`university\`, \`major\``,
+    params,
+  );
+  return rows.map((r) => ({
+    university: r.university,
+    major: r.major,
+    total: Number(r.total) || 0,
+    inProgress: Number(r.inProgress) || 0,
+    completed: Number(r.completed) || 0,
+    dropped: Number(r.dropped) || 0,
+    other: Number(r.other) || 0,
+  }));
+}
+
 // Khởi tạo kết nối MySQL, tạo bảng & seed dữ liệu mặc định nếu chưa có
 async function initDatabase() {
   // Repeated initialization replaces the previous pool instead of leaking it.

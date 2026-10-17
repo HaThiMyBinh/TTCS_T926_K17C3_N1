@@ -118,6 +118,21 @@ const SUITES = [
     needsServer: false,
   },
   {
+    name: "school-report-unit",
+    file: "test_school_report_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "completion-rate-unit",
+    file: "test_completion_rate_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "report-export-unit",
+    file: "test_report_export_unit.js",
+    needsServer: false,
+  },
+  {
     name: "contracts-unit",
     file: "test_contracts_unit.js",
     needsServer: false,
@@ -221,6 +236,21 @@ const SUITES = [
   {
     name: "support-api",
     file: "test_support_requests_api.js",
+    needsServer: true,
+  },
+  {
+    name: "school-report-api",
+    file: "test_school_report_api.js",
+    needsServer: true,
+  },
+  {
+    name: "completion-rate-api",
+    file: "test_completion_rate_api.js",
+    needsServer: true,
+  },
+  {
+    name: "report-export-api",
+    file: "test_report_export_api.js",
     needsServer: true,
   },
   { name: "mentors", file: "test_mentors.js", needsServer: true },
