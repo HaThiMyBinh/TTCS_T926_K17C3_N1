@@ -18,6 +18,46 @@ const INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
 
 // needsServer: cần MySQL và backend
 const SUITES = [
+  {
+    name: "responsive-browser",
+    file: "test_responsive_browser.js",
+    needsServer: false,
+    optionalBrowser: true,
+  },
+  {
+    name: "error-handling-unit",
+    file: "test_error_handling_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "program-completion-browser",
+    file: "test_program_completion_browser.js",
+    needsServer: true,
+    optionalWrites: true,
+    optionalBrowser: true,
+  },
+  {
+    name: "program-completion-api",
+    file: "test_program_completion_api.js",
+    needsServer: true,
+    optionalWrites: true,
+  },
+  {
+    name: "completion-rate-unit",
+    file: "test_completion_rate_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "completion-rate-api",
+    file: "test_completion_rate_api.js",
+    needsServer: true,
+  },
+  {
+    name: "completion-rate-browser",
+    file: "test_completion_rate_browser.js",
+    needsServer: false,
+    optionalBrowser: true,
+  },
   { name: "email-unit", file: "test_email_unit.js", needsServer: false },
   {
     name: "intern-filter-unit",
@@ -135,6 +175,11 @@ const SUITES = [
     file: "test_intern_schedule_unit.js",
     needsServer: false,
   },
+  {
+    name: "intern-origin-unit",
+    file: "test_intern_origin_report_unit.js",
+    needsServer: false,
+  },
   { name: "login", file: "test_login.js", needsServer: true },
   { name: "create-account", file: "test_create_account.js", needsServer: true },
   { name: "rbac", file: "test_rbac.js", needsServer: true },
@@ -175,6 +220,11 @@ const SUITES = [
   {
     name: "attendance-report-api",
     file: "test_attendance_report_api.js",
+    needsServer: true,
+  },
+  {
+    name: "intern-origin-api",
+    file: "test_intern_origin_report_api.js",
     needsServer: true,
   },
   {
@@ -390,7 +440,11 @@ async function main() {
   console.log(" CHẠY TỰ ĐỘNG TOÀN BỘ BỘ KIỂM THỬ");
   console.log(line() + "\n");
 
-  let suites = SUITES;
+  let suites = SUITES.filter(
+    (s) =>
+      (!s.optionalBrowser || args.includes("--browser")) &&
+      (!s.optionalWrites || args.includes("--program-results-write-tests")),
+  );
   if (unitOnly) suites = suites.filter((s) => !s.needsServer);
   if (onlyFilters.length)
     suites = suites.filter((s) => onlyFilters.some((f) => s.name.includes(f)));
@@ -463,7 +517,18 @@ async function main() {
   }
 
   // Dọn dữ liệu test còn sót
-  if (needServer && !infraError) {
+  if (
+    suites.some(
+      (s) =>
+        s.needsServer &&
+        ![
+          "completion-rate-api",
+          "program-completion-api",
+          "program-completion-browser",
+        ].includes(s.name),
+    ) &&
+    !infraError
+  ) {
     console.log("\n" + line("-"));
     console.log(" >>> Dọn dữ liệu test còn sót");
     console.log(line("-"));

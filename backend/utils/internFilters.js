@@ -1,3 +1,5 @@
+const { HttpError } = require("../errors");
+
 const MAX_FILTER_LENGTH = 100;
 const FILTER_KEYS = ["q", "university", "major"];
 
@@ -12,12 +14,13 @@ function normalizeInternFilters(query = {}) {
 
     const value = query[key];
     if (typeof value !== "string") {
-      throw new Error(`Tham số ${key} phải là một chuỗi duy nhất.`);
+      throw new HttpError(400, `Tham số ${key} phải là một chuỗi duy nhất.`);
     }
 
     const normalized = value.trim();
     if (normalized.length > MAX_FILTER_LENGTH) {
-      throw new Error(
+      throw new HttpError(
+        400,
         `Tham số ${key} không được vượt quá ${MAX_FILTER_LENGTH} ký tự.`,
       );
     }
@@ -29,7 +32,10 @@ function normalizeInternFilters(query = {}) {
       typeof query.unassigned !== "string" ||
       !["true", "false"].includes(query.unassigned)
     ) {
-      throw new Error("Tham số unassigned chỉ nhận giá trị true hoặc false.");
+      throw new HttpError(
+        400,
+        "Tham số unassigned chỉ nhận giá trị true hoặc false.",
+      );
     }
     filters.unassigned = query.unassigned === "true";
   }

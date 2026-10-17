@@ -7,3 +7,9 @@ mail_config.json
 uploads/*
 !uploads/.gitkeep
 tests/.server.log
+
+# Local credentials
+db_config.json
+mail_config.json
+.env
+.env.*

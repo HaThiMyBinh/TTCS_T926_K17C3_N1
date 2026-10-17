@@ -8,22 +8,21 @@ const {
 const { trimOrDefault } = require("../utils/request");
 const { normalizeInternFilters } = require("../utils/internFilters");
 const contractsService = require("../services/contracts.service");
-const { notifyMentorAssignment } = require("../services/mentorAssignment.service");
+const {
+  notifyMentorAssignment,
+} = require("../services/mentorAssignment.service");
 const warn = require("../services/assignmentWarnings.service");
 const router = express.Router();
 // --- QUẢN LÝ HỒ SƠ THỰC TẬP SINH (INTERNS / STUDENTS) ---
 
 // GET /api/interns & GET /api/students
 async function handleGetInterns(req, res) {
-  let filters;
   try {
-    filters = normalizeInternFilters(req.query);
-  } catch (err) {
-    return res.status(400).json({ error: err.message });
-  }
-  try {
+    const filters = normalizeInternFilters(req.query);
     if (req.user.role === "Mentor") {
-      return res.json(await db.getStudentsForMentorEmail(req.user.email, filters));
+      return res.json(
+        await db.getStudentsForMentorEmail(req.user.email, filters),
+      );
     }
 
     const students = await db.getAllStudents({
@@ -37,25 +36,21 @@ async function handleGetInterns(req, res) {
         : students,
     );
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi đọc danh sách hồ sơ thực tập sinh!" });
+    return sendRouteError(res, err, "Lỗi đọc danh sách hồ sơ thực tập sinh!");
   }
 }
 router.get(
   "/interns/filter-options",
   requireRole("Admin", "HR"),
   async (req, res) => {
-    let university = "";
     try {
+      let university = "";
       if (Object.prototype.hasOwnProperty.call(req.query, "university")) {
-        university = normalizeInternFilters({
-          university: req.query.university,
-        }).university || "";
+        university =
+          normalizeInternFilters({
+            university: req.query.university,
+          }).university || "";
       }
-    } catch (err) {
-      return res.status(400).json({ error: err.message });
-    }
-    try {
       return res.json(await db.getInternFilterOptions({ university }));
     } catch (err) {
       return sendRouteError(
@@ -66,28 +61,19 @@ router.get(
     }
   },
 );
-router.get(
-  "/interns/count",
-  requireRole("Admin", "HR"),
-  async (req, res) => {
-    if (Object.keys(req.query).some((key) => key !== "unassigned")) {
-      return res.status(400).json({
-        error: "API đếm chỉ nhận tham số unassigned.",
-      });
-    }
-    let filters;
-    try {
-      filters = normalizeInternFilters(req.query);
-    } catch (err) {
-      return res.status(400).json({ error: err.message });
-    }
-    try {
-      return res.json({ count: await db.countInterns(filters) });
-    } catch (err) {
-      return sendRouteError(res, err, "Lỗi đếm hồ sơ thực tập sinh!");
-    }
-  },
-);
+router.get("/interns/count", requireRole("Admin", "HR"), async (req, res) => {
+  if (Object.keys(req.query).some((key) => key !== "unassigned")) {
+    return res.status(400).json({
+      error: "API đếm chỉ nhận tham số unassigned.",
+    });
+  }
+  try {
+    const filters = normalizeInternFilters(req.query);
+    return res.json({ count: await db.countInterns(filters) });
+  } catch (err) {
+    return sendRouteError(res, err, "Lỗi đếm hồ sơ thực tập sinh!");
+  }
+});
 router.get("/interns", requireRole("Admin", "HR", "Mentor"), handleGetInterns);
 router.get("/students", requireRole("Admin", "HR", "Mentor"), handleGetInterns);
 
@@ -120,13 +106,21 @@ router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
 
   try {
     const confirmed = warn.parseConfirm(req.body.confirm_warnings);
-    const before = await db.findInternProfileById(Number(rawId)).catch(() => null);
+    const before = await db
+      .findInternProfileById(Number(rawId))
+      .catch(() => null);
     // Cảnh báo mềm (thực tập sinh không còn thực tập / lệch phòng ban) chỉ khi thật sự đổi mentor.
     if (mentorId != null && before && Number(before.mentorId) !== mentorId) {
       const mentor = await db.findMentorById(mentorId);
       if (mentor)
         warn.requireConfirmation(
-          warn.assignmentWarnings({ mentor, interns: [before], programDepartments: await db.listProgramDepartmentsForInterns([before.id]) }),
+          warn.assignmentWarnings({
+            mentor,
+            interns: [before],
+            programDepartments: await db.listProgramDepartmentsForInterns([
+              before.id,
+            ]),
+          }),
           confirmed,
         );
     }
@@ -138,7 +132,10 @@ router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
       return res.status(404).json({ error: "Không tìm thấy mentor!" });
     }
     await notifyMentorAssignment({
-      before, internId: Number(rawId), mentorId, mentorName: result.student.mentorName,
+      before,
+      internId: Number(rawId),
+      mentorId,
+      mentorName: result.student.mentorName,
     });
     return res.json({
       message: "Cập nhật phân công mentor thành công!",

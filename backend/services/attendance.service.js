@@ -150,7 +150,15 @@ async function getToday(user) {
     ? formatRow(row, today, parseSqlDateTime(serverNow))
     : null;
   let schedule = null;
-  try { schedule = await require("./scheduleRules.service").resolveScheduleForIntern(intern.id, today); } catch (_) { schedule = null; }
+  try {
+    schedule =
+      await require("./scheduleRules.service").resolveScheduleForIntern(
+        intern.id,
+        today,
+      );
+  } catch (_) {
+    schedule = null;
+  }
   return {
     status,
     record,

@@ -255,7 +255,8 @@ check(
 check(
   "describeScope hiển thị nhãn dễ đọc",
   s.describeScope("ALL") === "Toàn bộ thực tập sinh" &&
-    s.describeScope("UNIVERSITY", "ĐH Thái Nguyên") === "Trường: ĐH Thái Nguyên" &&
+    s.describeScope("UNIVERSITY", "ĐH Thái Nguyên") ===
+      "Trường: ĐH Thái Nguyên" &&
     s.describeScope("PROGRAM", "3", [{ id: 3, name: "Thực tập hè 2026" }]) ===
       "Chương trình: Thực tập hè 2026" &&
     s.describeScope("PROGRAM", "9", []) === "Chương trình: #9",

@@ -56,25 +56,62 @@ console.log(
 
 // ---------- Thông báo chuông khi đổi phân công ----------
 (async () => {
-  const { notifyMentorAssignment } = require("../services/mentorAssignment.service");
+  const {
+    notifyMentorAssignment,
+  } = require("../services/mentorAssignment.service");
   const pushed = [];
   const deps = {
     db: {
       findMentorUserId: async (id) => 100 + id,
       findUserByEmail: async () => ({ id: 77 }),
-      findInternProfileById: async () => ({ id: 1, fullName: "An", email: "an@x.vn", mentorId: null }),
+      findInternProfileById: async () => ({
+        id: 1,
+        fullName: "An",
+        email: "an@x.vn",
+        mentorId: null,
+      }),
     },
-    pushSafe: async (ids, n) => { pushed.push([ids, n.type]); return ids.length; },
+    pushSafe: async (ids, n) => {
+      pushed.push([ids, n.type]);
+      return ids.length;
+    },
   };
   const before = { id: 1, fullName: "An", email: "an@x.vn", mentorId: 5 };
-  assert.strictEqual(await notifyMentorAssignment({ before, internId: 1, mentorId: 5 }, deps), 0, "không đổi thì không báo");
+  assert.strictEqual(
+    await notifyMentorAssignment({ before, internId: 1, mentorId: 5 }, deps),
+    0,
+    "không đổi thì không báo",
+  );
   assert.strictEqual(pushed.length, 0);
-  await notifyMentorAssignment({ before, internId: 1, mentorId: 6, mentorName: "B" }, deps);
-  assert.deepStrictEqual(pushed.splice(0), [[[106], "MENTOR_ASSIGNED"], [[105], "MENTOR_UNASSIGNED"], [[77], "MENTOR_ASSIGNED_TO_ME"]]);
+  await notifyMentorAssignment(
+    { before, internId: 1, mentorId: 6, mentorName: "B" },
+    deps,
+  );
+  assert.deepStrictEqual(pushed.splice(0), [
+    [[106], "MENTOR_ASSIGNED"],
+    [[105], "MENTOR_UNASSIGNED"],
+    [[77], "MENTOR_ASSIGNED_TO_ME"],
+  ]);
   await notifyMentorAssignment({ before, internId: 1, mentorId: null }, deps);
-  assert.deepStrictEqual(pushed.splice(0), [[[105], "MENTOR_UNASSIGNED"], [[77], "MENTOR_REMOVED_FROM_ME"]]);
-  await notifyMentorAssignment({ before: null, internId: 1, mentorId: 9 }, deps); // lấy hồ sơ từ DB
-  assert.deepStrictEqual(pushed.splice(0), [[[109], "MENTOR_ASSIGNED"], [[77], "MENTOR_ASSIGNED_TO_ME"]]);
-  assert.strictEqual(await notifyMentorAssignment({ before, internId: 1, mentorId: 6 }, { db: {}, pushSafe: async () => 1 }), 0, "lỗi bị nuốt");
+  assert.deepStrictEqual(pushed.splice(0), [
+    [[105], "MENTOR_UNASSIGNED"],
+    [[77], "MENTOR_REMOVED_FROM_ME"],
+  ]);
+  await notifyMentorAssignment(
+    { before: null, internId: 1, mentorId: 9 },
+    deps,
+  ); // lấy hồ sơ từ DB
+  assert.deepStrictEqual(pushed.splice(0), [
+    [[109], "MENTOR_ASSIGNED"],
+    [[77], "MENTOR_ASSIGNED_TO_ME"],
+  ]);
+  assert.strictEqual(
+    await notifyMentorAssignment(
+      { before, internId: 1, mentorId: 6 },
+      { db: {}, pushSafe: async () => 1 },
+    ),
+    0,
+    "lỗi bị nuốt",
+  );
   console.log("MENTOR ASSIGNMENT NOTIFY: 5 cases PASS");
 })();

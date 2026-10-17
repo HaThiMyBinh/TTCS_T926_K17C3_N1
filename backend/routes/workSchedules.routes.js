@@ -13,7 +13,11 @@ router.post("/work-schedules", hrOnly, controller.create);
 // Các đường dẫn cố định phải khai báo trước "/work-schedules/:id".
 router.get("/work-schedules/assignments", viewers, controller.assignments);
 router.post("/work-schedules/assignments", hrOnly, controller.assign);
-router.delete("/work-schedules/assignments/:id", hrOnly, controller.removeAssignment);
+router.delete(
+  "/work-schedules/assignments/:id",
+  hrOnly,
+  controller.removeAssignment,
+);
 router.get("/work-schedules/preview", viewers, controller.preview);
 router.get("/work-schedules/resolved", viewers, controller.resolved);
 router.get("/work-schedules/options", viewers, controller.options);
