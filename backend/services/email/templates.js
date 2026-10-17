@@ -313,13 +313,23 @@ function renderFinalReportEmail({ report, message }) {
   const data = report.data || {};
   const summary = data.summary || {};
   const scope = data.scope || {};
-  const scopeLabel = report.scopeLabel || (scope.type === "UNIVERSITY" ? `Trường: ${scope.value}` : scope.type === "PROGRAM" ? "Theo chương trình thực tập" : "Toàn bộ thực tập sinh");
-  const period = scope.from || scope.to ? `${scope.from || "..."} – ${scope.to || "..."}` : "Toàn bộ thời gian";
+  const scopeLabel =
+    report.scopeLabel ||
+    (scope.type === "UNIVERSITY"
+      ? `Trường: ${scope.value}`
+      : scope.type === "PROGRAM"
+        ? "Theo chương trình thực tập"
+        : "Toàn bộ thực tập sinh");
+  const period =
+    scope.from || scope.to
+      ? `${scope.from || "..."} – ${scope.to || "..."}`
+      : "Toàn bộ thời gian";
   const hours = Math.round(((summary.totalWorkMinutes || 0) / 60) * 10) / 10;
   const num = (v) => (v == null ? "—" : String(v));
   const subject = `[Báo cáo cuối kỳ] ${report.title}`;
   const previewText = `Báo cáo cuối kỳ thực tập: ${summary.evaluated || 0}/${summary.totalInterns || 0} thực tập sinh đã được đánh giá.`;
-  const row = (label, value) => `<tr><td style="padding: 6px 0; color: #475569;">${escapeHtml(label)}</td><td style="padding: 6px 0; text-align: right;"><b>${escapeHtml(value)}</b></td></tr>`;
+  const row = (label, value) =>
+    `<tr><td style="padding: 6px 0; color: #475569;">${escapeHtml(label)}</td><td style="padding: 6px 0; text-align: right;"><b>${escapeHtml(value)}</b></td></tr>`;
   const bodyHtml = `
     <p style="margin: 0 0 16px; font-size: 15px;">Kính gửi Quý đơn vị,</p>
     <p style="margin: 0 0 16px;">Bộ phận Nhân sự gửi kèm báo cáo tổng hợp đánh giá thực tập sinh <b>${escapeHtml(report.title)}</b> (chi tiết trong file CSV đính kèm).</p>
@@ -338,29 +348,50 @@ function renderFinalReportEmail({ report, message }) {
     <p style="margin: 20px 0 0; color: #475569;">Thời gian gửi: <b>${formatVietnamDateTime()}</b><br/>Hệ thống: <b>${escapeHtml(BRAND_NAME)}</b></p>
   `;
   const text = [
-    "Kính gửi Quý đơn vị,", "",
+    "Kính gửi Quý đơn vị,",
+    "",
     `Báo cáo cuối kỳ thực tập: ${report.title} (chi tiết trong file CSV đính kèm).`,
     message ? `\n${message}\n` : "",
-    `Phạm vi: ${scopeLabel}`, `Khoảng thời gian: ${period}`,
+    `Phạm vi: ${scopeLabel}`,
+    `Khoảng thời gian: ${period}`,
     `Số thực tập sinh: ${num(summary.totalInterns)} (đã đánh giá: ${num(summary.evaluated)})`,
     `Điểm trung bình: kỹ năng ${num(summary.avgSkill)}, thái độ ${num(summary.avgAttitude)}, tổng ${num(summary.avgOverall)}`,
     `Tổng giờ làm việc ghi nhận: ${hours} giờ`,
     data.hrNote ? `\nNhận xét của HR: ${data.hrNote}` : "",
-    "", `Thời gian gửi: ${formatVietnamDateTime()}`,
+    "",
+    `Thời gian gửi: ${formatVietnamDateTime()}`,
   ].join("\n");
-  return { subject, html: wrapHtml({ title: subject, previewText, bodyHtml }), text };
+  return {
+    subject,
+    html: wrapHtml({ title: subject, previewText, bodyHtml }),
+    text,
+  };
 }
 
 // --- EMAIL BÁO HR: THỰC TẬP SINH VỪA GỬI ĐƠN NGHỈ PHÉP ---
-const LEAVE_TYPE_LABEL = { SICK: "Nghỉ ốm", PERSONAL: "Việc cá nhân", EXAM: "Học / thi", OTHER: "Khác" };
+const LEAVE_TYPE_LABEL = {
+  SICK: "Nghỉ ốm",
+  PERSONAL: "Việc cá nhân",
+  EXAM: "Học / thi",
+  OTHER: "Khác",
+};
 function renderLeaveRequestEmail({ intern, leave }) {
   const name = intern.fullName || intern.full_name || "Thực tập sinh";
-  const range = leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} – ${leave.toDate}`;
-  const days = Math.floor((Date.parse(`${leave.toDate}T00:00:00Z`) - Date.parse(`${leave.fromDate}T00:00:00Z`)) / 86400000) + 1;
+  const range =
+    leave.fromDate === leave.toDate
+      ? leave.fromDate
+      : `${leave.fromDate} – ${leave.toDate}`;
+  const days =
+    Math.floor(
+      (Date.parse(`${leave.toDate}T00:00:00Z`) -
+        Date.parse(`${leave.fromDate}T00:00:00Z`)) /
+        86400000,
+    ) + 1;
   const typeLabel = LEAVE_TYPE_LABEL[leave.leaveType] || leave.leaveType;
   const subject = `[Đơn nghỉ phép] ${name} xin nghỉ ${range}`;
   const previewText = `${name} vừa gửi đơn nghỉ phép ${days} ngày (${range}).`;
-  const row = (label, value) => `<tr><td style="padding: 6px 0; color: #475569;">${escapeHtml(label)}</td><td style="padding: 6px 0; text-align: right;"><b>${escapeHtml(value)}</b></td></tr>`;
+  const row = (label, value) =>
+    `<tr><td style="padding: 6px 0; color: #475569;">${escapeHtml(label)}</td><td style="padding: 6px 0; text-align: right;"><b>${escapeHtml(value)}</b></td></tr>`;
   const bodyHtml = `
     <p style="margin: 0 0 16px; font-size: 15px;">Xin chào bộ phận Nhân sự,</p>
     <p style="margin: 0 0 16px;">Thực tập sinh <b>${escapeHtml(name)}</b> vừa đăng ký nghỉ phép và đang chờ duyệt.</p>
@@ -374,12 +405,20 @@ function renderLeaveRequestEmail({ intern, leave }) {
     <p style="margin: 20px 0 0; color: #475569;">Thời gian gửi: <b>${formatVietnamDateTime()}</b></p>
   `;
   const text = [
-    "Xin chào bộ phận Nhân sự,", "",
+    "Xin chào bộ phận Nhân sự,",
+    "",
     `Thực tập sinh ${name} vừa đăng ký nghỉ phép (đang chờ duyệt).`,
-    `Loại nghỉ: ${typeLabel}`, `Thời gian nghỉ: ${range} (${days} ngày)`, `Lý do: ${leave.reason}`,
-    "", "Vui lòng vào tab \"Chấm công thực tập sinh\" để duyệt hoặc từ chối.",
+    `Loại nghỉ: ${typeLabel}`,
+    `Thời gian nghỉ: ${range} (${days} ngày)`,
+    `Lý do: ${leave.reason}`,
+    "",
+    'Vui lòng vào tab "Chấm công thực tập sinh" để duyệt hoặc từ chối.',
   ].join("\n");
-  return { subject, html: wrapHtml({ title: subject, previewText, bodyHtml }), text };
+  return {
+    subject,
+    html: wrapHtml({ title: subject, previewText, bodyHtml }),
+    text,
+  };
 }
 
 module.exports = {

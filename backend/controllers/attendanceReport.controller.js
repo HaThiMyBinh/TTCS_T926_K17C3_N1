@@ -14,7 +14,13 @@ async function exportCsv(req, res) {
   }
 }
 module.exports = {
-  report: endpoint((req) => service.report(req.query), "Lấy báo cáo chuyên cần thành công!"),
-  detail: endpoint((req) => service.detail(req.params.id, req.query), "Lấy chi tiết chuyên cần thành công!"),
+  report: endpoint(
+    (req) => service.report(req.query),
+    "Lấy báo cáo chuyên cần thành công!",
+  ),
+  detail: endpoint(
+    (req) => service.detail(req.params.id, req.query),
+    "Lấy chi tiết chuyên cần thành công!",
+  ),
   exportCsv,
 };

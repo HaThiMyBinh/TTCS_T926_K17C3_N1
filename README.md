@@ -389,3 +389,64 @@ HR xem danh sách tại `GET /api/support-requests?status=&type=&q=&page=&pageSi
 - File không được phục vụ tĩnh. Tải xuống qua API có phân quyền, luôn dùng `Content-Disposition: attachment` và `X-Content-Type-Options: nosniff`; tên lưu UUID và `stored_name` không đi vào phản hồi API.
 
 Chưa có: email thông báo, SLA/hạn xử lý, mẫu giấy tờ tự sinh, gán người xử lý riêng và lịch sử thay đổi.
+
+## THỐNG KÊ THỰC TẬP SINH THEO TRƯỜNG / NGÀNH (HR)
+
+**User story:** "Là HR, tôi muốn xem số lượng thực tập sinh theo trường/ngành để phân tích nguồn ứng viên."
+
+- **Bối cảnh & Giả định:**
+  - Số lượng thực tập sinh được tính trên bảng `intern_profiles` (đếm hồ sơ thực tập sinh, không đếm hợp đồng). Mặc định tính tất cả thực tập sinh, có bộ lọc theo `status` ("Đang thực tập", "Hoàn thành", "Tạm dừng").
+  - Khoảng thời gian: lọc theo ngày tạo hồ sơ thực tập sinh (`created_at`) qua tham số `from` và `to` (mặc định không giới hạn).
+  - Phân tích nguồn ứng viên bao gồm: Top trường, Top ngành, ma trận phân bổ Trường × Ngành (kèm tỷ lệ % trên tổng số), và phễu tuyển dụng theo trường từ bảng `candidate_profiles` (số hồ sơ ứng tuyển, đã duyệt, từ chối, chờ duyệt, tỷ lệ duyệt %).
+- **Chuẩn hóa tên trường / ngành khi đếm (không sửa dữ liệu gốc):**
+  - Cắt khoảng trắng đầu cuối, gộp các khoảng trắng liên tiếp (`\s+` thành một dấu cách).
+  - So sánh không phân biệt hoa thường và dấu tiếng Việt (so sánh trên chuỗi chuẩn hóa NFD loại bỏ dấu).
+  - Các giá trị `NULL`, chuỗi rỗng `""`, hoặc `"Chưa cập nhật"` được gom thành nhóm riêng mang tên **"Chưa cập nhật"** và luôn hiển thị độc lập, không bị ẩn hay gộp vào "Khác".
+  - Nhãn hiển thị của nhóm lấy dạng viết có tần suất xuất hiện phổ biến nhất trong nhóm.
+  - Hệ thống chưa có danh mục trường/ngành chuẩn nên không tự động gộp các tên viết tắt khác nhau (ví dụ "ICTU" và "ĐH CNTT & Truyền Thông").
+- **Giao diện (`tab-intern-origin-report` trong `Frontend/index.html`):**
+  - Thẻ truy cập nằm trong Hub Báo cáo & Thống kê (`reportsHub`), chỉ hiển thị cho HR.
+  - Thẻ thống kê tổng quan (Tổng thực tập sinh, Số trường, Số chuyên ngành, Số hồ sơ chưa cập nhật).
+  - Bộ lọc: Trạng thái hồ sơ, khoảng ngày (`from`, `to`), xem theo (Trường / Ngành / Cả hai), ô tìm kiếm có debounce ~300ms.
+  - Biểu đồ cột ngang trực quan cho Top trường và Top ngành bằng HTML/CSS (có nhãn số liệu, phần trăm, thuộc tính trợ năng `aria-label`/`title`, có thể bấm vào từng thanh để xem danh sách chi tiết).
+  - Bảng chi tiết trường, bảng chi tiết ngành và bảng ma trận Trường × Ngành có cuộn ngang.
+  - Bảng phễu tuyển dụng theo từng trường (số nộp, đã duyệt, từ chối, chờ duyệt, tỷ lệ duyệt %).
+  - Modal danh sách thực tập sinh: bấm vào một nhóm trường/ngành bất kỳ sẽ mở modal hiển thị danh sách thực tập sinh thuộc nhóm đó kèm phân trang (Họ tên, MSSV, Trường, Ngành, Trạng thái, Mentor).
+  - Nút **Xuất CSV**: chống double-submit, tải qua `fetch` kèm token xác thực, lưu file UTF-8 có BOM mở được trực tiếp trên Excel (`thuc-tap-sinh-theo-truong-nganh_YYYY-MM-DD.csv`).
+- **API (Header `Cache-Control: private, no-store`):**
+  - `GET /api/reports/interns-by-origin`: lấy dữ liệu thống kê tổng quan, top trường, top ngành, ma trận và phễu tuyển dụng (`groupBy`, `status`, `from`, `to`, `q`, `limit`).
+  - `GET /api/reports/interns-by-origin/interns`: lấy danh sách thực tập sinh chi tiết thuộc nhóm có phân trang (`university`, `major`, `status`, `from`, `to`, `q`, `page`, `pageSize`).
+  - `GET /api/reports/interns-by-origin/export.csv`: xuất file CSV UTF-8 BOM, an toàn chống CSV injection bằng hàm `csvCell`.
+- **Bảo mật & Quyền hạn:**
+  - Chỉ HR có quyền truy cập (`[requireRole("HR"), checkPermission("VIEW_REPORTS")]`). Admin, Mentor và Intern nhận mã lỗi 403. Chưa đăng nhập nhận 401.
+  - API thống kê và danh sách chi tiết tuyệt đối **không** làm lộ thông tin nhạy cảm như email hay số điện thoại của thực tập sinh.
+  - Tham số tìm kiếm `q` được escape ký tự đại diện `%` và `_` khi truy vấn SQL `LIKE`.
+  - Toàn bộ dữ liệu render trên giao diện được xử lý qua hàm `escapeHtml` chống XSS.
+- **Xử lý lỗi (HTTP 400, thông báo tiếng Việt):**
+  - 400 khi có tham số lạ hoặc tham số bị lặp lại trong query string.
+  - 400 khi `groupBy` không hợp lệ, ngày sai định dạng YYYY-MM-DD hoặc `from` > `to`.
+  - 400 khi `limit`, `page`, `pageSize` không phải số nguyên dương hoặc vượt quá 100.
+  - 400 khi `q` quá 100 ký tự.
+  - Dữ liệu rỗng trả mã 200 với danh sách rỗng và `total = 0`, không gây lỗi chia cho 0 khi tính tỷ lệ %.
+- **Chưa có:**
+  - Danh mục chuẩn hóa trường và ngành học tự động gộp tên viết tắt (alias matching).
+  - So sánh biến động nguồn ứng viên theo từng kỳ tuyển dụng / theo năm học.
+  - Biểu đồ trực quan hóa xu hướng nộp hồ sơ theo dòng thời gian (time-series).
+  - Xuất báo cáo trực tiếp ra định dạng Excel (.xlsx) nhiều sheet hoặc PDF có biểu đồ.
+- **Kiểm thử:**
+  - `npm run test:intern-origin-unit`: Unit test logic chuẩn hóa, gom nhóm, nhãn phổ biến nhất, sắp xếp, tính % làm tròn, top N + Khác, bảo toàn Chưa cập nhật, validate tham số và chống CSV injection (không cần MySQL).
+  - `npm run test:intern-origin-api`: API test toàn diện kiểm tra RBAC (401/403/200), gom nhóm biến thể chữ hoa/thường/khoảng trắng trên MySQL thật, bộ lọc trạng thái và khoảng ngày, phễu tuyển dụng, phân trang danh sách chi tiết, bảo mật không lộ email/SĐT, và tải CSV đúng UTF-8 BOM.
+
+
+
+## US6 — Tỷ lệ hoàn thành chương trình
+
+HR có VIEW_REPORTS xác nhận kết quả riêng từng chương trình tại **Chương trình thực tập → Thực tập sinh & mentor → Kết quả chương trình**. Kết quả A được giữ khi xếp tiếp chương trình B; ứng dụng chặn lịch trùng.
+
+**Nâng cấp từ bản cũ:** giữ cấu hình riêng, dừng backend cũ, chạy `cd backend`, `npm ci`, `npm run migrate:program-completion`, rồi `npm start`. Không import lại schema/seed vào DB đang dùng. Lượt cũ không tự suy ra hoàn thành từ trạng thái hồ sơ; cần HR rà soát.
+
+Báo cáo trong Report Hub có bộ lọc thời gian chương trình/trạng thái chương trình, thống kê theo lượt tham gia và số người riêng, drill-down và CSV.
+
+Xem [FIXES_US6.md](FIXES_US6.md) để biết định nghĩa, migration, API, kiểm thử và giới hạn.
+
+Ghi chú lần thống nhất định dạng/xử lý lỗi: [FIXES_CODE_STYLE.md](FIXES_CODE_STYLE.md).

@@ -1,21 +1,6 @@
+const { sendError } = require("./endpoint");
 const service = require("../services/documents.service");
 const { HttpError } = require("../errors");
-
-function sendError(res, err) {
-  if (err instanceof HttpError) {
-    return res.status(err.status).json({
-      success: false,
-      message: err.message,
-      error: err.message,
-    });
-  }
-  console.error("[DOCUMENTS CONTROLLER]", err);
-  return res.status(500).json({
-    success: false,
-    message: "Lỗi server, vui lòng thử lại sau!",
-    error: "Lỗi server, vui lòng thử lại sau!",
-  });
-}
 
 // GET /api/applications/me/documents
 async function getMyDocuments(req, res) {
@@ -27,7 +12,7 @@ async function getMyDocuments(req, res) {
       data,
     });
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "DOCUMENTS");
   }
 }
 
@@ -46,7 +31,7 @@ async function uploadMyDocument(req, res) {
       progress: result.progress,
     });
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "DOCUMENTS");
   }
 }
 
@@ -84,7 +69,7 @@ async function downloadDocument(req, res) {
     }
     res.download(filePath, originalName, onDone);
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "DOCUMENTS");
   }
 }
 
@@ -98,7 +83,7 @@ async function listApplicationDocuments(req, res) {
       ...data,
     });
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "DOCUMENTS");
   }
 }
 
@@ -113,7 +98,7 @@ async function deleteMyDocument(req, res) {
       progress: result.progress,
     });
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "DOCUMENTS");
   }
 }
 

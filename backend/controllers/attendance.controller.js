@@ -1,34 +1,6 @@
 const service = require("../services/attendance.service");
-const { HttpError } = require("../errors");
-function sendError(res, err) {
-  if (err instanceof HttpError)
-    return res.status(err.status).json({
-      success: false,
-      message: err.message,
-      error: err.message,
-    });
-  console.error("[ATTENDANCE]", err);
-  return res.status(500).json({
-    success: false,
-    message: "Lỗi server, vui lòng thử lại sau!",
-    error: "Lỗi server, vui lòng thử lại sau!",
-  });
-}
-function endpoint(fn, message) {
-  return async (req, res) => {
-    try {
-      const data = await fn(req);
-      res.set("Cache-Control", "private, no-store");
-      return res.json({
-        success: true,
-        message,
-        data,
-      });
-    } catch (err) {
-      return sendError(res, err);
-    }
-  };
-}
+const { makeEndpoint } = require("./endpoint");
+const endpoint = makeEndpoint("ATTENDANCE");
 module.exports = {
   today: endpoint(
     (req) => service.getToday(req.user),

@@ -258,7 +258,9 @@ async function main() {
     const csv = await call("GET", `/final-reports/${id}/export.csv`, hr);
     // fetch().text() tự cắt BOM nên đọc byte thô để kiểm tra BOM thật sự
     const csvBytes = Buffer.from(await csv.res.arrayBuffer());
-    const hasBom = csvBytes.subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf]));
+    const hasBom = csvBytes
+      .subarray(0, 3)
+      .equals(Buffer.from([0xef, 0xbb, 0xbf]));
     const csvText = csvBytes.toString("utf8");
     check(
       "CSV có BOM, header và no-store",

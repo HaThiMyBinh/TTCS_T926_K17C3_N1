@@ -257,8 +257,9 @@ async function checkUpdateContract() {
       });
       assert.equal(Object.hasOwn(dates, "stored_name"), false);
     });
-    check("updateContract: đổi ngày hợp đồng đã xác nhận -> phải xác nhận lại", () =>
-      assert.equal(dates.reconfirmation_required, true),
+    check(
+      "updateContract: đổi ngày hợp đồng đã xác nhận -> phải xác nhận lại",
+      () => assert.equal(dates.reconfirmation_required, true),
     );
 
     await updateContract("1", "2", { end_date: "2027-12-31" });
@@ -271,28 +272,39 @@ async function checkUpdateContract() {
 
     // Không đổi ngày đang có thì không phải xác nhận lại
     const same = await updateContract("1", "2", { end_date: "2027-05-10" });
-    check("updateContract: gửi lại đúng ngày cũ thì không yêu cầu xác nhận lại", () => {
-      assert.deepEqual(saved.changes, { endDate: "2027-05-10" });
-      assert.equal(same.reconfirmation_required, undefined);
-    });
+    check(
+      "updateContract: gửi lại đúng ngày cũ thì không yêu cầu xác nhận lại",
+      () => {
+        assert.deepEqual(saved.changes, { endDate: "2027-05-10" });
+        assert.equal(same.reconfirmation_required, undefined);
+      },
+    );
     // Hợp đồng chờ xác nhận: sửa ngày thoải mái
-    const pending = await updateContract("1", "4", { start_date: "2026-07-01" });
-    check("updateContract: hợp đồng chờ xác nhận đổi ngày không cần xác nhận lại", () => {
-      assert.deepEqual(saved.changes, { startDate: "2026-07-01" });
-      assert.equal(pending.reconfirmation_required, undefined);
+    const pending = await updateContract("1", "4", {
+      start_date: "2026-07-01",
     });
+    check(
+      "updateContract: hợp đồng chờ xác nhận đổi ngày không cần xác nhận lại",
+      () => {
+        assert.deepEqual(saved.changes, { startDate: "2026-07-01" });
+        assert.equal(pending.reconfirmation_required, undefined);
+      },
+    );
     // Điền ngày vào chỗ còn trống của hợp đồng đã xác nhận (VD HR thiết lập ngày sau)
     const filled = await updateContract("1", "5", {
       start_date: "2026-08-01",
       end_date: "2027-02-01",
     });
-    check("updateContract: điền ngày còn trống không yêu cầu xác nhận lại", () => {
-      assert.deepEqual(saved.changes, {
-        startDate: "2026-08-01",
-        endDate: "2027-02-01",
-      });
-      assert.equal(filled.reconfirmation_required, undefined);
-    });
+    check(
+      "updateContract: điền ngày còn trống không yêu cầu xác nhận lại",
+      () => {
+        assert.deepEqual(saved.changes, {
+          startDate: "2026-08-01",
+          endDate: "2027-02-01",
+        });
+        assert.equal(filled.reconfirmation_required, undefined);
+      },
+    );
 
     await expectUpdateContractError(
       "ngày kết thúc mới trước ngày bắt đầu đang lưu trả 400",

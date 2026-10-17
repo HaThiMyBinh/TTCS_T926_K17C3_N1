@@ -75,7 +75,9 @@ function validateEvaluationInput(input) {
   if (input == null || typeof input !== "object" || Array.isArray(input)) {
     throw new HttpError(400, "Dữ liệu đánh giá không hợp lệ!");
   }
-  const extra = Object.keys(input).filter((k) => !EVALUATION_FIELDS.includes(k));
+  const extra = Object.keys(input).filter(
+    (k) => !EVALUATION_FIELDS.includes(k),
+  );
   if (extra.length > 0) {
     throw new HttpError(
       400,
@@ -102,7 +104,9 @@ function validateEvaluationInput(input) {
 
 // Điểm tổng = trung bình điểm kỹ năng và thái độ, làm tròn 1 chữ số thập phân.
 function computeOverallScore(skillScore, attitudeScore) {
-  return Math.round(((Number(skillScore) + Number(attitudeScore)) / 2) * 10) / 10;
+  return (
+    Math.round(((Number(skillScore) + Number(attitudeScore)) / 2) * 10) / 10
+  );
 }
 
 function toEvaluationDto(row) {

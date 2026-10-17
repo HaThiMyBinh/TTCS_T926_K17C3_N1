@@ -1,17 +1,5 @@
+const { sendError } = require("./endpoint");
 const service = require("../services/applications.service");
-const { HttpError } = require("../errors");
-
-function sendError(res, err) {
-  if (err instanceof HttpError) {
-    return res
-      .status(err.status)
-      .json({ success: false, message: err.message });
-  }
-  console.error("[APPLICATIONS]", err);
-  return res
-    .status(500)
-    .json({ success: false, message: "Lỗi server, vui lòng thử lại sau!" });
-}
 
 async function list(req, res) {
   try {
@@ -22,7 +10,7 @@ async function list(req, res) {
       data,
     });
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "APPLICATIONS");
   }
 }
 
@@ -35,7 +23,7 @@ async function updateStatus(req, res) {
     );
     res.json({ success: true, message: result.message, data: result.data });
   } catch (err) {
-    sendError(res, err);
+    sendError(res, err, "APPLICATIONS");
   }
 }
 

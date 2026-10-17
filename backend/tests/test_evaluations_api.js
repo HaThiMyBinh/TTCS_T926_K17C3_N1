@@ -155,19 +155,61 @@ async function testPermissions(ctx) {
   const { adminToken, hrToken, internAToken, a } = ctx;
   const url = `/interns/${a.id}/evaluation`;
 
-  for (const [method, body] of [
-    ["GET"],
-    ["PUT", VALID],
-    ["DELETE"],
-  ]) {
-    await expectStatus(`${method} đánh giá không token`, 401, method, url, null, body);
-    await expectStatus(`Intern không được ${method} đánh giá`, 403, method, url, internAToken, body);
-    await expectStatus(`HR không được ${method} đánh giá`, 403, method, url, hrToken, body);
-    await expectStatus(`Admin không được ${method} đánh giá`, 403, method, url, adminToken, body);
+  for (const [method, body] of [["GET"], ["PUT", VALID], ["DELETE"]]) {
+    await expectStatus(
+      `${method} đánh giá không token`,
+      401,
+      method,
+      url,
+      null,
+      body,
+    );
+    await expectStatus(
+      `Intern không được ${method} đánh giá`,
+      403,
+      method,
+      url,
+      internAToken,
+      body,
+    );
+    await expectStatus(
+      `HR không được ${method} đánh giá`,
+      403,
+      method,
+      url,
+      hrToken,
+      body,
+    );
+    await expectStatus(
+      `Admin không được ${method} đánh giá`,
+      403,
+      method,
+      url,
+      adminToken,
+      body,
+    );
   }
-  await expectStatus("Overview không token", 401, "GET", "/evaluations/overview", null);
-  await expectStatus("Intern không xem overview", 403, "GET", "/evaluations/overview", internAToken);
-  await expectStatus("HR không xem overview", 403, "GET", "/evaluations/overview", hrToken);
+  await expectStatus(
+    "Overview không token",
+    401,
+    "GET",
+    "/evaluations/overview",
+    null,
+  );
+  await expectStatus(
+    "Intern không xem overview",
+    403,
+    "GET",
+    "/evaluations/overview",
+    internAToken,
+  );
+  await expectStatus(
+    "HR không xem overview",
+    403,
+    "GET",
+    "/evaluations/overview",
+    hrToken,
+  );
 }
 
 async function testSaveAndRead(ctx, conn) {
@@ -177,7 +219,9 @@ async function testSaveAndRead(ctx, conn) {
   const empty = await call("GET", url, mentor1Token);
   check(
     "Chưa đánh giá: GET trả 200 với data = null",
-    empty.status === 200 && empty.body?.success === true && empty.body.data === null,
+    empty.status === 200 &&
+      empty.body?.success === true &&
+      empty.body.data === null,
     JSON.stringify(empty.body),
   );
 
@@ -195,7 +239,10 @@ async function testSaveAndRead(ctx, conn) {
   );
 
   const got = await call("GET", url, mentor1Token);
-  check("GET trả lại đúng đánh giá", got.body?.data?.skill_comment === VALID.skill_comment);
+  check(
+    "GET trả lại đúng đánh giá",
+    got.body?.data?.skill_comment === VALID.skill_comment,
+  );
 
   const updated = await call("PUT", url, mentor1Token, {
     skill_score: 2,
@@ -225,10 +272,20 @@ async function testSaveAndRead(ctx, conn) {
   await bad("Điểm không nguyên", { ...VALID, skill_score: 3.5 });
   await bad("Thiếu nhận xét tổng kết", { skill_score: 3, attitude_score: 3 });
   await bad("Nhận xét tổng kết rỗng", { ...VALID, overall_comment: "   " });
-  await bad("Nhận xét quá 2000 ký tự", { ...VALID, overall_comment: "x".repeat(2001) });
+  await bad("Nhận xét quá 2000 ký tự", {
+    ...VALID,
+    overall_comment: "x".repeat(2001),
+  });
   await bad("Trường lạ overall_score", { ...VALID, overall_score: 5 });
   await bad("Trường lạ mentor_id", { ...VALID, mentor_id: 1 });
-  await expectStatus("Body không phải JSON object", 400, "PUT", url, mentor1Token, [1]);
+  await expectStatus(
+    "Body không phải JSON object",
+    400,
+    "PUT",
+    url,
+    mentor1Token,
+    [1],
+  );
   const after = await call("GET", url, mentor1Token);
   check(
     "Dữ liệu sai không làm đổi đánh giá đã lưu",
@@ -252,30 +309,96 @@ async function testIdor(ctx, conn) {
   const urlB = `/interns/${b.id}/evaluation`;
   const urlA = `/interns/${a.id}/evaluation`;
 
-  await expectStatus("Mentor 1 không đánh giá intern của mentor 2", 403, "PUT", urlB, mentor1Token, VALID);
-  await expectStatus("Mentor 1 không đọc đánh giá intern của mentor 2", 403, "GET", urlB, mentor1Token);
-  await expectStatus("Mentor 1 không xóa đánh giá intern của mentor 2", 403, "DELETE", urlB, mentor1Token);
+  await expectStatus(
+    "Mentor 1 không đánh giá intern của mentor 2",
+    403,
+    "PUT",
+    urlB,
+    mentor1Token,
+    VALID,
+  );
+  await expectStatus(
+    "Mentor 1 không đọc đánh giá intern của mentor 2",
+    403,
+    "GET",
+    urlB,
+    mentor1Token,
+  );
+  await expectStatus(
+    "Mentor 1 không xóa đánh giá intern của mentor 2",
+    403,
+    "DELETE",
+    urlB,
+    mentor1Token,
+  );
   const [none] = await conn.query(
     "SELECT COUNT(*) AS n FROM intern_evaluations WHERE intern_id = ?",
     [b.id],
   );
   check("Bị từ chối thì không ghi dữ liệu", Number(none[0].n) === 0);
 
-  await expectStatus("Mentor 2 không đọc đánh giá intern của mentor 1", 403, "GET", urlA, mentor2Token);
-  await expectStatus("Mentor 2 không sửa đánh giá intern của mentor 1", 403, "PUT", urlA, mentor2Token, VALID);
-  await expectStatus("Intern chưa có mentor: 403", 403, "PUT", `/interns/${c.id}/evaluation`, mentor1Token, VALID);
+  await expectStatus(
+    "Mentor 2 không đọc đánh giá intern của mentor 1",
+    403,
+    "GET",
+    urlA,
+    mentor2Token,
+  );
+  await expectStatus(
+    "Mentor 2 không sửa đánh giá intern của mentor 1",
+    403,
+    "PUT",
+    urlA,
+    mentor2Token,
+    VALID,
+  );
+  await expectStatus(
+    "Intern chưa có mentor: 403",
+    403,
+    "PUT",
+    `/interns/${c.id}/evaluation`,
+    mentor1Token,
+    VALID,
+  );
   // Có mentor nhưng chưa có hợp đồng xác nhận -> 409 (không ghi dữ liệu)
   await assignMentor(ctx.hrToken, c.id, ctx.mentor1Id);
-  await expectStatus("Chưa có hợp đồng xác nhận: 409", 409, "PUT", `/interns/${c.id}/evaluation`, mentor1Token, VALID);
+  await expectStatus(
+    "Chưa có hợp đồng xác nhận: 409",
+    409,
+    "PUT",
+    `/interns/${c.id}/evaluation`,
+    mentor1Token,
+    VALID,
+  );
   const [noEval] = await conn.query(
     "SELECT COUNT(*) AS n FROM intern_evaluations WHERE intern_id = ?",
     [c.id],
   );
   check("Bị 409 thì không ghi đánh giá", Number(noEval[0].n) === 0);
-  await expectStatus("Intern không tồn tại: 404", 404, "PUT", "/interns/999999999/evaluation", mentor1Token, VALID);
-  await expectStatus("Mã intern không hợp lệ: 400", 400, "GET", "/interns/abc/evaluation", mentor1Token);
+  await expectStatus(
+    "Intern không tồn tại: 404",
+    404,
+    "PUT",
+    "/interns/999999999/evaluation",
+    mentor1Token,
+    VALID,
+  );
+  await expectStatus(
+    "Mã intern không hợp lệ: 400",
+    400,
+    "GET",
+    "/interns/abc/evaluation",
+    mentor1Token,
+  );
 
-  await expectStatus("Mentor 2 đánh giá intern của mình", 200, "PUT", urlB, mentor2Token, VALID);
+  await expectStatus(
+    "Mentor 2 đánh giá intern của mình",
+    200,
+    "PUT",
+    urlB,
+    mentor2Token,
+    VALID,
+  );
 }
 
 async function testOverview(ctx) {
@@ -285,7 +408,9 @@ async function testOverview(ctx) {
   const rowA = data?.interns?.find((i) => i.intern_id === a.id);
   check(
     "Overview của mentor 1 có intern A đã đánh giá, điểm tổng 4.5",
-    ov1.status === 200 && rowA?.has_evaluation === true && rowA?.overall_score === 4.5,
+    ov1.status === 200 &&
+      rowA?.has_evaluation === true &&
+      rowA?.overall_score === 4.5,
     JSON.stringify(ov1.body),
   );
   check(
@@ -295,11 +420,15 @@ async function testOverview(ctx) {
   check(
     "Summary khớp số dòng",
     data?.summary?.total === data?.interns?.length &&
-      data?.summary?.evaluated + data?.summary?.pending === data?.summary?.total,
+      data?.summary?.evaluated + data?.summary?.pending ===
+        data?.summary?.total,
   );
   const ov2 = await call("GET", "/evaluations/overview", mentor2Token);
   const rowB = ov2.body?.data?.interns?.find((i) => i.intern_id === b.id);
-  check("Overview mentor 2 có intern B đã đánh giá", rowB?.has_evaluation === true);
+  check(
+    "Overview mentor 2 có intern B đã đánh giá",
+    rowB?.has_evaluation === true,
+  );
 }
 
 async function testDeleteAndCascade(ctx, conn) {
@@ -307,9 +436,15 @@ async function testDeleteAndCascade(ctx, conn) {
   const urlA = `/interns/${a.id}/evaluation`;
 
   const del = await call("DELETE", urlA, mentor1Token);
-  check("Mentor xóa đánh giá của mình", del.status === 200 && del.body?.success === true);
+  check(
+    "Mentor xóa đánh giá của mình",
+    del.status === 200 && del.body?.success === true,
+  );
   const got = await call("GET", urlA, mentor1Token);
-  check("Sau khi xóa GET trả data = null", got.status === 200 && got.body?.data === null);
+  check(
+    "Sau khi xóa GET trả data = null",
+    got.status === 200 && got.body?.data === null,
+  );
   await expectStatus("Xóa lần hai: 404", 404, "DELETE", urlA, mentor1Token);
 
   // CASCADE: xóa hồ sơ intern kéo theo đánh giá
@@ -319,7 +454,9 @@ async function testDeleteAndCascade(ctx, conn) {
   );
   check("Có đánh giá trước khi xóa intern B", Number(before[0].n) === 1);
   // Hồ sơ đang giữ hợp đồng đã xác nhận thì không xóa được (409), nên gỡ hợp đồng test trước khi kiểm tra CASCADE.
-  await conn.query("DELETE FROM internship_contracts WHERE intern_id = ?", [b.id]);
+  await conn.query("DELETE FROM internship_contracts WHERE intern_id = ?", [
+    b.id,
+  ]);
   const delIntern = await call("DELETE", `/interns/${b.id}`, hrToken);
   const [after] = await conn.query(
     "SELECT COUNT(*) AS n FROM intern_evaluations WHERE intern_id = ?",

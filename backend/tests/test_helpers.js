@@ -247,7 +247,11 @@ async function cleanupByPattern(prefixes) {
         );
         const uploadsDir = path.join(__dirname, "..", "uploads");
         for (const file of files) {
-          try { fs.unlinkSync(path.join(uploadsDir, file.stored_name)); } catch { /* best-effort cleanup */ }
+          try {
+            fs.unlinkSync(path.join(uploadsDir, file.stored_name));
+          } catch {
+            /* best-effort cleanup */
+          }
         }
       }
     } catch {

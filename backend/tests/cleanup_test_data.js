@@ -25,6 +25,7 @@ const TEST_EMAIL_PREFIXES = [
   "evalx_test_", // test_evaluations_api.js — dữ liệu test đánh giá thực tập sinh
   "allowx_test_", // test_allowances_api.js — dữ liệu test phụ cấp thực tập sinh
   "support_test_", // test_support_requests_api.js
+  "orig_test_", // test_intern_origin_report_api.js
 ];
 
 (async () => {

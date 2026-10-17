@@ -177,12 +177,16 @@ async function runApiTests() {
       });
     check(
       "PATCH hợp đồng: Mentor/Intern bị chặn",
-      (await patchContract(tokens.Mentor, internId, docxContract.id, {
-        program_id: null,
-      })).status === 403 &&
-        (await patchContract(tokens.Intern, internId, docxContract.id, {
+      (
+        await patchContract(tokens.Mentor, internId, docxContract.id, {
           program_id: null,
-        })).status === 403,
+        })
+      ).status === 403 &&
+        (
+          await patchContract(tokens.Intern, internId, docxContract.id, {
+            program_id: null,
+          })
+        ).status === 403,
     );
     check(
       "PATCH hợp đồng: thiếu mọi trường cần sửa trả 400",
@@ -191,21 +195,27 @@ async function runApiTests() {
     );
     check(
       "PATCH hợp đồng: program_id không hợp lệ trả 400",
-      (await patchContract(tokens.HR, internId, docxContract.id, {
-        program_id: "abc",
-      })).status === 400,
+      (
+        await patchContract(tokens.HR, internId, docxContract.id, {
+          program_id: "abc",
+        })
+      ).status === 400,
     );
     check(
       "PATCH hợp đồng: chương trình không tồn tại trả 404",
-      (await patchContract(tokens.HR, internId, docxContract.id, {
-        program_id: 999999999,
-      })).status === 404,
+      (
+        await patchContract(tokens.HR, internId, docxContract.id, {
+          program_id: 999999999,
+        })
+      ).status === 404,
     );
     check(
       "PATCH hợp đồng: hợp đồng không thuộc thực tập sinh trả 404",
-      (await patchContract(tokens.HR, secondInternId, docxContract.id, {
-        program_id: null,
-      })).status === 404,
+      (
+        await patchContract(tokens.HR, secondInternId, docxContract.id, {
+          program_id: null,
+        })
+      ).status === 404,
     );
     const unlinkResponse = await patchContract(
       tokens.HR,
@@ -222,16 +232,20 @@ async function runApiTests() {
     );
     check(
       "PATCH hợp đồng: ngày sai định dạng trả 400",
-      (await patchContract(tokens.HR, internId, docxContract.id, {
-        start_date: "31/12/2026",
-      })).status === 400,
+      (
+        await patchContract(tokens.HR, internId, docxContract.id, {
+          start_date: "31/12/2026",
+        })
+      ).status === 400,
     );
     check(
       "PATCH hợp đồng: ngày kết thúc trước ngày bắt đầu trả 400",
-      (await patchContract(tokens.HR, internId, docxContract.id, {
-        start_date: "2026-06-01",
-        end_date: "2026-05-01",
-      })).status === 400,
+      (
+        await patchContract(tokens.HR, internId, docxContract.id, {
+          start_date: "2026-06-01",
+          end_date: "2026-05-01",
+        })
+      ).status === 400,
     );
     const datesResponse = await patchContract(
       tokens.HR,
@@ -263,8 +277,7 @@ async function runApiTests() {
     const programsBody = await programsResponse.json();
     // Chọn chương trình có đủ cả hai ngày hoặc không có ngày nào (tránh trường hợp chỉ có một đầu).
     const existingProgram = programsBody.data?.find(
-      (p) =>
-        (p.start_date && p.end_date) || (!p.start_date && !p.end_date),
+      (p) => (p.start_date && p.end_date) || (!p.start_date && !p.end_date),
     );
     if (existingProgram) {
       // Ngày hợp đồng phải nằm trong khoảng ngày của chương trình: đưa hợp đồng vào đúng khoảng đó.
@@ -278,7 +291,10 @@ async function runApiTests() {
             end_date: existingProgram.end_date,
           },
         );
-        check("PATCH hợp đồng: đưa ngày vào khoảng chương trình", fitResponse.ok);
+        check(
+          "PATCH hợp đồng: đưa ngày vào khoảng chương trình",
+          fitResponse.ok,
+        );
       }
       const linkResponse = await patchContract(
         tokens.HR,

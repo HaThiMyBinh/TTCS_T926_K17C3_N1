@@ -8,6 +8,10 @@ const hrReport = [requireRole("HR"), checkPermission("VIEW_REPORTS")];
 
 router.get("/attendance/report", ...hrReport, controller.report);
 router.get("/attendance/report/export.csv", ...hrReport, controller.exportCsv);
-router.get("/attendance/report/interns/:id/days", ...hrReport, controller.detail);
+router.get(
+  "/attendance/report/interns/:id/days",
+  ...hrReport,
+  controller.detail,
+);
 
 module.exports = router;

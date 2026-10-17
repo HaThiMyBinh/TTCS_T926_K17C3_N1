@@ -20,9 +20,30 @@ router.get("/mentors/me/interns", requireRole("Mentor"), async (req, res) => {
 });
 
 // HR xem / gán thực tập sinh theo từng mentor (Quản lý mentor).
-router.get("/mentors/:id/interns", requireRole("Admin", "HR"), endpoint((req) => mentorInterns.list(req.params.id), "Lấy thực tập sinh của mentor thành công!"));
-router.get("/mentors/:id/available-interns", requireRole("HR"), endpoint((req) => mentorInterns.available(req.params.id), "Lấy thực tập sinh có thể gán thành công!"));
-router.post("/mentors/:id/interns", requireRole("HR"), endpoint((req) => mentorInterns.assign(req.params.id, req.body), "Cập nhật phân công mentor thành công!"));
+router.get(
+  "/mentors/:id/interns",
+  requireRole("Admin", "HR"),
+  endpoint(
+    (req) => mentorInterns.list(req.params.id),
+    "Lấy thực tập sinh của mentor thành công!",
+  ),
+);
+router.get(
+  "/mentors/:id/available-interns",
+  requireRole("HR"),
+  endpoint(
+    (req) => mentorInterns.available(req.params.id),
+    "Lấy thực tập sinh có thể gán thành công!",
+  ),
+);
+router.post(
+  "/mentors/:id/interns",
+  requireRole("HR"),
+  endpoint(
+    (req) => mentorInterns.assign(req.params.id, req.body),
+    "Cập nhật phân công mentor thành công!",
+  ),
+);
 
 router.get(
   "/mentors",

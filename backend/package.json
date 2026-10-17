@@ -59,10 +59,16 @@
     "test:allowances-api": "node tests/test_allowances_api.js",
     "test:support-unit": "node tests/test_support_requests_unit.js",
     "test:support-api": "node tests/test_support_requests_api.js",
-    "test:school-report-unit": "node tests/test_school_report_unit.js",
-    "test:school-report-api": "node tests/test_school_report_api.js",
+    "test:intern-origin-unit": "node tests/test_intern_origin_report_unit.js",
+    "test:intern-origin-api": "node tests/test_intern_origin_report_api.js",
     "test:completion-rate-unit": "node tests/test_completion_rate_unit.js",
-    "test:completion-rate-api": "node tests/test_completion_rate_api.js"
+    "test:completion-rate-api": "node tests/test_completion_rate_api.js",
+    "test:completion-rate-browser": "node tests/test_completion_rate_browser.js",
+    "migrate:program-completion": "node scripts/migrate_program_completion.js",
+    "test:program-completion-api": "node tests/test_program_completion_api.js",
+    "test:program-completion-browser": "node tests/test_program_completion_browser.js",
+    "test:error-handling-unit": "node tests/test_error_handling_unit.js",
+    "test:responsive-browser": "node tests/test_responsive_browser.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
