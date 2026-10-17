@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cấu Hình Email - Task 8.4</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; background-color: #f4f6f9; min-height: 100vh; color: #333; }
+
+        /* Sidebar Navigation Menu */
+        .sidebar { width: 240px; background-color: #1e293b; color: white; padding: 20px 0; flex-shrink: 0; }
+        .sidebar h3 { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #334155; font-size: 18px; color: #38bdf8; }
+        .nav-menu { list-style: none; margin-top: 20px; }
+        .nav-menu li a { display: block; padding: 12px 20px; color: #94a3b8; text-decoration: none; font-weight: 500; transition: 0.2s; }
+        .nav-menu li a.active, .nav-menu li a:hover { background-color: #0f172a; color: #38bdf8; border-left: 4px solid #38bdf8; }
+
+        /* Main Content Area */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; }
+        .header h2 { font-size: 20px; color: #1e293b; }
+
+        .card { background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #0284c7; }
+
+        .variables-container { margin-bottom: 16px; background-color: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
+        .var-badge { display: inline-block; padding: 4px 8px; background: #e0f2fe; color: #0369a1; border-radius: 4px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+
+        /* Action Buttons */
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn { padding: 10px 18px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; }
+        .btn-primary { background-color: #0284c7; color: white; }
+        .btn-primary:hover { background-color: #0369a1; }
+        .btn-secondary { background-color: #10b981; color: white; }
+        .btn-secondary:hover { background-color: #059669; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Alert Box */
+        .alert-box { padding: 12px 16px; border-radius: 6px; font-size: 14px; margin-bottom: 20px; display: none; }
+        .alert-error { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+        .alert-success { background-color: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR MENU -->
+    <div class="sidebar">
+        <h3>HR PORTAL</h3>
+        <ul class="nav-menu">
+            <li><a href="index.html">Trang chủ</a></li>
+            <li><a href="intern-management.html">Quản lý Intern</a></li>
+            <li><a href="email-template-config.html" class="active">Cấu hình Email API</a></li>
+            <li><a href="hr-completion-reports.html">Báo cáo tiến độ</a></li>
+            <li><a href="attendance.html">Chấm công</a></li>
+        </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="container">
+            
+            <div id="alertGlobal" class="alert-box"></div>
+
+            <div class="card">
+                <div class="header">
+                    <h2>⚙️ Nối API Cấu Hình Email & Test Gửi (Task 8.4)</h2>
+                </div>
+
+                <form id="emailApiForm">
+                    <div class="form-group">
+                        <label for="templateType">Loại Template Email:</label>
+                        <select id="templateType" onchange="fetchTemplateConfig()">
+                            <option value="INTERN_WELCOME">Email Chào Mừng Intern Mới</option>
+                            <option value="SCHEDULE_NOTICE">Thông Báo Lịch Thực Tập</option>
+                            <option value="TASK_ASSIGNED">Thông Báo Giao Nhiệm Vụ</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="emailSubject">Tiêu đề Email (Subject) <span style="color:red;">*</span>:</label>
+                        <input type="text" id="emailSubject" placeholder="Nhập tiêu đề email..." required>
+                    </div>
+
+                    <div class="variables-container">
+                        <span class="var-badge">{intern_name}</span>
+                        <span class="var-badge">{schedule_date}</span>
+                        <span class="var-badge">{location}</span>
+                        <span class="var-badge">{mentor_name}</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="emailBody">Nội dung Template (Body) <span style="color:red;">*</span>:</label>
+                        <textarea id="emailBody" rows="8" placeholder="Nhập nội dung template email..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="testEmailRecipient">Email nhận test gửi thử <span style="color:red;">*</span>:</label>
+                        <input type="email" id="testEmailRecipient" placeholder="nhan-test@example.com">
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary" id="btnSaveConfig" onclick="handleSaveConfig()">💾 Lưu Config (API)</button>
+                        <button type="button" class="btn btn-secondary" id="btnTestSend" onclick="handleTestSend()">📧 Test Gửi Email (API)</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api/email-templates';
+
+        // 1. Tải cấu hình Template từ API thực tế (Không dùng mock data)
+        async function fetchTemplateConfig() {
+            const templateType = document.getElementById('templateType').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/config?type=${templateType}`, {
+                    method: 'GET',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}` 
+                    }
+                });
+
+                if (response.status === 401) throw new Error('401: Phiên đăng nhập hết hạn!');
+                if (response.status === 403) throw new Error('403: Không có quyền truy cập cấu hình email!');
+                if (response.status >= 500) throw new Error('500: Lỗi hệ thống máy chủ!');
+                if (!response.ok) throw new Error('Không thể lấy cấu hình template!');
+
+                const data = await response.json();
+                document.getElementById('emailSubject').value = data.subject || '';
+                document.getElementById('emailBody').value = data.body || '';
+
+            } catch (err) {
+                showAlert(err.message, 'error');
+            }
+        }
+
+        // 2. Nối API Lưu Config (`POST /api/email-templates/config`)
+        async function handleSaveConfig() {
+            const btn = document.getElementById('btnSaveConfig');
+            const type = document.getElementById('templateType').value;
+            const subject = document.getElementById('emailSubject').value.trim();
+            const body = document.getElementById('emailBody').value.trim();
+
+            if (!subject || !body) {
+                showAlert('400: Vui lòng nhập đầy đủ tiêu đề và nội dung template!', 'error');
+                return;
+            }
+
+            btn.innerText = 'Đang lưu...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    },
+                    body: JSON.stringify({ type, subject, body })
+                });
+
+                if (response.status === 400) throw new Error('400: Dữ liệu gửi lên không đúng định dạng!');
+                if (response.status === 401) throw new Error('401: Hết hạn phiên làm việc. Vui lòng đăng nhập lại!');
+                if (response.status === 403) throw new Error('403: Bạn không có quyền lưu cấu hình email!');
+                if (response.status >= 500) throw new Error('500: Lỗi máy chủ khi lưu cấu hình!');
+                if (!response.ok) throw new Error('Lưu cấu hình thất bại!');
+
+                showAlert('Lưu cấu hình email template thành công!', 'success');
+
+            } catch (err) {
+                showAlert(err.message, 'error');
+            } finally {
+                btn.innerText = '💾 Lưu Config (API)';
+                btn.disabled = false;
+            }
+        }
+
+        // 3. Nối API Test Gửi Email (`POST /api/email-templates/test-send`)
+        async function handleTestSend() {
+            const btn = document.getElementById('btnTestSend');
+            const recipient = document.getElementById('testEmailRecipient').value.trim();
+            const type = document.getElementById('templateType').value;
+            const subject = document.getElementById('emailSubject').value.trim();
+            const body = document.getElementById('emailBody').value.trim();
+
+            if (!recipient) {
+                showAlert('400: Vui lòng nhập địa chỉ email nhận test!', 'error');
+                return;
+            }
+
+            btn.innerText = 'Đang gửi test...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/test-send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    },
+                    body: JSON.stringify({ recipient, type, subject, body })
+                });
+
+                if (response.status === 400) throw new Error('400: Địa chỉ email nhận không hợp lệ!');
+                if (response.status === 401) throw new Error('401: Hết hạn phiên đăng nhập!');
+                if (response.status === 403) throw new Error('403: Bạn không có quyền gửi email thử nghiệm!');
+                if (response.status >= 500) throw new Error('500: Lỗi kết nối dịch vụ Mail (SMTP Error)!');
+                if (!response.ok) throw new Error('Gửi email thử nghiệm thất bại!');
+
+                showAlert(`Đã gửi email test thành công tới: ${recipient}`, 'success');
+
+            } catch (err) {
+                showAlert(err.message, 'error');
+            } finally {
+                btn.innerText = '📧 Test Gửi Email (API)';
+                btn.disabled = false;
+            }
+        }
+
+        function showAlert(msg, type) {
+            const alertBox = document.getElementById('alertGlobal');
+            alertBox.className = `alert-box alert-${type}`;
+            alertBox.innerText = msg;
+            alertBox.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => { alertBox.style.display = 'none'; }, 5000);
+        }
+
+        window.onload = () => fetchTemplateConfig();
+    </script>
+</body>
+</html>
