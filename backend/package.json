@@ -73,7 +73,8 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.4.0",
     "mysql2": "^3.24.4",
-    "nodemailer": "^6.9.16"
+    "nodemailer": "^6.9.16",
+    "pdfkit": "^0.20.2"
   },
   "devDependencies": {
     "smtp-server": "^3.13.0"

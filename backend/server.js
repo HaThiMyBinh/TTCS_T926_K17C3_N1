@@ -11,6 +11,8 @@ const permissionsRouter = require("./routes/permissions.routes");
 const authRouter = require("./routes/auth.routes");
 const mentorsRouter = require("./routes/mentors.routes");
 const internsRouter = require("./routes/interns.routes");
+const attendanceReportPdfRouter =
+  require("./routes/attendanceReportPdf.routes");
 const contractsRouter = require("./routes/contracts.routes");
 const programsRouter = require("./routes/programs.routes");
 const scheduleRouter = require("./routes/schedule.routes");
@@ -100,6 +102,7 @@ app.use("/api", workSchedulesRouter);
 app.use("/api", leavesRouter);
 app.use("/api", notificationsRouter);
 app.use("/api", attendanceReportRouter);
+app.use("/api", attendanceReportPdfRouter);
 app.use("/api", reportExportRouter);
 app.use("/api", allowancesRouter);
 app.use("/api", supportRequestsRouter);
