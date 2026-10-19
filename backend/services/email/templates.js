@@ -1,5 +1,7 @@
 // Nội dung email thông báo kết quả xét duyệt
 const { formatVietnamDateTime } = require("../../utils/date");
+const { toDate } = require("../meetingRules.service");
+const { renderMeetingIcs } = require("./meetingIcs");
 
 function escapeHtml(value) {
   return String(value ?? "").replace(
@@ -421,7 +423,69 @@ function renderLeaveRequestEmail({ intern, leave }) {
   };
 }
 
+function renderMeetingEmail(payload) {
+  const { meeting, recipient, type, reminderHours, removed } = payload;
+  const labels = {
+    MEETING_INVITE: "Mời tham dự cuộc họp",
+    MEETING_UPDATED: "Lịch họp được cập nhật",
+    MEETING_CANCELLED: removed
+      ? "Thay đổi người tham dự cuộc họp"
+      : "Cuộc họp đã hủy",
+    MEETING_REMINDER: `Nhắc lịch họp (${reminderHours} giờ)`,
+  };
+  if (!Object.hasOwn(labels, type))
+    throw new Error("Loại email lịch họp không được hỗ trợ");
+  const start = formatVietnamDateTime(toDate(meeting.startAt)),
+    end = formatVietnamDateTime(toDate(meeting.endAt));
+  const duration = Math.round(
+    (toDate(meeting.endAt) - toDate(meeting.startAt)) / 60000,
+  );
+  const subject = `[Lịch họp] ${labels[type]}: ${meeting.title}`
+    .replace(/[\x00-\x1f\x7f]/g, " ")
+    .slice(0, 250);
+  let link = "";
+  try {
+    const url = new URL(meeting.meetingLink);
+    if (
+      ["http:", "https:"].includes(url.protocol) &&
+      !url.username &&
+      !url.password
+    )
+      link = url.href;
+  } catch {
+    /* No link is valid for an in-person meeting. */
+  }
+  const items = [
+    ["Tiêu đề", meeting.title],
+    ["Bắt đầu (giờ Việt Nam)", start],
+    ["Kết thúc (giờ Việt Nam)", end],
+    ["Thời lượng", `${duration} phút`],
+    ["Địa điểm", meeting.location || "Chưa có"],
+    ["Người tổ chức", meeting.organizerName || "Nhân sự"],
+    ["Mô tả", meeting.description || "Không"],
+  ];
+  const notice = removed
+    ? "Bạn không còn trong danh sách tham dự cuộc họp này."
+    : labels[type];
+  const bodyHtml = `<p>Xin chào <b>${escapeHtml(recipient.name || "Bạn")}</b>,</p><p>${escapeHtml(notice)}</p>${items.map(([label, value]) => `<p><b>${escapeHtml(label)}:</b> ${escapeHtml(value)}</p>`).join("")}${link ? `<p><b>Liên kết họp:</b> <a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>` : ""}`;
+  const ics = renderMeetingIcs(payload);
+  return {
+    subject,
+    html: wrapHtml({ title: subject, previewText: notice, bodyHtml }),
+    text: [
+      `Xin chào ${recipient.name || "Bạn"},`,
+      notice,
+      ...items.map(([label, value]) => `${label}: ${value}`),
+      ...(link ? [`Liên kết họp: ${link}`] : []),
+    ].join("\n"),
+    ics: ics.content,
+    icsMethod: ics.method,
+    meeting: payload,
+  };
+}
+
 module.exports = {
+  renderMeetingEmail,
   escapeHtml,
   renderApprovedEmail,
   renderRejectedEmail,

@@ -1,4 +1,4 @@
-const { sendError } = require("./endpoint");
+const { sendError } = require("../utils/endpoint");
 const service = require("../services/allowances.service");
 
 async function overview(req, res) {

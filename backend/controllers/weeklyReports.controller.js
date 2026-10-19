@@ -1,4 +1,5 @@
-const { sendError } = require("./endpoint");
+const { sendError } = require("../utils/endpoint");
+const { NO_STORE } = require("../middleware/noStore");
 const service = require("../services/weeklyReports.service");
 const { HttpError } = require("../errors");
 
@@ -87,7 +88,7 @@ async function downloadReportAttachment(req, res) {
 
     res.setHeader("Content-Type", mimeType);
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("Cache-Control", NO_STORE);
 
     const onDone = (err) => {
       if (err && !res.headersSent) {

@@ -19,6 +19,39 @@ const INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
 // needsServer: cần MySQL và backend
 const SUITES = [
   {
+    name: "frontend-split",
+    file: "test_frontend_split.js",
+    needsServer: false,
+    optionalBrowser: true,
+  },
+  {
+    name: "intern-origin-browser",
+    file: "test_intern_origin_browser.js",
+    needsServer: false,
+    optionalBrowser: true,
+  },
+  { name: "meetings-unit", file: "test_meetings_unit.js", needsServer: false },
+  {
+    name: "meetings-api",
+    file: "test_meetings_api.js",
+    needsServer: true,
+    optionalMeetingWrites: true,
+  },
+  {
+    name: "meetings-browser",
+    file: "test_meetings_browser.js",
+    needsServer: false,
+    optionalBrowser: true,
+  },
+  { name: "export-unit", file: "test_export_unit.js", needsServer: false },
+  { name: "export-api", file: "test_export_api.js", needsServer: true },
+  {
+    name: "export-browser",
+    file: "test_export_browser.js",
+    needsServer: false,
+    optionalBrowser: true,
+  },
+  {
     name: "responsive-browser",
     file: "test_responsive_browser.js",
     needsServer: false,
@@ -118,21 +151,6 @@ const SUITES = [
     needsServer: false,
   },
   {
-    name: "school-report-unit",
-    file: "test_school_report_unit.js",
-    needsServer: false,
-  },
-  {
-    name: "completion-rate-unit",
-    file: "test_completion_rate_unit.js",
-    needsServer: false,
-  },
-  {
-    name: "report-export-unit",
-    file: "test_report_export_unit.js",
-    needsServer: false,
-  },
-  {
     name: "contracts-unit",
     file: "test_contracts_unit.js",
     needsServer: false,
@@ -166,6 +184,26 @@ const SUITES = [
     needsServer: false,
   },
   {
+    name: "transaction-retry-unit",
+    file: "test_transaction_retry_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "structure-unit",
+    file: "test_structure_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "intern-groups-unit",
+    file: "test_intern_groups_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "mentor-groups-unit",
+    file: "test_mentor_groups_unit.js",
+    needsServer: false,
+  },
+  {
     name: "program-mentor-unit",
     file: "test_program_mentor_unit.js",
     needsServer: false,
@@ -178,6 +216,11 @@ const SUITES = [
   {
     name: "intern-origin-unit",
     file: "test_intern_origin_report_unit.js",
+    needsServer: false,
+  },
+  {
+    name: "intern-origin-regressions",
+    file: "test_intern_origin_regressions.js",
     needsServer: false,
   },
   { name: "login", file: "test_login.js", needsServer: true },
@@ -238,21 +281,6 @@ const SUITES = [
     file: "test_support_requests_api.js",
     needsServer: true,
   },
-  {
-    name: "school-report-api",
-    file: "test_school_report_api.js",
-    needsServer: true,
-  },
-  {
-    name: "completion-rate-api",
-    file: "test_completion_rate_api.js",
-    needsServer: true,
-  },
-  {
-    name: "report-export-api",
-    file: "test_report_export_api.js",
-    needsServer: true,
-  },
   { name: "mentors", file: "test_mentors.js", needsServer: true },
   { name: "applications", file: "test_applications.js", needsServer: true },
   { name: "documents-api", file: "test_documents_api.js", needsServer: true },
@@ -277,6 +305,11 @@ const SUITES = [
   {
     name: "program-dates-api",
     file: "test_program_dates_api.js",
+    needsServer: true,
+  },
+  {
+    name: "structure-api",
+    file: "test_structure_api.js",
     needsServer: true,
   },
   {
@@ -443,7 +476,8 @@ async function main() {
   let suites = SUITES.filter(
     (s) =>
       (!s.optionalBrowser || args.includes("--browser")) &&
-      (!s.optionalWrites || args.includes("--program-results-write-tests")),
+      (!s.optionalWrites || args.includes("--program-results-write-tests")) &&
+      (!s.optionalMeetingWrites || args.includes("--meeting-write-tests")),
   );
   if (unitOnly) suites = suites.filter((s) => !s.needsServer);
   if (onlyFilters.length)
@@ -523,6 +557,7 @@ async function main() {
         s.needsServer &&
         ![
           "completion-rate-api",
+          "meetings-api",
           "program-completion-api",
           "program-completion-browser",
         ].includes(s.name),

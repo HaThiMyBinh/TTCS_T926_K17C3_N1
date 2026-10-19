@@ -48,10 +48,7 @@ function calculateProgress(documents = []) {
   };
 }
 
-function parseId(raw, message) {
-  if (!/^\d+$/.test(String(raw))) throw new HttpError(400, message);
-  return Number(raw);
-}
+const { parseId } = require("../utils/ids");
 
 function lockedMessage(status, action) {
   return `Hồ sơ của bạn đang ở trạng thái [${status}], không thể ${action}!`;

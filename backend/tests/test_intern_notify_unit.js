@@ -337,6 +337,22 @@ const last = () => pushed.at(-1);
   await workSchedules.removeAssignment("31");
   assert.deepStrictEqual(last().userIds, [1005]);
   assert.match(last().message, /"Giờ chiều" không còn áp dụng cho bạn/);
+  // xóa lần áp dụng đã kết thúc -> không báo ai
+  const endedRows = [
+    {
+      id: 32,
+      scheduleId: 2,
+      scheduleName: "Giờ chiều",
+      targetType: "UNIVERSITY",
+      targetValue: "ĐH X",
+      effectiveFrom: "2020-01-01",
+      effectiveTo: "2020-12-31",
+    },
+  ];
+  require("../db").listWorkScheduleAssignments = async () => endedRows;
+  pushed.length = 0;
+  await workSchedules.removeAssignment("32");
+  assert.strictEqual(pushed.length, 0, "lần áp dụng đã kết thúc -> không thông báo");
   // áp dụng không ảnh hưởng ai (không ai thuộc phạm vi) -> không tạo thông báo
   pushed.length = 0;
   await workSchedules.assign(

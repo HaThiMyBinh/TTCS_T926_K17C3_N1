@@ -22,12 +22,7 @@ const STATUSES = [
 ];
 const DECISIONS = ["START", "RESOLVE", "REJECT"];
 
-function parseId(value, message = "ID không hợp lệ!") {
-  const text = String(value ?? "");
-  if (!/^[1-9]\d*$/.test(text) || !Number.isSafeInteger(Number(text)))
-    throw new HttpError(400, message);
-  return Number(text);
-}
+const { parseId } = require("../utils/ids");
 function validateBody(body) {
   const allowed = ["request_type", "title", "description"];
   if (

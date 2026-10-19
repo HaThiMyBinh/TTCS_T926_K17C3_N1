@@ -2,6 +2,9 @@
 // Nguồn sự thật là bảng email_logs trong MySQL; this.timers chỉ giữ các timer retry đang chờ.
 // Nếu server tắt giữa chừng, loadPendingJobsFromDb() nạp lại các log dang dở khi khởi động.
 const EventEmitter = require("events");
+const { HttpError } = require("../../errors");
+const meetingRules = require("../meetingRules.service");
+const internNotify = require("../internNotify.service");
 const db = require("../../db");
 const smtpConfig = require("./smtpConfig");
 const emailSender = require("./emailSender");
@@ -24,10 +27,13 @@ class EmailQueue extends EventEmitter {
 
   // Ghi log PENDING rồi gửi nền; server.js gọi hàm này khi hồ sơ được duyệt/từ chối
   async enqueueReviewEmail({ application, action }) {
-    const built =
-      action === "APPROVED"
-        ? templates.renderApprovedEmail(application)
-        : templates.renderRejectedEmail(application);
+    const renderer = new Map([
+      ["APPROVED", templates.renderApprovedEmail],
+      ["REJECTED", templates.renderRejectedEmail],
+    ]).get(action);
+    if (!renderer)
+      throw new HttpError(400, "Loại email xét duyệt không được hỗ trợ!");
+    const built = renderer(application);
 
     const logId = await db.insertEmailLog({
       applicationId: application.id,
@@ -124,13 +130,18 @@ class EmailQueue extends EventEmitter {
   async loadPendingJobsFromDb() {
     const rows = await db.listPendingOrRetryingEmailLogs();
     for (const row of rows) {
-      const { recipient, built } = await this._rebuildJob(row);
-      this._process(row.id, recipient, built, row.attempts).catch((err) => {
-        console.error(
-          `[EMAIL] Lỗi khi nạp lại log #${row.id} lúc khởi động:`,
-          err,
+      try {
+        const { recipient, built } = await this._rebuildJob(row);
+        this._process(row.id, recipient, built, row.attempts).catch((err) =>
+          console.error(`[EMAIL] Không nạp lại được log #${row.id}:`, err),
         );
-      });
+      } catch (err) {
+        await db.updateEmailLog(row.id, {
+          status: "FAILED",
+          errorMessage: "Loại email hoặc dữ liệu dựng lại không hợp lệ.",
+        });
+        console.error(`[EMAIL] Không dựng được log #${row.id}:`, err);
+      }
     }
     return rows.length;
   }
@@ -143,6 +154,7 @@ class EmailQueue extends EventEmitter {
       err.status = 404;
       throw err;
     }
+    if (row.meetingId) return this.retryMeetingLog(logId);
     if (row.status !== "FAILED" && row.status !== "RETRYING") {
       const err = new Error(
         'Chỉ có thể gửi lại email đang ở trạng thái "Thất bại" hoặc "Đang gửi lại"!',
@@ -164,6 +176,25 @@ class EmailQueue extends EventEmitter {
 
   // Dựng lại người nhận + nội dung email từ 1 dòng log (dùng hồ sơ nếu còn, không thì dùng dữ liệu trong log)
   async _rebuildJob(row) {
+    if (meetingRules.EMAIL_TYPES.includes(row.emailType)) {
+      const payload = await db.findMeetingEmailPayload(row.id);
+      if (
+        payload.type !== row.emailType ||
+        Number(payload.meeting?.id) !== Number(row.meetingId) ||
+        payload.recipient?.email !== row.recipientEmail
+      )
+        throw new HttpError(400, "Snapshot email lịch họp không khớp!");
+      return {
+        recipient: { to: row.recipientEmail, name: row.recipientName },
+        built: templates.renderMeetingEmail(payload),
+      };
+    }
+    const renderer = new Map([
+      ["APPROVED", templates.renderApprovedEmail],
+      ["REJECTED", templates.renderRejectedEmail],
+    ]).get(row.emailType);
+    if (!renderer)
+      throw new HttpError(400, "Loại email không được hỗ trợ; không gửi!");
     const application = row.applicationId
       ? await db.findApplicationById(row.applicationId)
       : null;
@@ -172,26 +203,163 @@ class EmailQueue extends EventEmitter {
       name: row.recipientName,
       email: row.recipientEmail,
     };
-    const built =
-      row.emailType === "APPROVED"
-        ? templates.renderApprovedEmail(payload)
-        : templates.renderRejectedEmail(payload);
     return {
       recipient: { to: row.recipientEmail, name: row.recipientName },
-      built,
+      built: renderer(payload),
     };
   }
 
+  async retryMeetingLog(logId) {
+    const row = await db.findEmailLogById(logId);
+    if (!row?.meetingId)
+      throw new HttpError(404, "Không tìm thấy email lịch họp!");
+    if (!["FAILED", "RETRYING"].includes(row.status))
+      throw new HttpError(400, "Chỉ gửi lại email thất bại hoặc đang thử lại!");
+    const { recipient, built } = await this._rebuildJob(row);
+    if (!meetingRules.validEmail(recipient.to))
+      throw new HttpError(400, "Email người nhận thiếu hoặc không hợp lệ!");
+    if (!(await db.meetingEmailIsCurrent(built.meeting)))
+      throw new HttpError(
+        409,
+        "Sự kiện lịch họp đã cũ hoặc người tham dự đã thay đổi; không gửi lại!",
+      );
+    const timer = this.timers.get(logId);
+    if (timer) clearTimeout(timer);
+    this.timers.delete(logId);
+    if (!(await db.prepareMeetingRetry(logId)))
+      throw new HttpError(
+        409,
+        "Email đang được xử lý hoặc trạng thái đã thay đổi!",
+      );
+    this._process(logId, recipient, built, row.attempts, true).catch((err) =>
+      console.error("[MEETING-RETRY]", err),
+    );
+    return db.findEmailLogById(logId);
+  }
+
+  async dispatchMeetingJobs() {
+    if (this.meetingDispatchRunning) return 0;
+    this.meetingDispatchRunning = true;
+    let count = 0;
+    try {
+      for (const row of await db.listMeetingNotificationJobs()) {
+        try {
+          const payload = JSON.parse(row.payloadJson);
+          if (!(await db.meetingEmailIsCurrent(payload))) {
+            await db.discardMeetingNotification(row.id);
+            continue;
+          }
+          const labels = {
+            MEETING_INVITE: "Lịch họp mới",
+            MEETING_UPDATED: "Lịch họp đã cập nhật",
+            MEETING_CANCELLED: "Lịch họp đã hủy / đổi người tham dự",
+            MEETING_REMINDER: "Sắp đến giờ họp",
+          };
+          await internNotify.toInterns([row.internId], {
+            type: payload.type,
+            title: labels[payload.type],
+            message:
+              `${payload.meeting.title} — ${internNotify.viDate(payload.meeting.startAt)} ${payload.meeting.startAt.slice(11, 16)} (giờ Việt Nam)`.slice(
+                0,
+                500,
+              ),
+            targetTab: "tab-my-meetings",
+            refId: payload.meeting.id,
+            dedupeKey: row.eventKey,
+          });
+          await db.acknowledgeMeetingNotification(row.id, row.eventKey);
+        } catch (err) {
+          console.error("[MEETING-NOTIFY]", err);
+        }
+      }
+      while (true) {
+        const rows = (await db.listMeetingEmailJobs()).filter(
+          (row) => !this.timers.has(row.id),
+        );
+        if (!rows.length) break;
+        let index = 0;
+        const worker = async () => {
+          while (index < rows.length) {
+            const row = rows[index++];
+            try {
+              const { recipient, built } = await this._rebuildJob(row);
+              await this._process(row.id, recipient, built, row.attempts);
+              count++;
+            } catch (err) {
+              console.error("[MEETING-JOB]", err);
+              await db.updateEmailLog(row.id, {
+                status: "FAILED",
+                errorMessage: "Không dựng được dữ liệu email lịch họp.",
+              });
+            }
+          }
+        };
+        await Promise.all(
+          Array.from({ length: Math.min(5, rows.length) }, worker),
+        );
+      }
+      return count;
+    } finally {
+      this.meetingDispatchRunning = false;
+    }
+  }
+
+  async _process(logId, recipient, built, priorAttempts, manual = false) {
+    if (!built.meeting)
+      return this._deliver(logId, recipient, built, priorAttempts);
+    const claim = await db.claimMeetingEmail(logId, manual);
+    if (!claim) return;
+    try {
+      if (
+        !meetingRules.validEmail(recipient.to) ||
+        !(await db.meetingEmailIsCurrent(built.meeting))
+      ) {
+        await db.updateEmailLog(
+          logId,
+          {
+            status: "FAILED",
+            errorMessage:
+              "Email không hợp lệ hoặc sự kiện lịch họp đã cũ; không gửi.",
+          },
+          claim.token,
+        );
+        return;
+      }
+      if (!manual && claim.attempts >= MAX_ATTEMPTS) {
+        await db.updateEmailLog(
+          logId,
+          {
+            status: "FAILED",
+            errorMessage: "Đã hết lượt thử tự động; có thể gửi lại thủ công.",
+          },
+          claim.token,
+        );
+        return;
+      }
+      return await this._deliver(
+        logId,
+        recipient,
+        built,
+        claim.attempts,
+        claim.token,
+      );
+    } finally {
+      await db.releaseMeetingEmail(logId, claim.token);
+    }
+  }
+
   // Xử lý 1 lượt gửi và hẹn giờ retry nếu cần. priorAttempts: số lần đã thử trước đó.
-  async _process(logId, recipient, built, priorAttempts) {
+  async _deliver(logId, recipient, built, priorAttempts, claimToken = null) {
+    const updateLog = (fields) => db.updateEmailLog(logId, fields, claimToken);
     const attemptNumber = priorAttempts + 1;
     const config = smtpConfig.readConfig();
 
     // Chưa cấu hình SMTP: FAILED ngay, không retry (thử lại cũng không khỏi)
     if (!smtpConfig.isConfigured(config)) {
-      await db.updateEmailLog(logId, {
+      await updateLog({
         status: "FAILED",
         attempts: attemptNumber,
+        ...(claimToken ? { nextAttemptAt: null } : {}),
         errorMessage:
           "Chưa cấu hình SMTP (thiếu SMTP server/port/email gửi/App Password). Vào trang Cấu hình Email để thiết lập.",
       });
@@ -199,7 +367,7 @@ class EmailQueue extends EventEmitter {
       return;
     }
 
-    await db.updateEmailLog(logId, {
+    await updateLog({
       status: attemptNumber === 1 ? "PENDING" : "RETRYING",
       attempts: attemptNumber,
     });
@@ -212,11 +380,22 @@ class EmailQueue extends EventEmitter {
         subject: built.subject,
         html: built.html,
         text: built.text,
+        ...(built.meeting
+          ? {
+              messageId: `<meeting-email-${logId}@internship.local>`,
+              icalEvent: {
+                filename: `lich-hop-${built.meeting.meeting.id}.ics`,
+                method: built.icsMethod,
+                content: built.ics,
+              },
+            }
+          : {}),
       });
 
-      await db.updateEmailLog(logId, {
+      await updateLog({
         status: "SENT",
         attempts: attemptNumber,
+        ...(claimToken ? { nextAttemptAt: null } : {}),
         errorMessage: null,
         sentAt: new Date(),
       });
@@ -227,9 +406,10 @@ class EmailQueue extends EventEmitter {
 
       // Lỗi vĩnh viễn hoặc hết hạn mức retry: FAILED (HR vẫn có thể "Gửi lại" thủ công)
       if (classification === "PERMANENT" || attemptNumber >= MAX_ATTEMPTS) {
-        await db.updateEmailLog(logId, {
+        await updateLog({
           status: "FAILED",
           attempts: attemptNumber,
+          ...(claimToken ? { nextAttemptAt: null } : {}),
           errorMessage: message,
         });
         this.emit("email:failed", { logId });
@@ -237,12 +417,20 @@ class EmailQueue extends EventEmitter {
       }
 
       // Lỗi tạm thời: RETRYING rồi hẹn giờ thử lại
-      await db.updateEmailLog(logId, {
+      const delay = RETRY_DELAYS_MS[attemptNumber - 1];
+      await updateLog({
         status: "RETRYING",
         attempts: attemptNumber,
+        ...(claimToken
+          ? {
+              nextAttemptAt: new Date(Date.now() + delay)
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " "),
+            }
+          : {}),
         errorMessage: message,
       });
-      const delay = RETRY_DELAYS_MS[attemptNumber - 1];
       const timer = setTimeout(() => {
         this.timers.delete(logId);
         this._process(logId, recipient, built, attemptNumber).catch((e) => {

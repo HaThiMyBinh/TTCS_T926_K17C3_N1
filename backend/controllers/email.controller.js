@@ -1,13 +1,13 @@
-const { sendError } = require("./endpoint");
+const { sendError } = require("../utils/endpoint");
 // Cấu hình SMTP và nhật ký gửi email
 const db = require("../db");
 const smtpConfig = require("../services/email/smtpConfig");
 const emailQueue = require("../services/email/emailQueue");
 const { HttpError } = require("../errors");
+const { EMAIL_REGEX } = require("../utils/validation");
 
 const PORT_MIN = 1;
 const PORT_MAX = 65535;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // GET /api/email/config
 async function getConfig(req, res) {

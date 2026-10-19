@@ -16,14 +16,25 @@ if %errorlevel% neq 0 (
   exit /b 1
 )
 
-if not exist "node_modules" (
-  echo [1/4] Chua co thu vien node_modules, dang tu dong cai dat...
-  call npm install
+rem Kiem tra thu vien thuc su, khong chi kiem tra thu muc co ton tai.
+node scripts\check_dependencies.js >nul 2>nul
+if !errorlevel! neq 0 (
+  echo [1/4] Thu vien bi thieu hoac hong, dang cai lai theo package-lock.json...
+  call npm ci --cache "%TEMP%\UserManagement-npm-cache"
   if !errorlevel! neq 0 (
-    echo [LOI] Cai dat thu vien that bai! Vui long kiem tra ket noi Internet roi thu lai.
+    echo [LOI] Cai lai thu vien that bai. Xem loi npm o tren.
+    echo Khong xoa package-lock.json. Kiem tra ket noi Internet roi thu lai.
     pause
     exit /b 1
   )
+  node scripts\check_dependencies.js
+  if !errorlevel! neq 0 (
+    echo [LOI] Thu vien van chua hop le sau khi cai dat. Xem loi o tren.
+    pause
+    exit /b 1
+  )
+) else (
+  echo [1/4] Thu vien da du va nap duoc.
 )
 
 echo [2/4] Dang khoi dong Server Backend tai cong 5000...

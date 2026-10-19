@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { HttpError, sendRouteError } = require("../errors");
-const { sendError } = require("../controllers/endpoint");
+const { sendError } = require("../utils/endpoint");
 const support = require("../controllers/supportRequests.controller");
 const service = require("../services/supportRequests.service");
 function response() {
@@ -73,7 +73,7 @@ test("public validation errors retain status/metadata; extras cannot replace env
   assert.equal(res.body.code, "NEEDS_CONFIRMATION");
   assert.deepEqual(res.body.warnings, ["x"]);
 });
-test("legacy routes use the same 5xx policy and preserve their response shape", async () => {
+test("legacy routes use the same 5xx policy and return the shared response shape", async () => {
   await captureErrors(() => {
     const res = response();
     sendRouteError(
@@ -81,14 +81,20 @@ test("legacy routes use the same 5xx policy and preserve their response shape", 
       new HttpError(500, "INTERNAL_FAILURE"),
       "Thông báo an toàn",
     );
-    assert.deepEqual(res.body, { error: "Thông báo an toàn" });
+    assert.deepEqual(res.body, {
+      error: "Thông báo an toàn",
+      message: "Thông báo an toàn",
+    });
     assert.equal(res.statusCode, 500);
     const conflict = response();
     const err = new Error("Không thể xóa");
     err.status = 409;
     sendRouteError(conflict, err, "Lỗi máy chủ");
     assert.equal(conflict.statusCode, 409);
-    assert.deepEqual(conflict.body, { error: "Không thể xóa" });
+    assert.deepEqual(conflict.body, {
+      error: "Không thể xóa",
+      message: "Không thể xóa",
+    });
   });
 });
 test("support actions share success status, no-store and error handling", async () => {
@@ -262,6 +268,7 @@ test("intern listing preserves the route envelope and hides database details", a
       assert.equal(res.statusCode, 500);
       assert.deepEqual(res.body, {
         error: "Lỗi đọc danh sách hồ sơ thực tập sinh!",
+        message: "Lỗi đọc danh sách hồ sơ thực tập sinh!",
       });
     });
   } finally {
@@ -338,6 +345,6 @@ test("intern filter routes return shared 400 responses for invalid parameters", 
     const res = response();
     await handler({ user: { role: "HR" }, query }, res);
     assert.equal(res.statusCode, 400, path);
-    assert.deepEqual(res.body, { error: message }, path);
+    assert.deepEqual(res.body, { error: message, message }, path);
   }
 });

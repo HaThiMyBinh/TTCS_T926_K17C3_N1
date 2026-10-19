@@ -112,7 +112,21 @@ function validateAttachment({ buffer, originalname }) {
   };
 }
 
+// DTO công khai của file đính kèm (không lộ tên file lưu trên đĩa). ownerField: "task_id" | "report_id".
+function toAttachmentDto(row, ownerField, ownerId) {
+  return {
+    id: Number(row.id),
+    [ownerField]: Number(ownerId),
+    original_name: sanitizeFileName(row.originalName),
+    mime_type: row.mimeType,
+    size_bytes: Number(row.sizeBytes),
+    can_preview: INLINE_MIME_TYPES.includes(row.mimeType),
+    uploaded_at: row.uploadedAt || null,
+  };
+}
+
 module.exports = {
+  toAttachmentDto,
   MAX_ATTACHMENTS_PER_TASK,
   ALLOWED_EXTENSIONS,
   INLINE_MIME_TYPES,

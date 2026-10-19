@@ -1,7 +1,8 @@
+const exportModels = require("./export/reportModels");
 const db = require("../db");
 const { HttpError } = require("../errors");
 const weeks = require("../utils/weeks");
-const { csvCell } = require("./finalReports.service");
+const { csvCell } = require("../utils/csv");
 const {
   normalizeKey,
   cleanText,
@@ -188,7 +189,8 @@ async function report(query = {}) {
     db.getCompletionRateRows(filters),
     db.getCompletionRatePrograms(),
   ]);
-  return { ...buildReport(rows), programs, filters };
+  const data = { ...buildReport(rows), programs, filters };
+  return { ...data, exportModel: exportModels.completion(data, filters) };
 }
 async function interns(query = {}) {
   const filters = validateQuery(query, true);
@@ -304,4 +306,5 @@ module.exports = {
   report,
   interns,
   exportCsv,
+  exportXlsx: async (query) => (await report(query)).exportModel,
 };

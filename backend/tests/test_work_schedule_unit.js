@@ -384,70 +384,88 @@ check("internMatchesTarget", () => {
 });
 
 // ---------- kế hoạch gán lịch ----------
-check("planAssignmentChange: tự đóng lần đang mở và phát hiện trùng", () => {
-  const open = { id: 1, effectiveFrom: "2026-01-01", effectiveTo: null };
-  assert.deepEqual(
-    w.planAssignmentChange([open], {
-      effectiveFrom: "2026-11-01",
-      effectiveTo: null,
-    }),
-    {
-      conflict: false,
-      close: [{ id: 1, effectiveTo: "2026-10-31" }],
-    },
-  );
-  assert.deepEqual(
-    w.planAssignmentChange([], {
-      effectiveFrom: "2026-11-01",
-      effectiveTo: null,
-    }),
-    { conflict: false, close: [] },
-  );
-  // cùng ngày bắt đầu với lần đang mở -> trùng
-  assert.equal(
-    w.planAssignmentChange([open], {
+check(
+  "planAssignmentChange: tự đóng lần đang mở, cho phép chồng khoảng ngày",
+  () => {
+    const open = { id: 1, effectiveFrom: "2026-01-01", effectiveTo: null };
+    assert.deepEqual(
+      w.planAssignmentChange([open], {
+        effectiveFrom: "2026-11-01",
+        effectiveTo: null,
+      }),
+      {
+        conflict: false,
+        close: [{ id: 1, effectiveTo: "2026-10-31" }],
+      },
+    );
+    assert.deepEqual(
+      w.planAssignmentChange([], {
+        effectiveFrom: "2026-11-01",
+        effectiveTo: null,
+      }),
+      { conflict: false, close: [] },
+    );
+    // chồng với lần đã đóng -> vẫn cho phép, không đóng gì thêm
+    const closed = {
+      id: 2,
       effectiveFrom: "2026-01-01",
-      effectiveTo: null,
-    }).conflict,
-    true,
-  );
-  // lần đã đóng chồng với khoảng mới
-  const closed = {
-    id: 2,
-    effectiveFrom: "2026-01-01",
-    effectiveTo: "2026-06-30",
-  };
-  assert.equal(
-    w.planAssignmentChange([closed], {
-      effectiveFrom: "2026-06-01",
-      effectiveTo: "2026-12-31",
-    }).conflict,
-    true,
-  );
-  assert.equal(
-    w.planAssignmentChange([closed], {
-      effectiveFrom: "2026-07-01",
-      effectiveTo: null,
-    }).conflict,
-    false,
-  );
-  // lần tương lai: khoảng mới phải kết thúc trước nó
-  const future = { id: 3, effectiveFrom: "2026-12-01", effectiveTo: null };
-  assert.equal(
-    w.planAssignmentChange([future], {
-      effectiveFrom: "2026-10-01",
-      effectiveTo: null,
-    }).conflict,
-    true,
-  );
-  assert.equal(
-    w.planAssignmentChange([future], {
-      effectiveFrom: "2026-10-01",
-      effectiveTo: "2026-11-30",
-    }).conflict,
-    false,
-  );
-});
+      effectiveTo: "2026-06-30",
+    };
+    assert.deepEqual(
+      w.planAssignmentChange([closed], {
+        effectiveFrom: "2026-06-01",
+        effectiveTo: "2026-12-31",
+      }),
+      { conflict: false, close: [] },
+    );
+    // chồng với lần ở tương lai -> vẫn cho phép
+    const future = { id: 3, effectiveFrom: "2026-12-01", effectiveTo: null };
+    assert.equal(
+      w.planAssignmentChange([future], {
+        effectiveFrom: "2026-10-01",
+        effectiveTo: null,
+      }).conflict,
+      false,
+    );
+  },
+);
+
+check(
+  "resolveScheduleFromContext: nhiều lần áp dụng chồng nhau -> lần bắt đầu muộn nhất thắng",
+  () => {
+    const mk = (id) => ({ id, name: `L${id}`, mode: "FLEXIBLE", days: [] });
+    const ctx = {
+      schedules: [mk(1), mk(2), mk(3)],
+      assignments: [
+        {
+          id: 10,
+          scheduleId: 2,
+          targetType: "PROGRAM",
+          targetValue: "3",
+          effectiveFrom: "2026-01-01",
+          effectiveTo: "2026-12-31",
+        },
+        {
+          id: 11,
+          scheduleId: 3,
+          targetType: "PROGRAM",
+          targetValue: "3",
+          effectiveFrom: "2026-06-01",
+          effectiveTo: "2026-08-31",
+        },
+      ],
+      programs: [],
+      mentors: [],
+      groups: [],
+    };
+    const intern = { id: 1, university: "X", mentorId: null };
+    const at = (d) =>
+      w.resolveScheduleFromContext(ctx, intern, d, 3, null).schedule.id;
+    assert.equal(at("2026-03-01"), 2);
+    assert.equal(at("2026-07-01"), 3); // đoạn chồng: lần mới hơn thắng
+    assert.equal(at("2026-10-01"), 2); // hết lần chồng thì lần rộng hơn áp dụng lại
+  },
+);
 
 // ---------- phân loại ngày & tỷ lệ ----------
 check("classifyAttendanceDay: đủ các trạng thái", () => {

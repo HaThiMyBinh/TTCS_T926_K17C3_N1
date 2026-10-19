@@ -1,11 +1,11 @@
 const { HttpError } = require("../errors");
+const { escapeLike: sharedEscapeLike } = require("./sql");
 
 const MAX_FILTER_LENGTH = 100;
 const FILTER_KEYS = ["q", "university", "major"];
 
-function escapeLike(value) {
-  return value.replace(/[=\\%_]/g, "=$&");
-}
+// Câu SQL của bộ lọc dùng ESCAPE '='.
+const escapeLike = (value) => sharedEscapeLike(value, "=");
 
 function normalizeInternFilters(query = {}) {
   const filters = {};

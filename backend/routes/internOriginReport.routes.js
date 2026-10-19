@@ -1,10 +1,8 @@
 const express = require("express");
-const { requireRole } = require("../auth");
-const { checkPermission } = require("../middleware/permissions");
+const { hrReport } = require("../middleware/guards");
 const controller = require("../controllers/internOriginReport.controller");
 
 const router = express.Router();
-const hrReport = [requireRole("HR"), checkPermission("VIEW_REPORTS")];
 
 router.get("/reports/interns-by-origin", ...hrReport, controller.report);
 router.get(
@@ -18,4 +16,9 @@ router.get(
   controller.interns,
 );
 
+router.get(
+  "/reports/interns-by-origin/export.xlsx",
+  ...hrReport,
+  controller.xlsx,
+);
 module.exports = router;

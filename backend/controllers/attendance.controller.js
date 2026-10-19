@@ -1,5 +1,5 @@
 const service = require("../services/attendance.service");
-const { makeEndpoint } = require("./endpoint");
+const { makeEndpoint } = require("../utils/endpoint");
 const endpoint = makeEndpoint("ATTENDANCE");
 module.exports = {
   today: endpoint(

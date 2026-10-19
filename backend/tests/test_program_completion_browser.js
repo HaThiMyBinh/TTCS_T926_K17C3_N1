@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const mysql = require("mysql2/promise");
 const { chromium } = require("playwright");
+const { serveFrontendStatic } = require("./frontend_static");
 const { BASE_URL, readDbConfig } = require("./test_helpers");
 async function main() {
   const cfg = readDbConfig();
@@ -75,7 +76,12 @@ async function main() {
     });
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.route("https://**/*", (route) => route.abort());
+    await page.route("**/*", (route) => {
+      if (new URL(route.request().url()).origin !== new URL(BASE_URL).origin)
+        return route.abort();
+      const served = serveFrontendStatic(route);
+      return served || route.continue();
+    });
     await page.addInitScript((token) => {
       sessionStorage.setItem("authToken", token);
       sessionStorage.setItem(

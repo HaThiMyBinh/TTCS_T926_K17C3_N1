@@ -1,4 +1,5 @@
-const { sendError } = require("./endpoint");
+const { sendError } = require("../utils/endpoint");
+const { NO_STORE } = require("../middleware/noStore");
 const service = require("../services/documents.service");
 const { HttpError } = require("../errors");
 
@@ -47,7 +48,7 @@ async function downloadDocument(req, res) {
     // Không cho trình duyệt đoán kiểu nội dung và không cache tài liệu cá nhân
     res.setHeader("Content-Type", mimeType);
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("Cache-Control", NO_STORE);
 
     const onDone = (err) => {
       if (err && !res.headersSent) {

@@ -1,23 +1,12 @@
 // Run against a backed-up database before deploying US6 per-program results.
 // This command adds missing columns only; no account seeding or record updates.
 const mysql = require("mysql2/promise");
-const fs = require("node:fs");
-const path = require("node:path");
+const { readDbConfig } = require("../utils/dbConfig");
 const {
   migrateProgramCompletion,
-} = require("../services/programCompletionMigration");
+} = require("../migrations/programCompletionMigration");
 async function main() {
-  const file = path.join(__dirname, "../db_config.json");
-  const cfg = fs.existsSync(file)
-    ? JSON.parse(fs.readFileSync(file, "utf8"))
-    : {};
-  const conn = await mysql.createConnection({
-    host: process.env.DB_HOST || cfg.host || "localhost",
-    port: Number(process.env.DB_PORT || cfg.port || 3306),
-    user: process.env.DB_USER || cfg.user || "root",
-    password: process.env.DB_PASSWORD ?? cfg.password ?? "",
-    database: process.env.DB_NAME || cfg.database || "user_management",
-  });
+  const conn = await mysql.createConnection(readDbConfig());
   try {
     await migrateProgramCompletion(conn);
     console.log(

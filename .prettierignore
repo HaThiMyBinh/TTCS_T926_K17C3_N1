@@ -2,3 +2,5 @@ node_modules/
 backend/uploads/
 demo/
 *.json
+
+Frontend/assets/fontawesome/

@@ -1,3 +1,4 @@
+const exportModels = require("./export/reportModels");
 // Báo cáo chuyên cần (HR): tổng hợp đi làm, nghỉ phép, vắng, đi muộn theo lịch làm việc áp dụng.
 // Dữ liệu được tải theo lô (không truy vấn theo từng ngày/từng người); phần tính toán là hàm thuần.
 const db = require("../db");
@@ -5,9 +6,9 @@ const { HttpError } = require("../errors");
 const weeks = require("../utils/weeks");
 const { getVietnamToday } = require("../utils/date");
 const w = require("./scheduleRules.service");
-const { csvCell } = require("./finalReports.service");
+const { csvCell } = require("../utils/csv");
 
-const SCOPE_TYPES = ["ALL", "UNIVERSITY", "PROGRAM", "MENTOR"];
+const SCOPE_TYPES = ["ALL", "UNIVERSITY", "PROGRAM", "GROUP", "MENTOR"];
 const GROUP_BY = ["NONE", "PROGRAM", "UNIVERSITY", "MENTOR"];
 const MAX_RANGE_DAYS = 366;
 const REQUIRED_STATUSES = [
@@ -134,11 +135,13 @@ function computeInternAttendance({
     let dayRule = { isWorkingDay: false };
     let schedule = null;
     if (inContract) {
+      const programId = w.findMembershipProgram(memberships, date);
       const found = w.resolveScheduleFromContext(
         ctx,
         intern,
         date,
-        w.findMembershipProgram(memberships, date),
+        programId,
+        w.findMembershipGroup(memberships, date, programId),
       );
       if (found) {
         dayRule = w.getDayRule(found.schedule, date);
@@ -321,6 +324,19 @@ async function computeReports(range, { onlyIntern = null } = {}) {
       ),
     );
   }
+  if (range.scopeType === "GROUP") {
+    // Thuộc nhóm chính trong khoảng báo cáo (ngày rời nhóm là mốc loại trừ).
+    interns = interns.filter((i) =>
+      membershipsOf(i.id).some((m) =>
+        (m.groups || []).some(
+          (g) =>
+            String(g.groupId) === range.scopeValue &&
+            g.from <= range.to &&
+            (!g.to || g.to > range.from),
+        ),
+      ),
+    );
+  }
   const ids = interns.map((i) => i.id);
   const [records, leaves, ctx, holidayRows] = await Promise.all([
     db.listAttendanceForInterns(ids, range.from, range.to),
@@ -356,13 +372,14 @@ async function report(query) {
   const range = validate(query);
   const reports = (await computeReports(range)).filter((r) => r.hasActivity);
   const pendingLeaveRequests = (await db.listPendingLeaves(null)).length;
-  return {
+  const data = {
     range: { from: range.from, to: range.to },
     scope: { type: range.scopeType, value: range.scopeValue },
     summary: { ...sumReports(reports), pendingLeaveRequests },
     groups: groupReports(reports, range.groupBy),
     interns: reports.map(stripDays),
   };
+  return { ...data, exportModel: exportModels.attendance(data, range) };
 }
 async function detail(rawId, query) {
   if (!/^[1-9]\d*$/.test(String(rawId)))
@@ -435,4 +452,5 @@ module.exports = {
   report,
   detail,
   exportCsv,
+  exportXlsx: async (query) => (await report(query)).exportModel,
 };

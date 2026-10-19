@@ -1,7 +1,11 @@
 const service = require("../services/finalReports.service");
-const { makeEndpoint, sendError } = require("./endpoint");
+const { NO_STORE } = require("../middleware/noStore");
+const { makeEndpoint, sendError, makeXlsxEndpoint } = require("../utils/endpoint");
 const endpoint = makeEndpoint("FINALREPORTS");
 module.exports = {
+  xlsx: makeXlsxEndpoint("FINALREPORTS", (req) =>
+    service.exportXlsx(req.params.id, req.query),
+  ),
   preview: endpoint(
     (req) => service.preview(req.query),
     "Xem trước báo cáo thành công!",
@@ -45,7 +49,7 @@ module.exports = {
   csv: async (req, res) => {
     try {
       const result = await service.exportCsv(req.params.id);
-      res.set("Cache-Control", "private, no-store");
+      res.set("Cache-Control", NO_STORE);
       res.set("Content-Type", "text/csv; charset=utf-8");
       res.set(
         "Content-Disposition",

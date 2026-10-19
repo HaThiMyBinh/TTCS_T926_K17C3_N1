@@ -1,5 +1,5 @@
 const service = require("../services/workSchedules.service");
-const { makeEndpoint } = require("./endpoint");
+const { makeEndpoint } = require("../utils/endpoint");
 const endpoint = makeEndpoint("WORK_SCHEDULE");
 
 module.exports = {
@@ -65,6 +65,10 @@ module.exports = {
     "Đã xóa ngày nghỉ!",
   ),
 
+  forMentor: endpoint(
+    (req) => service.forMentor(req.user),
+    "Lấy lịch làm việc của nhóm thành công!",
+  ),
   mine: endpoint(
     (req) => service.mine(req.user),
     "Lấy lịch làm việc của bạn thành công!",

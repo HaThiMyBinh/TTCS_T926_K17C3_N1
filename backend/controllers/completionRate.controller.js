@@ -1,5 +1,5 @@
 const service = require("../services/completionRate.service");
-const { makeEndpoint, sendError } = require("./endpoint");
+const { makeEndpoint, sendError, makeXlsxEndpoint } = require("../utils/endpoint");
 const endpoint = makeEndpoint("COMPLETION_REPORT");
 async function exportCsv(req, res) {
   try {
@@ -12,6 +12,9 @@ async function exportCsv(req, res) {
   }
 }
 module.exports = {
+  xlsx: makeXlsxEndpoint("COMPLETIONRATE", (req) =>
+    service.exportXlsx(req.query),
+  ),
   report: endpoint(
     (req) => service.report(req.query),
     "Lấy tỷ lệ hoàn thành thành công!",

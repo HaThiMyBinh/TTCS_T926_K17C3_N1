@@ -1,13 +1,10 @@
 const express = require("express");
+const { noStore } = require("../middleware/noStore");
 const { requireRole } = require("../auth");
 const { checkPermission } = require("../middleware/permissions");
 const { handleMulterUpload } = require("../middleware/upload");
 const c = require("../controllers/supportRequests.controller");
 const router = express.Router();
-const noStore = (req, res, next) => {
-  res.set("Cache-Control", "private, no-store");
-  next();
-};
 const intern = [noStore, requireRole("Intern"), checkPermission("SUBMIT_WORK")];
 const hr = [noStore, requireRole("HR")];
 router.get("/me/support-requests", ...intern, c.mine);

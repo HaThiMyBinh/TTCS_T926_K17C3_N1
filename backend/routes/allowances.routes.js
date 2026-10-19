@@ -1,14 +1,10 @@
 const express = require("express");
+const { noStore } = require("../middleware/noStore");
 const { requireRole } = require("../auth");
 const controller = require("../controllers/allowances.controller");
 
 const router = express.Router();
 
-// Dữ liệu tiền bạc: không để trình duyệt/proxy lưu cache.
-const noStore = (req, res, next) => {
-  res.set("Cache-Control", "private, no-store");
-  next();
-};
 const hrOnly = [noStore, requireRole("HR")];
 
 // Thực tập sinh xem phụ cấp của chính mình (chỉ đọc).

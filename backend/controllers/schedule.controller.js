@@ -1,4 +1,4 @@
-const { sendError } = require("./endpoint");
+const { sendError } = require("../utils/endpoint");
 const service = require("../services/schedule.service");
 
 async function getMySchedule(req, res) {

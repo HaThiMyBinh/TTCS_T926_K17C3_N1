@@ -1,5 +1,6 @@
 const service = require("../services/supportRequests.service");
-const { makeEndpoint, sendError } = require("./endpoint");
+const { NO_STORE } = require("../middleware/noStore");
+const { makeEndpoint, sendError } = require("../utils/endpoint");
 const endpoint = makeEndpoint("SUPPORT");
 const action = (fn, status = 200) => endpoint(fn, "Thành công!", status);
 
@@ -33,7 +34,7 @@ async function download(req, res) {
       req.params.attachmentId,
     );
     res
-      .set("Cache-Control", "private, no-store")
+      .set("Cache-Control", NO_STORE)
       .set("X-Content-Type-Options", "nosniff");
     return res.download(file.filePath, file.originalName, (err) => {
       if (!err) return;

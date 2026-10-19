@@ -4,11 +4,7 @@ const { HttpError } = require("../errors");
 const warn = require("./assignmentWarnings.service");
 
 const MAX_BULK = 500;
-function parseId(value, label) {
-  if (!/^[1-9]\d*$/.test(String(value)))
-    throw new HttpError(400, `${label} không hợp lệ!`);
-  return Number(value);
-}
+const { parseLabeledId: parseId } = require("../utils/ids");
 async function requireMentor(rawId) {
   const id = parseId(rawId, "Mã mentor");
   const mentor = await db.findMentorById(id);
@@ -73,7 +69,9 @@ async function assign(rawId, body, deps = {}) {
     }),
     confirmed,
   );
-  const result = await db.assignMentorToInterns(mentor.id, internIds);
+  const result = await db.assignMentorToInterns(mentor.id, internIds, {
+    userId: deps.userId || null,
+  });
   if (result.outcome === "MENTOR_NOT_FOUND")
     throw new HttpError(404, "Không tìm thấy mentor!");
   if (result.outcome === "INTERN_NOT_FOUND")

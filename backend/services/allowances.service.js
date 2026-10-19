@@ -27,13 +27,7 @@ const REQUIRED_FIELDS = [
   "effective_from",
 ];
 
-function parseId(rawId, label) {
-  const text = String(rawId ?? "");
-  if (!/^[1-9]\d*$/.test(text) || !Number.isSafeInteger(Number(text))) {
-    throw new HttpError(400, `${label} không hợp lệ!`);
-  }
-  return Number(text);
-}
+const { parseLabeledId: parseId } = require("../utils/ids");
 
 function has(input, key) {
   return Object.prototype.hasOwnProperty.call(input, key);
@@ -188,7 +182,7 @@ function isCoveredByContract(contracts, effectiveFrom, effectiveTo) {
   );
 }
 
-async function requireIntern(rawId) {
+async function requireInternById(rawId) {
   const internId = parseId(rawId, "ID thực tập sinh");
   const intern = await db.findInternProfileById(internId);
   if (!intern) throw new HttpError(404, "Không tìm thấy hồ sơ thực tập sinh!");
@@ -226,7 +220,7 @@ function throwForOutcome(result) {
 }
 
 async function listForIntern(rawInternId) {
-  const intern = await requireIntern(rawInternId);
+  const intern = await requireInternById(rawInternId);
   const today = getVietnamToday();
   const items = (await db.listAllowancesByIntern(intern.id)).map((a) => ({
     ...a,
@@ -244,7 +238,7 @@ async function listForIntern(rawInternId) {
 }
 
 async function create(user, rawInternId, body) {
-  const intern = await requireIntern(rawInternId);
+  const intern = await requireInternById(rawInternId);
   const fields = validateCombination({
     note: null,
     effectiveTo: null,
@@ -261,7 +255,7 @@ async function create(user, rawInternId, body) {
 }
 
 async function update(user, rawInternId, rawAllowanceId, body) {
-  const intern = await requireIntern(rawInternId);
+  const intern = await requireInternById(rawInternId);
   const allowanceId = parseId(rawAllowanceId, "ID khoản phụ cấp");
   const patch = validateAllowanceFields(body, { partial: true });
   const existing = await db.findAllowanceById(allowanceId);
@@ -289,7 +283,7 @@ async function update(user, rawInternId, rawAllowanceId, body) {
 }
 
 async function remove(rawInternId, rawAllowanceId) {
-  const intern = await requireIntern(rawInternId);
+  const intern = await requireInternById(rawInternId);
   const allowanceId = parseId(rawAllowanceId, "ID khoản phụ cấp");
   if (!(await db.deleteAllowance(allowanceId, intern.id))) {
     throw new HttpError(404, "Không tìm thấy khoản phụ cấp!");
