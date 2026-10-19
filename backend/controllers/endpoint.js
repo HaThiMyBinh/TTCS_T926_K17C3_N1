@@ -1,14 +1,16 @@
 // Bọc một hàm xử lý thành handler Express: trả { success, message, data }, dữ liệu cá nhân không cache,
 // lỗi HttpError trả đúng mã, lỗi khác trả 500 và ghi log (không lộ chi tiết cho client).
-const { HttpError } = require("../errors");
+const { HttpError, publicError } = require("../errors");
+const { renderXlsx, filenames, MIME } = require("../services/export/xlsx");
 
 function sendError(res, err, tag) {
-  if (err instanceof HttpError) {
-    return res.status(err.status).json({ success: false, message: err.message, error: err.message, ...(err.extra || {}) });
-  }
-  console.error(`[${tag}]`, err);
-  const message = "Lỗi server, vui lòng thử lại sau!";
-  return res.status(500).json({ success: false, message, error: message });
+  const failure = publicError(err, "Lỗi server, vui lòng thử lại sau!", tag);
+  return res.status(failure.status).json({
+    ...failure.extra,
+    success: false,
+    message: failure.message,
+    error: failure.message,
+  });
 }
 function makeEndpoint(tag) {
   return function endpoint(fn, message, status = 200) {
@@ -23,4 +25,29 @@ function makeEndpoint(tag) {
     };
   };
 }
-module.exports = { makeEndpoint, sendError };
+function makeXlsxEndpoint(tag, modelForRequest) {
+  return async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    try {
+      if (
+        Object.values(req.query || {}).some(
+          (value) => typeof value !== "string",
+        )
+      ) {
+        throw new HttpError(400, "Tham số xuất không hợp lệ hoặc bị lặp!");
+      }
+      const model = await modelForRequest(req);
+      const content = await renderXlsx(model);
+      const names = filenames(model);
+      res.set("Content-Type", MIME);
+      res.set(
+        "Content-Disposition",
+        `attachment; filename="${names.ascii}"; filename*=UTF-8''${encodeURIComponent(names.unicode).replace(/['()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)}`,
+      );
+      return res.send(content);
+    } catch (err) {
+      return sendError(res, err, tag);
+    }
+  };
+}
+module.exports = { makeEndpoint, sendError, makeXlsxEndpoint };

@@ -1,7 +1,7 @@
 const crypto = require("crypto");
-const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
+const { readDbConfig } = require("../utils/dbConfig");
 
 const BASE_URL =
   process.env.TEST_BASE_URL ||
@@ -14,21 +14,6 @@ const DEMO_ACCOUNTS = {
   Mentor: "mentor@gmail.com",
   Intern: "intern@gmail.com",
 };
-
-// Cấu hình MySQL giống db.js (biến môi trường ghi đè db_config.json)
-function readDbConfig() {
-  const file = path.join(__dirname, "..", "db_config.json");
-  const cfg = fs.existsSync(file)
-    ? JSON.parse(fs.readFileSync(file, "utf-8"))
-    : {};
-  return {
-    host: process.env.DB_HOST || cfg.host || "localhost",
-    port: Number(process.env.DB_PORT) || cfg.port || 3306,
-    user: process.env.DB_USER || cfg.user || "root",
-    password: process.env.DB_PASSWORD ?? cfg.password ?? "",
-    database: process.env.DB_NAME || cfg.database || "user_management",
-  };
-}
 
 // Xóa các bản ghi có đúng email mà test đã tạo (xóa thẳng trong MySQL vì DELETE /api/users/:id
 // để lại candidate_profiles mồ côi chiếm email). Trả về số bản ghi đã xóa.
@@ -110,6 +95,10 @@ async function cleanupTestData(emails) {
       `SELECT wa.stored_name FROM weekly_report_attachments wa
        JOIN weekly_reports wr ON wr.id = wa.report_id
        JOIN intern_profiles i ON i.id = wr.intern_id
+       WHERE LOWER(i.email) IN (?)`,
+      `SELECT sa.stored_name FROM support_request_attachments sa
+       JOIN support_requests sr ON sr.id = sa.request_id
+       JOIN intern_profiles i ON i.id = sr.intern_id
        WHERE LOWER(i.email) IN (?)`,
     ]) {
       try {
@@ -230,6 +219,28 @@ async function cleanupByPattern(prefixes) {
       }
     } catch {
       /* bảng hợp đồng có thể chưa tồn tại */
+    }
+
+    try {
+      for (const prefix of list) {
+        const [files] = await conn.query(
+          `SELECT sa.stored_name FROM support_request_attachments sa
+           JOIN support_requests sr ON sr.id = sa.request_id
+           JOIN intern_profiles i ON i.id = sr.intern_id
+           WHERE LEFT(LOWER(i.email), CHAR_LENGTH(?)) = LOWER(?)`,
+          [prefix.toLowerCase(), prefix.toLowerCase()],
+        );
+        const uploadsDir = path.join(__dirname, "..", "uploads");
+        for (const file of files) {
+          try {
+            fs.unlinkSync(path.join(uploadsDir, file.stored_name));
+          } catch {
+            /* best-effort cleanup */
+          }
+        }
+      }
+    } catch {
+      /* bảng support có thể chưa tồn tại */
     }
 
     for (const table of [

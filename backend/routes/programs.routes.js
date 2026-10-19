@@ -1,8 +1,18 @@
 const express = require("express");
+const { noStore } = require("../middleware/noStore");
 const { requireRole } = require("../auth");
 const controller = require("../controllers/programs.controller");
 
+const { checkPermission } = require("../middleware/permissions");
+const completion = require("../controllers/programCompletion.controller");
 const router = express.Router();
+router.put(
+  "/programs/:id/interns/:internId/completion",
+  noStore,
+  requireRole("HR"),
+  checkPermission("VIEW_REPORTS"),
+  completion.save,
+);
 
 router.get(
   "/departments",
@@ -16,14 +26,22 @@ router.delete(
   controller.removeDepartment,
 );
 
-router.get("/programs", requireRole("Admin", "HR"), controller.list);
+router.get("/programs", requireRole("HR"), controller.list);
 router.post("/programs", requireRole("HR"), controller.create);
-router.get("/programs/:id", requireRole("Admin", "HR"), controller.get);
+router.get("/programs/:id", requireRole("HR"), controller.get);
 router.put("/programs/:id", requireRole("HR"), controller.update);
 router.get("/programs/:id/interns", requireRole("HR"), controller.interns);
-router.get("/programs/:id/available-interns", requireRole("HR"), controller.availableInterns);
+router.get(
+  "/programs/:id/available-interns",
+  requireRole("HR"),
+  controller.availableInterns,
+);
 router.post("/programs/:id/interns", requireRole("HR"), controller.addInterns);
-router.delete("/programs/:id/interns/:internId", requireRole("HR"), controller.removeIntern);
+router.delete(
+  "/programs/:id/interns/:internId",
+  requireRole("HR"),
+  controller.removeIntern,
+);
 router.put("/programs/:id/mentor", requireRole("HR"), controller.assignMentor);
 router.delete("/programs/:id", requireRole("HR"), controller.remove);
 

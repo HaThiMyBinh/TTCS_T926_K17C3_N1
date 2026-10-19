@@ -1,22 +1,7 @@
+const { sendError } = require("../utils/endpoint");
+const { NO_STORE } = require("../middleware/noStore");
 const service = require("../services/weeklyReports.service");
 const { HttpError } = require("../errors");
-
-function sendError(res, err) {
-  if (err instanceof HttpError) {
-    return res.status(err.status).json({
-      success: false,
-      message: err.message,
-      error: err.message,
-    });
-  }
-
-  console.error("[WEEKLY REPORTS CONTROLLER]", err);
-  return res.status(500).json({
-    success: false,
-    message: "Lỗi server, vui lòng thử lại sau!",
-    error: "Lỗi server, vui lòng thử lại sau!",
-  });
-}
 
 async function submitMyReport(req, res) {
   try {
@@ -27,7 +12,7 @@ async function submitMyReport(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "WEEKLYREPORTS");
   }
 }
 
@@ -40,7 +25,7 @@ async function listMyReports(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "WEEKLYREPORTS");
   }
 }
 
@@ -53,7 +38,7 @@ async function getMyStatus(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "WEEKLYREPORTS");
   }
 }
 
@@ -70,7 +55,7 @@ async function uploadMyReportAttachment(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "WEEKLYREPORTS");
   }
 }
 
@@ -87,7 +72,7 @@ async function deleteMyReportAttachment(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "WEEKLYREPORTS");
   }
 }
 
@@ -103,7 +88,7 @@ async function downloadReportAttachment(req, res) {
 
     res.setHeader("Content-Type", mimeType);
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("Cache-Control", NO_STORE);
 
     const onDone = (err) => {
       if (err && !res.headersSent) {
@@ -128,7 +113,7 @@ async function downloadReportAttachment(req, res) {
     }
     return res.download(filePath, originalName, onDone);
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "WEEKLYREPORTS");
   }
 }
 
@@ -141,7 +126,7 @@ async function listReportsForMentor(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "WEEKLYREPORTS");
   }
 }
 
@@ -154,7 +139,7 @@ async function getMentorOverview(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "WEEKLYREPORTS");
   }
 }
 
@@ -171,7 +156,7 @@ async function submitFeedback(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "WEEKLYREPORTS");
   }
 }
 
@@ -184,7 +169,7 @@ async function deleteFeedback(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "WEEKLYREPORTS");
   }
 }
 

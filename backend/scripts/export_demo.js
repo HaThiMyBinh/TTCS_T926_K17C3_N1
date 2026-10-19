@@ -1,7 +1,7 @@
 // Tạo / cập nhật gói demo trong thư mục demo/ từ dữ liệu hiện có trên máy bạn.
 // Chạy:  npm run demo:export   (MySQL phải đang bật)
 const db = require("../db");
-const { exportDemo, DEMO_DIR } = require("../services/demoData");
+const { exportDemo, DEMO_DIR } = require("../seed/demoData");
 
 (async () => {
   try {

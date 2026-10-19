@@ -2,6 +2,8 @@
 // Chỉ dùng số học theo UTC trên ngày thuần, không phụ thuộc múi giờ máy chủ.
 // "Hôm nay" luôn do bên gọi truyền vào (getVietnamToday), giờ Việt Nam.
 
+const { isValidDate, addDays } = require("./date");
+
 function parseDate(value) {
   const [year, month, day] = value.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day));
@@ -9,25 +11,6 @@ function parseDate(value) {
 
 function formatDate(date) {
   return date.toISOString().slice(0, 10);
-}
-
-function isValidDate(value) {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
-  }
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-}
-
-function addDays(value, days) {
-  const date = parseDate(value);
-  date.setUTCDate(date.getUTCDate() + days);
-  return formatDate(date);
 }
 
 function isMonday(value) {

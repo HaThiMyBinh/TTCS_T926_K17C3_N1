@@ -2,6 +2,12 @@
 // hạn nộp là hết Chủ nhật (giờ Việt Nam), nộp sau hạn vẫn được nhưng gắn nhãn trễ.
 const db = require("../db");
 const { HttpError } = require("../errors");
+const {
+  requireMentorProfile,
+  assertInternBelongsToMentor,
+  requireInternProfile,
+} = require("./actorProfiles");
+const { toAttachmentDto: attachmentDto } = require("./attachmentValidator");
 const { assertHasConfirmedContract } = require("./contractGate");
 const { getVietnamToday } = require("../utils/date");
 const weeks = require("../utils/weeks");
@@ -24,13 +30,7 @@ function has(input, key) {
   return Object.prototype.hasOwnProperty.call(input, key);
 }
 
-function parseId(rawId, label) {
-  const text = String(rawId ?? "");
-  if (!/^[1-9]\d*$/.test(text) || !Number.isSafeInteger(Number(text))) {
-    throw new HttpError(400, `${label} không hợp lệ!`);
-  }
-  return Number(text);
-}
+const { parseLabeledId: parseId } = require("../utils/ids");
 
 // DATE từ MySQL là chuỗi, TIMESTAMP là Date; quy về YYYY-MM-DD giờ Việt Nam.
 function toDateString(value) {
@@ -116,18 +116,6 @@ async function getInternPeriod(intern) {
   return resolvePeriod(intern, await db.findInternContractPeriod(intern.id));
 }
 
-function toAttachmentDto(row) {
-  return {
-    id: Number(row.id),
-    report_id: Number(row.reportId),
-    original_name: sanitizeFileName(row.originalName),
-    mime_type: row.mimeType,
-    size_bytes: Number(row.sizeBytes),
-    can_preview: INLINE_MIME_TYPES.includes(row.mimeType),
-    uploaded_at: row.uploadedAt || null,
-  };
-}
-
 // Mốc thời gian từ MySQL (Date) hoặc chuỗi "YYYY-MM-DD HH:MM:SS" -> mili giây; không đọc được thì NaN.
 function toTimestamp(value) {
   if (value instanceof Date) return value.getTime();
@@ -202,7 +190,9 @@ function toReportDto(row, attachments = []) {
     feedback_outdated: feedback
       ? isFeedbackOutdated(row.updatedAt, row.feedbackUpdatedAt)
       : false,
-    attachments: attachments.map(toAttachmentDto),
+    attachments: attachments.map((row) =>
+      attachmentDto(row, "report_id", row.reportId),
+    ),
   };
 }
 
@@ -216,39 +206,6 @@ async function toReportDtos(rows) {
 async function loadReportDto(id) {
   const row = await db.findWeeklyReportById(id);
   return row ? (await toReportDtos([row]))[0] : null;
-}
-
-async function requireInternProfile(user) {
-  const intern = user?.email
-    ? await db.findInternProfileByEmail(user.email)
-    : null;
-  if (!intern) {
-    throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
-  }
-  return intern;
-}
-
-async function requireMentorProfile(user) {
-  const mentor =
-    user?.role === "Mentor" && user.email
-      ? await db.findMentorByEmail(user.email)
-      : null;
-  if (!mentor) {
-    throw new HttpError(
-      403,
-      "Tài khoản chưa có hồ sơ mentor để xem báo cáo tuần!",
-    );
-  }
-  return mentor;
-}
-
-function assertInternBelongsToMentor(mentor, internMentorId) {
-  if (!internMentorId || Number(internMentorId) !== Number(mentor.id)) {
-    throw new HttpError(
-      403,
-      "Bạn chỉ được xem báo cáo của thực tập sinh được phân công cho mình!",
-    );
-  }
 }
 
 // ---------- Thực tập sinh ----------
@@ -388,7 +345,11 @@ async function uploadMyReportAttachment(user, rawReportId, file) {
     throw new HttpError(404, "Không tìm thấy báo cáo!");
   }
   return {
-    attachment: toAttachmentDto(result.attachment),
+    attachment: attachmentDto(
+      result.attachment,
+      "report_id",
+      result.attachment.reportId,
+    ),
     report: await loadReportDto(report.id),
   };
 }
@@ -426,8 +387,8 @@ async function getReportAttachmentForDownload(
       );
     }
   } else {
-    const mentor = await requireMentorProfile(user);
-    assertInternBelongsToMentor(mentor, report.internMentorId);
+    const mentor = await requireMentorProfile(user, "xem báo cáo tuần");
+    assertInternBelongsToMentor(mentor, report.internMentorId, "xem báo cáo");
   }
 
   const attachment = await db.findWeeklyReportAttachmentById(
@@ -454,13 +415,13 @@ async function listReportsForMentor(
   query = {},
   { today = getVietnamToday() } = {},
 ) {
-  const mentor = await requireMentorProfile(user);
+  const mentor = await requireMentorProfile(user, "xem báo cáo tuần");
   let internId = null;
   if (has(query, "intern_id")) {
     internId = parseId(query.intern_id, "Mã thực tập sinh");
     const intern = await db.findInternProfileById(internId);
     if (!intern) throw new HttpError(404, "Không tìm thấy thực tập sinh!");
-    assertInternBelongsToMentor(mentor, intern.mentorId);
+    assertInternBelongsToMentor(mentor, intern.mentorId, "xem báo cáo");
   }
   let weekStart = null;
   if (has(query, "week_start")) {
@@ -478,7 +439,7 @@ async function listReportsForMentor(
 // Báo cáo phải tồn tại và thuộc thực tập sinh do mentor này phụ trách (chống IDOR).
 async function loadReportForFeedback(user, rawReportId) {
   const reportId = parseId(rawReportId, "Mã báo cáo");
-  const mentor = await requireMentorProfile(user);
+  const mentor = await requireMentorProfile(user, "xem báo cáo tuần");
   const report = await db.findWeeklyReportById(reportId);
   if (!report) throw new HttpError(404, "Không tìm thấy báo cáo!");
   if (
@@ -518,7 +479,7 @@ async function getMentorOverview(
   query = {},
   { today = getVietnamToday() } = {},
 ) {
-  const mentor = await requireMentorProfile(user);
+  const mentor = await requireMentorProfile(user, "xem báo cáo tuần");
   const weekStart = has(query, "week_start")
     ? validateWeekStart(query.week_start, today)
     : weeks.mondayOf(today);

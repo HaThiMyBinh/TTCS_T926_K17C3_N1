@@ -9,7 +9,12 @@ const mentors = [
 const interns = [
   { id: 10, fullName: "A", studentCode: "SV10", mentorId: 1 },
   { id: 11, fullName: "B", studentCode: "SV11", mentorId: 2 },
-  { id: 12, fullName: "C (chưa có mentor)", studentCode: "SV12", mentorId: null },
+  {
+    id: 12,
+    fullName: "C (chưa có mentor)",
+    studentCode: "SV12",
+    mentorId: null,
+  },
   { id: 13, fullName: "D", studentCode: "SV13", mentorId: 1 },
 ];
 
@@ -146,7 +151,10 @@ function testValidate() {
   assert.strictEqual(v({ ...valid, attitude_score: 5 }).attitudeScore, 5);
   // Nhận xét tùy chọn: rỗng / null -> null
   assert.strictEqual(v({ ...valid, skill_comment: "   " }).skillComment, null);
-  assert.strictEqual(v({ ...valid, attitude_comment: null }).attitudeComment, null);
+  assert.strictEqual(
+    v({ ...valid, attitude_comment: null }).attitudeComment,
+    null,
+  );
   // Biên độ dài 2000 (đã trim) hợp lệ, 2001 thì không
   assert.strictEqual(
     v({ ...valid, overall_comment: `  ${"x".repeat(2000)}  ` }).overallComment
@@ -194,7 +202,8 @@ function testValidate() {
 
   // Lưu thuần văn bản, không biến đổi (escape khi hiển thị)
   assert.strictEqual(
-    v({ ...valid, overall_comment: "<script>alert(1)</script>" }).overallComment,
+    v({ ...valid, overall_comment: "<script>alert(1)</script>" })
+      .overallComment,
     "<script>alert(1)</script>",
   );
 }
@@ -256,18 +265,38 @@ async function testNeedsConfirmedContract() {
 async function testPermissions() {
   // Mentor khác -> 403, dữ liệu không đổi
   const before = JSON.stringify(evaluations);
-  await rejects(service.saveEvaluation(mentor2, 10, valid), 403, "mentor khác ghi");
+  await rejects(
+    service.saveEvaluation(mentor2, 10, valid),
+    403,
+    "mentor khác ghi",
+  );
   await rejects(service.getEvaluation(mentor2, 10), 403, "mentor khác đọc");
   await rejects(service.deleteEvaluation(mentor2, 10), 403, "mentor khác xóa");
   assert.strictEqual(JSON.stringify(evaluations), before);
 
   // Thực tập sinh chưa có mentor -> 403 cho mọi mentor
-  await rejects(service.saveEvaluation(mentor1, 12, valid), 403, "intern chưa có mentor");
+  await rejects(
+    service.saveEvaluation(mentor1, 12, valid),
+    403,
+    "intern chưa có mentor",
+  );
 
   // Không tồn tại -> 404
-  await rejects(service.saveEvaluation(mentor1, 999999, valid), 404, "intern không tồn tại");
-  await rejects(service.getEvaluation(mentor1, 999999), 404, "đọc intern không tồn tại");
-  await rejects(service.deleteEvaluation(mentor1, 999999), 404, "xóa intern không tồn tại");
+  await rejects(
+    service.saveEvaluation(mentor1, 999999, valid),
+    404,
+    "intern không tồn tại",
+  );
+  await rejects(
+    service.getEvaluation(mentor1, 999999),
+    404,
+    "đọc intern không tồn tại",
+  );
+  await rejects(
+    service.deleteEvaluation(mentor1, 999999),
+    404,
+    "xóa intern không tồn tại",
+  );
 
   // Id không hợp lệ -> 400
   for (const id of ["abc", "0", "-1", "1.5", "", null, undefined, "1e3"]) {
@@ -276,8 +305,16 @@ async function testPermissions() {
 
   // Không phải mentor / mentor không có hồ sơ -> 403
   await rejects(service.saveEvaluation(internUser, 10, valid), 403, "Intern");
-  await rejects(service.saveEvaluation(mentorNoProfile, 10, valid), 403, "mentor không hồ sơ");
-  await rejects(service.getMentorOverview(mentorNoProfile), 403, "overview mentor không hồ sơ");
+  await rejects(
+    service.saveEvaluation(mentorNoProfile, 10, valid),
+    403,
+    "mentor không hồ sơ",
+  );
+  await rejects(
+    service.getMentorOverview(mentorNoProfile),
+    403,
+    "overview mentor không hồ sơ",
+  );
 
   // Dữ liệu sai vẫn bị 400 sau khi qua kiểm tra quyền
   await rejects(

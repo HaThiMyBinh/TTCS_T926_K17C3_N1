@@ -104,18 +104,11 @@ async function attachApplicationsToStudents(students) {
   });
 }
 
-function parseId(rawId) {
-  if (!/^\d+$/.test(String(rawId))) {
-    throw new HttpError(400, "ID hồ sơ không hợp lệ!");
-  }
-  return Number(rawId);
-}
+const { parseId: parseIdWith } = require("../utils/ids");
+const parseId = (raw) => parseIdWith(raw, "ID hồ sơ không hợp lệ!");
 
 // Duyệt (APPROVED) luôn yêu cầu đủ CV + Đơn xin thực tập; không có tham số nào bỏ qua điều kiện này.
-async function changeStatus(
-  { id: rawId, status, rejection_reason },
-  reviewer,
-) {
+async function changeStatus({ id: rawId, status, rejection_reason }, reviewer) {
   const id = parseId(rawId);
 
   if (!isReviewableStatus(status)) {

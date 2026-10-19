@@ -1,5 +1,7 @@
 // Nội dung email thông báo kết quả xét duyệt
 const { formatVietnamDateTime } = require("../../utils/date");
+const { toDate } = require("../meetingRules.service");
+const { renderMeetingIcs } = require("./meetingIcs");
 
 function escapeHtml(value) {
   return String(value ?? "").replace(
@@ -313,13 +315,23 @@ function renderFinalReportEmail({ report, message }) {
   const data = report.data || {};
   const summary = data.summary || {};
   const scope = data.scope || {};
-  const scopeLabel = report.scopeLabel || (scope.type === "UNIVERSITY" ? `Trường: ${scope.value}` : scope.type === "PROGRAM" ? "Theo chương trình thực tập" : "Toàn bộ thực tập sinh");
-  const period = scope.from || scope.to ? `${scope.from || "..."} – ${scope.to || "..."}` : "Toàn bộ thời gian";
+  const scopeLabel =
+    report.scopeLabel ||
+    (scope.type === "UNIVERSITY"
+      ? `Trường: ${scope.value}`
+      : scope.type === "PROGRAM"
+        ? "Theo chương trình thực tập"
+        : "Toàn bộ thực tập sinh");
+  const period =
+    scope.from || scope.to
+      ? `${scope.from || "..."} – ${scope.to || "..."}`
+      : "Toàn bộ thời gian";
   const hours = Math.round(((summary.totalWorkMinutes || 0) / 60) * 10) / 10;
   const num = (v) => (v == null ? "—" : String(v));
   const subject = `[Báo cáo cuối kỳ] ${report.title}`;
   const previewText = `Báo cáo cuối kỳ thực tập: ${summary.evaluated || 0}/${summary.totalInterns || 0} thực tập sinh đã được đánh giá.`;
-  const row = (label, value) => `<tr><td style="padding: 6px 0; color: #475569;">${escapeHtml(label)}</td><td style="padding: 6px 0; text-align: right;"><b>${escapeHtml(value)}</b></td></tr>`;
+  const row = (label, value) =>
+    `<tr><td style="padding: 6px 0; color: #475569;">${escapeHtml(label)}</td><td style="padding: 6px 0; text-align: right;"><b>${escapeHtml(value)}</b></td></tr>`;
   const bodyHtml = `
     <p style="margin: 0 0 16px; font-size: 15px;">Kính gửi Quý đơn vị,</p>
     <p style="margin: 0 0 16px;">Bộ phận Nhân sự gửi kèm báo cáo tổng hợp đánh giá thực tập sinh <b>${escapeHtml(report.title)}</b> (chi tiết trong file CSV đính kèm).</p>
@@ -338,29 +350,50 @@ function renderFinalReportEmail({ report, message }) {
     <p style="margin: 20px 0 0; color: #475569;">Thời gian gửi: <b>${formatVietnamDateTime()}</b><br/>Hệ thống: <b>${escapeHtml(BRAND_NAME)}</b></p>
   `;
   const text = [
-    "Kính gửi Quý đơn vị,", "",
+    "Kính gửi Quý đơn vị,",
+    "",
     `Báo cáo cuối kỳ thực tập: ${report.title} (chi tiết trong file CSV đính kèm).`,
     message ? `\n${message}\n` : "",
-    `Phạm vi: ${scopeLabel}`, `Khoảng thời gian: ${period}`,
+    `Phạm vi: ${scopeLabel}`,
+    `Khoảng thời gian: ${period}`,
     `Số thực tập sinh: ${num(summary.totalInterns)} (đã đánh giá: ${num(summary.evaluated)})`,
     `Điểm trung bình: kỹ năng ${num(summary.avgSkill)}, thái độ ${num(summary.avgAttitude)}, tổng ${num(summary.avgOverall)}`,
     `Tổng giờ làm việc ghi nhận: ${hours} giờ`,
     data.hrNote ? `\nNhận xét của HR: ${data.hrNote}` : "",
-    "", `Thời gian gửi: ${formatVietnamDateTime()}`,
+    "",
+    `Thời gian gửi: ${formatVietnamDateTime()}`,
   ].join("\n");
-  return { subject, html: wrapHtml({ title: subject, previewText, bodyHtml }), text };
+  return {
+    subject,
+    html: wrapHtml({ title: subject, previewText, bodyHtml }),
+    text,
+  };
 }
 
 // --- EMAIL BÁO HR: THỰC TẬP SINH VỪA GỬI ĐƠN NGHỈ PHÉP ---
-const LEAVE_TYPE_LABEL = { SICK: "Nghỉ ốm", PERSONAL: "Việc cá nhân", EXAM: "Học / thi", OTHER: "Khác" };
+const LEAVE_TYPE_LABEL = {
+  SICK: "Nghỉ ốm",
+  PERSONAL: "Việc cá nhân",
+  EXAM: "Học / thi",
+  OTHER: "Khác",
+};
 function renderLeaveRequestEmail({ intern, leave }) {
   const name = intern.fullName || intern.full_name || "Thực tập sinh";
-  const range = leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} – ${leave.toDate}`;
-  const days = Math.floor((Date.parse(`${leave.toDate}T00:00:00Z`) - Date.parse(`${leave.fromDate}T00:00:00Z`)) / 86400000) + 1;
+  const range =
+    leave.fromDate === leave.toDate
+      ? leave.fromDate
+      : `${leave.fromDate} – ${leave.toDate}`;
+  const days =
+    Math.floor(
+      (Date.parse(`${leave.toDate}T00:00:00Z`) -
+        Date.parse(`${leave.fromDate}T00:00:00Z`)) /
+        86400000,
+    ) + 1;
   const typeLabel = LEAVE_TYPE_LABEL[leave.leaveType] || leave.leaveType;
   const subject = `[Đơn nghỉ phép] ${name} xin nghỉ ${range}`;
   const previewText = `${name} vừa gửi đơn nghỉ phép ${days} ngày (${range}).`;
-  const row = (label, value) => `<tr><td style="padding: 6px 0; color: #475569;">${escapeHtml(label)}</td><td style="padding: 6px 0; text-align: right;"><b>${escapeHtml(value)}</b></td></tr>`;
+  const row = (label, value) =>
+    `<tr><td style="padding: 6px 0; color: #475569;">${escapeHtml(label)}</td><td style="padding: 6px 0; text-align: right;"><b>${escapeHtml(value)}</b></td></tr>`;
   const bodyHtml = `
     <p style="margin: 0 0 16px; font-size: 15px;">Xin chào bộ phận Nhân sự,</p>
     <p style="margin: 0 0 16px;">Thực tập sinh <b>${escapeHtml(name)}</b> vừa đăng ký nghỉ phép và đang chờ duyệt.</p>
@@ -374,15 +407,85 @@ function renderLeaveRequestEmail({ intern, leave }) {
     <p style="margin: 20px 0 0; color: #475569;">Thời gian gửi: <b>${formatVietnamDateTime()}</b></p>
   `;
   const text = [
-    "Xin chào bộ phận Nhân sự,", "",
+    "Xin chào bộ phận Nhân sự,",
+    "",
     `Thực tập sinh ${name} vừa đăng ký nghỉ phép (đang chờ duyệt).`,
-    `Loại nghỉ: ${typeLabel}`, `Thời gian nghỉ: ${range} (${days} ngày)`, `Lý do: ${leave.reason}`,
-    "", "Vui lòng vào tab \"Chấm công thực tập sinh\" để duyệt hoặc từ chối.",
+    `Loại nghỉ: ${typeLabel}`,
+    `Thời gian nghỉ: ${range} (${days} ngày)`,
+    `Lý do: ${leave.reason}`,
+    "",
+    'Vui lòng vào tab "Chấm công thực tập sinh" để duyệt hoặc từ chối.',
   ].join("\n");
-  return { subject, html: wrapHtml({ title: subject, previewText, bodyHtml }), text };
+  return {
+    subject,
+    html: wrapHtml({ title: subject, previewText, bodyHtml }),
+    text,
+  };
+}
+
+function renderMeetingEmail(payload) {
+  const { meeting, recipient, type, reminderHours, removed } = payload;
+  const labels = {
+    MEETING_INVITE: "Mời tham dự cuộc họp",
+    MEETING_UPDATED: "Lịch họp được cập nhật",
+    MEETING_CANCELLED: removed
+      ? "Thay đổi người tham dự cuộc họp"
+      : "Cuộc họp đã hủy",
+    MEETING_REMINDER: `Nhắc lịch họp (${reminderHours} giờ)`,
+  };
+  if (!Object.hasOwn(labels, type))
+    throw new Error("Loại email lịch họp không được hỗ trợ");
+  const start = formatVietnamDateTime(toDate(meeting.startAt)),
+    end = formatVietnamDateTime(toDate(meeting.endAt));
+  const duration = Math.round(
+    (toDate(meeting.endAt) - toDate(meeting.startAt)) / 60000,
+  );
+  const subject = `[Lịch họp] ${labels[type]}: ${meeting.title}`
+    .replace(/[\x00-\x1f\x7f]/g, " ")
+    .slice(0, 250);
+  let link = "";
+  try {
+    const url = new URL(meeting.meetingLink);
+    if (
+      ["http:", "https:"].includes(url.protocol) &&
+      !url.username &&
+      !url.password
+    )
+      link = url.href;
+  } catch {
+    /* No link is valid for an in-person meeting. */
+  }
+  const items = [
+    ["Tiêu đề", meeting.title],
+    ["Bắt đầu (giờ Việt Nam)", start],
+    ["Kết thúc (giờ Việt Nam)", end],
+    ["Thời lượng", `${duration} phút`],
+    ["Địa điểm", meeting.location || "Chưa có"],
+    ["Người tổ chức", meeting.organizerName || "Nhân sự"],
+    ["Mô tả", meeting.description || "Không"],
+  ];
+  const notice = removed
+    ? "Bạn không còn trong danh sách tham dự cuộc họp này."
+    : labels[type];
+  const bodyHtml = `<p>Xin chào <b>${escapeHtml(recipient.name || "Bạn")}</b>,</p><p>${escapeHtml(notice)}</p>${items.map(([label, value]) => `<p><b>${escapeHtml(label)}:</b> ${escapeHtml(value)}</p>`).join("")}${link ? `<p><b>Liên kết họp:</b> <a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>` : ""}`;
+  const ics = renderMeetingIcs(payload);
+  return {
+    subject,
+    html: wrapHtml({ title: subject, previewText: notice, bodyHtml }),
+    text: [
+      `Xin chào ${recipient.name || "Bạn"},`,
+      notice,
+      ...items.map(([label, value]) => `${label}: ${value}`),
+      ...(link ? [`Liên kết họp: ${link}`] : []),
+    ].join("\n"),
+    ics: ics.content,
+    icsMethod: ics.method,
+    meeting: payload,
+  };
 }
 
 module.exports = {
+  renderMeetingEmail,
   escapeHtml,
   renderApprovedEmail,
   renderRejectedEmail,

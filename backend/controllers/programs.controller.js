@@ -1,18 +1,5 @@
+const { sendError } = require("../utils/endpoint");
 const service = require("../services/programs.service");
-const { HttpError } = require("../errors");
-
-function sendError(res, err) {
-  const status = err instanceof HttpError ? err.status : 500;
-  if (status === 500) console.error("[PROGRAMS]", err);
-
-  const message =
-    status === 500 ? "Lỗi server, vui lòng thử lại sau!" : err.message;
-  return res.status(status).json({
-    success: false,
-    message,
-    error: message,
-  });
-}
 
 async function run(res, work, message, status = 200) {
   try {
@@ -22,7 +9,7 @@ async function run(res, work, message, status = 200) {
       data: await work(),
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "PROGRAMS");
   }
 }
 
@@ -52,7 +39,7 @@ async function removeDepartment(req, res) {
       data: null,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "PROGRAMS");
   }
 }
 
@@ -81,21 +68,37 @@ function interns(req, res) {
 }
 
 function availableInterns(req, res) {
-  return run(res, () => service.listAvailableInterns(req.params.id), "Lấy thực tập sinh chưa thuộc chương trình thành công!");
+  return run(
+    res,
+    () => service.listAvailableInterns(req.params.id),
+    "Lấy thực tập sinh chưa thuộc chương trình thành công!",
+  );
 }
 
 function addInterns(req, res) {
-  return run(res, () => service.addInterns(req.params.id, req.body, req.user), "Đã thêm thực tập sinh vào chương trình!", 201);
+  return run(
+    res,
+    () => service.addInterns(req.params.id, req.body, req.user),
+    "Đã thêm thực tập sinh vào chương trình!",
+    201,
+  );
 }
 
 function removeIntern(req, res) {
-  return run(res, () => service.removeIntern(req.params.id, req.params.internId), "Đã gỡ thực tập sinh khỏi chương trình!");
+  return run(
+    res,
+    () => service.removeIntern(req.params.id, req.params.internId, req.user),
+    "Đã gỡ thực tập sinh khỏi chương trình!",
+  );
 }
 
 function assignMentor(req, res) {
   return run(
     res,
-    () => service.assignMentor(req.params.id, req.body),
+    () =>
+      service.assignMentor(req.params.id, req.body, {
+        userId: req.user && req.user.id,
+      }),
     "Cập nhật phân công mentor cho chương trình thành công!",
   );
 }
@@ -126,7 +129,7 @@ async function remove(req, res) {
       data: null,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "PROGRAMS");
   }
 }
 

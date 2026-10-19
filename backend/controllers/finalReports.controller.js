@@ -1,36 +1,11 @@
 const service = require("../services/finalReports.service");
-const { HttpError } = require("../errors");
-function sendError(res, err) {
-  if (err instanceof HttpError)
-    return res.status(err.status).json({
-      success: false,
-      message: err.message,
-      error: err.message,
-      ...(err.code ? { code: err.code, details: err.details } : {}),
-    });
-  console.error("[FINAL REPORTS]", err);
-  return res.status(500).json({
-    success: false,
-    message: "Lỗi server, vui lòng thử lại sau!",
-    error: "Lỗi server, vui lòng thử lại sau!",
-  });
-}
-function endpoint(fn, message) {
-  return async (req, res) => {
-    try {
-      const data = await fn(req);
-      res.set("Cache-Control", "private, no-store");
-      return res.json({
-        success: true,
-        message,
-        data,
-      });
-    } catch (err) {
-      return sendError(res, err);
-    }
-  };
-}
+const { NO_STORE } = require("../middleware/noStore");
+const { makeEndpoint, sendError, makeXlsxEndpoint } = require("../utils/endpoint");
+const endpoint = makeEndpoint("FINALREPORTS");
 module.exports = {
+  xlsx: makeXlsxEndpoint("FINALREPORTS", (req) =>
+    service.exportXlsx(req.params.id, req.query),
+  ),
   preview: endpoint(
     (req) => service.preview(req.query),
     "Xem trước báo cáo thành công!",
@@ -74,7 +49,7 @@ module.exports = {
   csv: async (req, res) => {
     try {
       const result = await service.exportCsv(req.params.id);
-      res.set("Cache-Control", "private, no-store");
+      res.set("Cache-Control", NO_STORE);
       res.set("Content-Type", "text/csv; charset=utf-8");
       res.set(
         "Content-Disposition",
@@ -82,7 +57,7 @@ module.exports = {
       );
       return res.send(result.content);
     } catch (err) {
-      return sendError(res, err);
+      return sendError(res, err, "FINALREPORTS");
     }
   },
 };

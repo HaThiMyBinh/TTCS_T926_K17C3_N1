@@ -34,6 +34,16 @@ const TABLES = [
   "weekly_report_attachments",
   "weekly_report_feedback",
 ];
+// Bảng cấu trúc nhóm/mentor/lịch tham chiếu intern_profiles, mentors, internship_programs: chỉ XÓA khi nạp demo
+// (không xuất/nạp vì có cột sinh tự động và không có cột id). Nếu để lại sẽ có dòng mồ côi trỏ nhầm sang id mới
+// của bản demo (kiểm tra khóa ngoại đang tắt lúc nạp). Lịch sử mentor được dựng lại bằng migrateStructure sau khi nạp.
+const RESET_ONLY_TABLES = [
+  "schedule_participants",
+  "group_members",
+  "program_groups",
+  "mentor_assignments",
+  "program_intern_events",
+];
 const FILE_TABLES = [
   "application_documents",
   "internship_contracts",
@@ -206,6 +216,9 @@ async function loadDemoIfNeeded(pool) {
 
     // Thay toàn bộ dữ liệu bằng bản demo để id/khóa ngoại khớp tuyệt đối
     await conn.query("DELETE FROM `email_logs`");
+    for (const t of RESET_ONLY_TABLES) {
+      await conn.query(`DELETE FROM \`${t}\``);
+    }
     for (const t of [...TABLES].reverse()) {
       await conn.query(`DELETE FROM \`${t}\``);
     }
@@ -242,6 +255,9 @@ async function loadDemoIfNeeded(pool) {
     }
     conn.release();
   }
+
+  // Dựng lại lịch sử phân công mentor từ intern_profiles.mentor_id của bản demo vừa nạp.
+  await require("./structureMigration").migrateStructure(pool);
 
   const summary = TABLES.map((t) => `${t}=${(tables[t] || []).length}`).join(
     ", ",

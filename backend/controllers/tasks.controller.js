@@ -1,22 +1,7 @@
+const { sendError } = require("../utils/endpoint");
+const { NO_STORE } = require("../middleware/noStore");
 const service = require("../services/tasks.service");
 const { HttpError } = require("../errors");
-
-function sendError(res, err) {
-  if (err instanceof HttpError) {
-    return res.status(err.status).json({
-      success: false,
-      message: err.message,
-      error: err.message,
-    });
-  }
-
-  console.error("[TASKS CONTROLLER]", err);
-  return res.status(500).json({
-    success: false,
-    message: "Lỗi server, vui lòng thử lại sau!",
-    error: "Lỗi server, vui lòng thử lại sau!",
-  });
-}
 
 async function createTask(req, res) {
   try {
@@ -27,7 +12,7 @@ async function createTask(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "TASKS");
   }
 }
 
@@ -40,7 +25,7 @@ async function listTasks(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "TASKS");
   }
 }
 
@@ -53,7 +38,7 @@ async function updateTask(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "TASKS");
   }
 }
 
@@ -66,7 +51,7 @@ async function deleteTask(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "TASKS");
   }
 }
 
@@ -79,7 +64,7 @@ async function getMyTasks(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "TASKS");
   }
 }
 
@@ -96,7 +81,7 @@ async function updateMyTaskProgress(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "TASKS");
   }
 }
 
@@ -113,7 +98,7 @@ async function uploadMyTaskAttachment(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "TASKS");
   }
 }
 
@@ -130,7 +115,7 @@ async function deleteMyTaskAttachment(req, res) {
       data,
     });
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "TASKS");
   }
 }
 
@@ -146,7 +131,7 @@ async function downloadTaskAttachment(req, res) {
 
     res.setHeader("Content-Type", mimeType);
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("Cache-Control", NO_STORE);
 
     const onDone = (err) => {
       if (err && !res.headersSent) {
@@ -171,7 +156,7 @@ async function downloadTaskAttachment(req, res) {
     }
     return res.download(filePath, originalName, onDone);
   } catch (err) {
-    return sendError(res, err);
+    return sendError(res, err, "TASKS");
   }
 }
 

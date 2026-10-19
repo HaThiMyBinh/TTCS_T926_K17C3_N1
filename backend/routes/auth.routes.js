@@ -2,10 +2,8 @@ const express = require("express");
 const db = require("../db");
 const { hashPassword, verifyPassword, generateToken } = require("../auth");
 const { trimOrDefault } = require("../utils/request");
+const { HttpError, sendRouteError } = require("../errors");
 const router = express.Router();
-router.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", time: new Date().toISOString() });
-});
 
 // POST /api/auth/login
 router.post("/auth/login", async (req, res) => {
@@ -14,9 +12,13 @@ router.post("/auth/login", async (req, res) => {
     const loginUser = trimOrDefault(account || email);
 
     if (!loginUser || !password) {
-      return res.status(400).json({
-        error: "Vui lòng nhập đầy đủ mã tài khoản/email và mật khẩu!",
-      });
+      return sendRouteError(
+        res,
+        new HttpError(
+          400,
+          "Vui lòng nhập đầy đủ mã tài khoản/email và mật khẩu!",
+        ),
+      );
     }
 
     const user = await db.findUserForLogin(loginUser);
@@ -24,15 +26,20 @@ router.post("/auth/login", async (req, res) => {
       user && (await verifyPassword(password, user.password_hash));
 
     if (!user || !passwordOk) {
-      return res
-        .status(401)
-        .json({ error: "Mã tài khoản hoặc mật khẩu không chính xác!" });
+      return sendRouteError(
+        res,
+        new HttpError(401, "Mã tài khoản hoặc mật khẩu không chính xác!"),
+      );
     }
 
     if (user.status === "LOCKED") {
-      return res.status(403).json({
-        error: "Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Admin.",
-      });
+      return sendRouteError(
+        res,
+        new HttpError(
+          403,
+          "Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Admin.",
+        ),
+      );
     }
 
     const token = generateToken({
@@ -53,8 +60,7 @@ router.post("/auth/login", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi server khi xử lý đăng nhập!" });
+    return sendRouteError(res, err, "Lỗi server khi xử lý đăng nhập!");
   }
 });
 
@@ -65,15 +71,17 @@ router.post("/auth/register", async (req, res) => {
       req.body;
 
     if (!name || !email || !password || !phone || !university) {
-      return res
-        .status(400)
-        .json({ error: "Vui lòng điền đầy đủ các thông tin bắt buộc (*)" });
+      return sendRouteError(
+        res,
+        new HttpError(400, "Vui lòng điền đầy đủ các thông tin bắt buộc (*)"),
+      );
     }
 
     if (password.length < 6) {
-      return res
-        .status(400)
-        .json({ error: "Mật khẩu phải từ 6 ký tự trở lên!" });
+      return sendRouteError(
+        res,
+        new HttpError(400, "Mật khẩu phải từ 6 ký tự trở lên!"),
+      );
     }
 
     const applicant = {
@@ -93,9 +101,13 @@ router.post("/auth/register", async (req, res) => {
       // Email đã có: chỉ cho nộp lại khi hồ sơ trước đó bị TỪ CHỐI (dùng lại tài khoản + hồ sơ cũ).
       newCandidate = await db.reapplyRejectedCandidate(applicant);
       if (!newCandidate) {
-        return res.status(400).json({
-          error: "Email này đã được sử dụng! Vui lòng nhập email khác.",
-        });
+        return sendRouteError(
+          res,
+          new HttpError(
+            400,
+            "Email này đã được sử dụng! Vui lòng nhập email khác.",
+          ),
+        );
       }
       resubmitted = true;
     } else {
@@ -117,8 +129,7 @@ router.post("/auth/register", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi server xử lý hồ sơ ứng tuyển!" });
+    return sendRouteError(res, err, "Lỗi server xử lý hồ sơ ứng tuyển!");
   }
 });
 

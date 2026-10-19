@@ -1,0 +1,15 @@
+const express = require("express");
+const { requireRole } = require("../auth");
+const controller = require("../controllers/meetings.controller");
+const router = express.Router();
+const staff = requireRole("HR", "Mentor");
+router.get("/meetings/options", staff, controller.options);
+router.get("/meetings", staff, controller.list);
+router.post("/meetings", staff, controller.create);
+router.get("/meetings/:id", staff, controller.detail);
+router.put("/meetings/:id", staff, controller.update);
+router.post("/meetings/:id/cancel", staff, controller.cancel);
+router.post("/meetings/:id/emails/:logId/retry", staff, controller.retry);
+router.get("/me/meetings", requireRole("Intern"), controller.list);
+router.get("/me/meetings/:id", requireRole("Intern"), controller.detail);
+module.exports = router;

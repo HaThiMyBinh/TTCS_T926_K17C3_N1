@@ -7,12 +7,8 @@ const storage = require("./fileStorage");
 const MAX_TITLE_LENGTH = 255;
 const MAX_NOTE_LENGTH = 1000;
 
-function parseId(raw, label) {
-  if (!/^\d+$/.test(String(raw))) {
-    throw new HttpError(400, `${label} không hợp lệ!`);
-  }
-  return Number(raw);
-}
+const { parseLabeledId: parseId } = require("../utils/ids");
+const { isValidDate } = require("../utils/date");
 
 // DTO công khai không bao giờ chứa tên file UUID trong storage.
 function toDto(row) {
@@ -34,18 +30,6 @@ function toDto(row) {
     confirmed_at: row.confirmedAt,
     confirmed_by: row.confirmedBy == null ? null : Number(row.confirmedBy),
   };
-}
-
-function isValidDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
 }
 
 function normalizeTextField(value, fieldName, maxLength) {
@@ -142,7 +126,8 @@ async function upload(rawInternId, user, metadata) {
   const programId = program_id ? parseId(program_id, "Mã chương trình") : null;
   if (programId != null) {
     const program = await db.findProgramById(programId);
-    if (!program) throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
+    if (!program)
+      throw new HttpError(404, "Không tìm thấy chương trình thực tập!");
     assertWithinProgramDates(program, start_date, end_date);
   }
 

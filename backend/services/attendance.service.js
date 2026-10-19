@@ -110,7 +110,7 @@ function formatRow(row, today, nowMs = null) {
         : Number(row.durationMinutes),
   };
 }
-async function requireIntern(user) {
+async function requireInternByEmail(user) {
   const intern = user?.email
     ? await db.findInternProfileByEmail(user.email)
     : null;
@@ -134,7 +134,7 @@ async function checkInBlockReason(internId, date) {
   return null;
 }
 async function getToday(user) {
-  const intern = await requireIntern(user);
+  const intern = await requireInternByEmail(user);
   const today = getVietnamToday();
   const row = await findCurrentRecord(intern.id, today);
   const status = !row
@@ -150,7 +150,15 @@ async function getToday(user) {
     ? formatRow(row, today, parseSqlDateTime(serverNow))
     : null;
   let schedule = null;
-  try { schedule = await require("./scheduleRules.service").resolveScheduleForIntern(intern.id, today); } catch (_) { schedule = null; }
+  try {
+    schedule =
+      await require("./scheduleRules.service").resolveScheduleForIntern(
+        intern.id,
+        today,
+      );
+  } catch (_) {
+    schedule = null;
+  }
   return {
     status,
     record,
@@ -178,7 +186,7 @@ async function checkPeriod(internId, today) {
     );
 }
 async function checkIn(user, body) {
-  const intern = await requireIntern(user);
+  const intern = await requireInternByEmail(user);
   const note = validateCheckInBody(body);
   const today = getVietnamToday();
   await checkPeriod(intern.id, today);
@@ -204,7 +212,7 @@ async function checkIn(user, body) {
   return result;
 }
 async function checkOut(user, body) {
-  const intern = await requireIntern(user);
+  const intern = await requireInternByEmail(user);
   validateEmptyBody(body);
   const today = getVietnamToday();
   const row = await findCurrentRecord(intern.id, today);
@@ -250,7 +258,7 @@ async function buildHistory(internId, query) {
   };
 }
 async function getHistory(user, query) {
-  const intern = await requireIntern(user);
+  const intern = await requireInternByEmail(user);
   return buildHistory(intern.id, query);
 }
 // ---------- Bổ sung check-out khi quên ----------
@@ -280,7 +288,7 @@ function parseRecordId(rawId) {
   return id;
 }
 async function requestCorrection(user, rawId, body) {
-  const intern = await requireIntern(user);
+  const intern = await requireInternByEmail(user);
   const id = parseRecordId(rawId);
   const input = validateCorrectionBody(body);
   const record = await db.findAttendanceById(id);

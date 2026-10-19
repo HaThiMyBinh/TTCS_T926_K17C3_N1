@@ -1,11 +1,12 @@
 const service = require("../services/attendanceReport.service");
-const { makeEndpoint, sendError } = require("./endpoint");
+const { NO_STORE } = require("../middleware/noStore");
+const { makeEndpoint, sendError, makeXlsxEndpoint } = require("../utils/endpoint");
 const endpoint = makeEndpoint("ATTENDANCE_REPORT");
 
 async function exportCsv(req, res) {
   try {
     const { filename, content } = await service.exportCsv(req.query);
-    res.set("Cache-Control", "private, no-store");
+    res.set("Cache-Control", NO_STORE);
     res.set("Content-Type", "text/csv; charset=utf-8");
     res.set("Content-Disposition", `attachment; filename="${filename}"`);
     return res.send(`\uFEFF${content}`);
@@ -14,7 +15,16 @@ async function exportCsv(req, res) {
   }
 }
 module.exports = {
-  report: endpoint((req) => service.report(req.query), "Lấy báo cáo chuyên cần thành công!"),
-  detail: endpoint((req) => service.detail(req.params.id, req.query), "Lấy chi tiết chuyên cần thành công!"),
+  xlsx: makeXlsxEndpoint("ATTENDANCEREPORT", (req) =>
+    service.exportXlsx(req.query),
+  ),
+  report: endpoint(
+    (req) => service.report(req.query),
+    "Lấy báo cáo chuyên cần thành công!",
+  ),
+  detail: endpoint(
+    (req) => service.detail(req.params.id, req.query),
+    "Lấy chi tiết chuyên cần thành công!",
+  ),
   exportCsv,
 };

@@ -1,21 +1,9 @@
 // Nghiệp vụ Quản lý & Tra cứu Lịch thực tập cá nhân (Internship Schedule & Milestones)
 const db = require("../db");
 const { HttpError } = require("../errors");
-const { getVietnamToday } = require("../utils/date");
+const { getVietnamToday, isValidDate, addDays } = require("../utils/date");
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-function isValidDate(value) {
-  if (!value || typeof value !== "string") return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-}
 
 function parseDateUtc(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -39,12 +27,6 @@ function diffDays(startStr, endStr) {
   const s = parseDateUtc(startStr);
   const e = parseDateUtc(endStr);
   return Math.round((e.getTime() - s.getTime()) / MS_PER_DAY) + 1;
-}
-
-function addDays(dateStr, days) {
-  const d = parseDateUtc(dateStr);
-  d.setUTCDate(d.getUTCDate() + days);
-  return formatDateUtc(d);
 }
 
 function selectConfirmedContract(contracts = []) {
@@ -330,9 +312,13 @@ async function buildScheduleDto(intern, todayOverride) {
   // Chương trình do HR xếp (xếp gần nhất) được ưu tiên; nếu chưa có thì dùng chương trình gắn trên hợp đồng.
   const memberships = await db.listProgramMembershipsForInterns([intern.id]);
   const latestMembership = [...memberships].sort(
-    (a, b) => String(b.confirmedAt || "").localeCompare(String(a.confirmedAt || "")) || b.id - a.id,
+    (a, b) =>
+      String(b.confirmedAt || "").localeCompare(String(a.confirmedAt || "")) ||
+      b.id - a.id,
   )[0];
-  const programId = latestMembership ? latestMembership.programId : activeContract?.programId;
+  const programId = latestMembership
+    ? latestMembership.programId
+    : activeContract?.programId;
   const program = programId ? await db.findProgramById(programId) : null;
 
   // Khoảng hợp đồng đã xác nhận được ưu tiên; nếu thiếu ngày thì dùng ngày của chương trình liên kết.
@@ -585,7 +571,9 @@ function conflictOnDuplicate(error) {
 
 function milestoneRange(m) {
   const { viDate } = require("./internNotify.service");
-  return m.start_date && m.end_date ? ` (${viDate(m.start_date)} – ${viDate(m.end_date)})` : "";
+  return m.start_date && m.end_date
+    ? ` (${viDate(m.start_date)} – ${viDate(m.end_date)})`
+    : "";
 }
 
 async function manageMilestones(
@@ -609,7 +597,10 @@ async function manageMilestones(
     } catch (error) {
       conflictOnDuplicate(error);
     }
-    await require("./internNotify.service").scheduleChanged(id, `Đã thêm mốc "${milestone.title}"${milestoneRange(milestone)}.`);
+    await require("./internNotify.service").scheduleChanged(
+      id,
+      `Đã thêm mốc "${milestone.title}"${milestoneRange(milestone)}.`,
+    );
     return db.listScheduleMilestones(id);
   }
   if (action === "update") {
@@ -648,7 +639,10 @@ async function manageMilestones(
     const doomed = await db.findMilestoneById(milestoneId);
     if (!(await db.deleteScheduleMilestone(id, milestoneId)))
       throw new HttpError(404, "Không tìm thấy mốc lịch!");
-    await require("./internNotify.service").scheduleChanged(id, `Mốc "${doomed ? doomed.title : "lịch thực tập"}" đã được xóa khỏi lịch thực tập.`);
+    await require("./internNotify.service").scheduleChanged(
+      id,
+      `Mốc "${doomed ? doomed.title : "lịch thực tập"}" đã được xóa khỏi lịch thực tập.`,
+    );
     return db.listScheduleMilestones(id);
   }
   const dates = await getScheduleForInternId(id);
@@ -674,7 +668,10 @@ async function manageMilestones(
   } catch (error) {
     conflictOnDuplicate(error);
   }
-  await require("./internNotify.service").scheduleChanged(id, `Lịch thực tập mẫu đã được tạo cho bạn (${defaults.length} mốc).`);
+  await require("./internNotify.service").scheduleChanged(
+    id,
+    `Lịch thực tập mẫu đã được tạo cho bạn (${defaults.length} mốc).`,
+  );
   return db.listScheduleMilestones(id);
 }
 

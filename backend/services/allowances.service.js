@@ -12,16 +12,22 @@ const PAY_CYCLES = ["MONTHLY", "DAILY", "ONE_TIME"];
 const AMOUNT_MAX = 999999999;
 const NOTE_MAX_LENGTH = 500;
 // Trường client được gửi lên (tên snake_case); trường lạ như intern_id, created_by bị từ chối.
-const INPUT_FIELDS = ["allowance_type", "amount", "pay_cycle", "effective_from", "effective_to", "note"];
-const REQUIRED_FIELDS = ["allowance_type", "amount", "pay_cycle", "effective_from"];
+const INPUT_FIELDS = [
+  "allowance_type",
+  "amount",
+  "pay_cycle",
+  "effective_from",
+  "effective_to",
+  "note",
+];
+const REQUIRED_FIELDS = [
+  "allowance_type",
+  "amount",
+  "pay_cycle",
+  "effective_from",
+];
 
-function parseId(rawId, label) {
-  const text = String(rawId ?? "");
-  if (!/^[1-9]\d*$/.test(text) || !Number.isSafeInteger(Number(text))) {
-    throw new HttpError(400, `${label} không hợp lệ!`);
-  }
-  return Number(text);
-}
+const { parseLabeledId: parseId } = require("../utils/ids");
 
 function has(input, key) {
   return Object.prototype.hasOwnProperty.call(input, key);
@@ -51,23 +57,33 @@ function validateAllowanceFields(input, { partial = false } = {}) {
   }
   if (!partial) {
     const missing = REQUIRED_FIELDS.filter(
-      (key) => input[key] === undefined || input[key] === null || input[key] === "",
+      (key) =>
+        input[key] === undefined || input[key] === null || input[key] === "",
     );
     if (missing.length > 0) {
-      throw new HttpError(400, `Thiếu thông tin bắt buộc: ${missing.join(", ")}!`);
+      throw new HttpError(
+        400,
+        `Thiếu thông tin bắt buộc: ${missing.join(", ")}!`,
+      );
     }
   }
 
   const out = {};
   if (has(input, "allowance_type")) {
     if (!ALLOWANCE_TYPES.includes(input.allowance_type)) {
-      throw new HttpError(400, `Loại phụ cấp phải là một trong: ${ALLOWANCE_TYPES.join(", ")}!`);
+      throw new HttpError(
+        400,
+        `Loại phụ cấp phải là một trong: ${ALLOWANCE_TYPES.join(", ")}!`,
+      );
     }
     out.allowanceType = input.allowance_type;
   }
   if (has(input, "pay_cycle")) {
     if (!PAY_CYCLES.includes(input.pay_cycle)) {
-      throw new HttpError(400, `Chu kỳ chi trả phải là một trong: ${PAY_CYCLES.join(", ")}!`);
+      throw new HttpError(
+        400,
+        `Chu kỳ chi trả phải là một trong: ${PAY_CYCLES.join(", ")}!`,
+      );
     }
     out.payCycle = input.pay_cycle;
   }
@@ -85,7 +101,10 @@ function validateAllowanceFields(input, { partial = false } = {}) {
     out.amount = input.amount;
   }
   if (has(input, "effective_from")) {
-    out.effectiveFrom = validateDate(input.effective_from, "Ngày bắt đầu hiệu lực");
+    out.effectiveFrom = validateDate(
+      input.effective_from,
+      "Ngày bắt đầu hiệu lực",
+    );
   }
   if (has(input, "effective_to")) {
     out.effectiveTo =
@@ -101,7 +120,10 @@ function validateAllowanceFields(input, { partial = false } = {}) {
     } else {
       const text = input.note.trim();
       if (text.length > NOTE_MAX_LENGTH) {
-        throw new HttpError(400, `Ghi chú không được vượt quá ${NOTE_MAX_LENGTH} ký tự!`);
+        throw new HttpError(
+          400,
+          `Ghi chú không được vượt quá ${NOTE_MAX_LENGTH} ký tự!`,
+        );
       }
       out.note = text || null;
     }
@@ -112,10 +134,16 @@ function validateAllowanceFields(input, { partial = false } = {}) {
 // Các luật liên quan giữa nhiều trường, kiểm tra trên dữ liệu đã gộp (quan trọng với PATCH).
 function validateCombination(fields) {
   if (fields.effectiveTo && fields.effectiveFrom > fields.effectiveTo) {
-    throw new HttpError(400, "Ngày kết thúc hiệu lực không được trước ngày bắt đầu!");
+    throw new HttpError(
+      400,
+      "Ngày kết thúc hiệu lực không được trước ngày bắt đầu!",
+    );
   }
   if (fields.allowanceType === "OTHER" && !fields.note) {
-    throw new HttpError(400, "Phụ cấp loại Khác bắt buộc phải có ghi chú mô tả!");
+    throw new HttpError(
+      400,
+      "Phụ cấp loại Khác bắt buộc phải có ghi chú mô tả!",
+    );
   }
   return fields;
 }
@@ -130,7 +158,12 @@ function allowanceStatus(allowance, today) {
 // Tổng hợp các khoản đang hiệu lực. Chỉ khoản theo THÁNG mới cộng vào totalMonthly;
 // khoản theo ngày / một lần phụ thuộc ngày công thực tế nên không quy đổi.
 function summarizeAllowances(allowances, today) {
-  const summary = { totalCount: allowances.length, activeCount: 0, totalMonthly: 0, totalDaily: 0 };
+  const summary = {
+    totalCount: allowances.length,
+    activeCount: 0,
+    totalMonthly: 0,
+    totalDaily: 0,
+  };
   for (const item of allowances) {
     if (allowanceStatus(item, today) !== "ACTIVE") continue;
     summary.activeCount += 1;
@@ -144,10 +177,12 @@ function summarizeAllowances(allowances, today) {
 // kéo dài đến hết hợp đồng nên chỉ cần ngày bắt đầu nằm trong hợp đồng.
 function isCoveredByContract(contracts, effectiveFrom, effectiveTo) {
   const last = effectiveTo || effectiveFrom;
-  return contracts.some((c) => contractCovers(c, effectiveFrom) && contractCovers(c, last));
+  return contracts.some(
+    (c) => contractCovers(c, effectiveFrom) && contractCovers(c, last),
+  );
 }
 
-async function requireIntern(rawId) {
+async function requireInternById(rawId) {
   const internId = parseId(rawId, "ID thực tập sinh");
   const intern = await db.findInternProfileById(internId);
   if (!intern) throw new HttpError(404, "Không tìm thấy hồ sơ thực tập sinh!");
@@ -157,10 +192,18 @@ async function requireIntern(rawId) {
 async function assertContractRules(internId, fields) {
   const contracts = await db.listConfirmedContractsForInterns([internId]);
   if (contracts.length === 0) {
-    throw new HttpError(409, "Thực tập sinh chưa có hợp đồng đã xác nhận nên chưa thể nhập phụ cấp!");
+    throw new HttpError(
+      409,
+      "Thực tập sinh chưa có hợp đồng đã xác nhận nên chưa thể nhập phụ cấp!",
+    );
   }
-  if (!isCoveredByContract(contracts, fields.effectiveFrom, fields.effectiveTo)) {
-    throw new HttpError(409, "Thời gian hiệu lực phụ cấp phải nằm trong kỳ của một hợp đồng đã xác nhận!");
+  if (
+    !isCoveredByContract(contracts, fields.effectiveFrom, fields.effectiveTo)
+  ) {
+    throw new HttpError(
+      409,
+      "Thời gian hiệu lực phụ cấp phải nằm trong kỳ của một hợp đồng đã xác nhận!",
+    );
   }
 }
 
@@ -177,34 +220,42 @@ function throwForOutcome(result) {
 }
 
 async function listForIntern(rawInternId) {
-  const intern = await requireIntern(rawInternId);
+  const intern = await requireInternById(rawInternId);
   const today = getVietnamToday();
   const items = (await db.listAllowancesByIntern(intern.id)).map((a) => ({
     ...a,
     status: allowanceStatus(a, today),
   }));
   return {
-    intern: { id: intern.id, fullName: intern.fullName, studentCode: intern.studentCode },
+    intern: {
+      id: intern.id,
+      fullName: intern.fullName,
+      studentCode: intern.studentCode,
+    },
     items,
     summary: summarizeAllowances(items, today),
   };
 }
 
 async function create(user, rawInternId, body) {
-  const intern = await requireIntern(rawInternId);
+  const intern = await requireInternById(rawInternId);
   const fields = validateCombination({
     note: null,
     effectiveTo: null,
     ...validateAllowanceFields(body),
   });
   await assertContractRules(intern.id, fields);
-  const result = await db.saveAllowanceAtomic({ internId: intern.id, fields, userId: user?.id });
+  const result = await db.saveAllowanceAtomic({
+    internId: intern.id,
+    fields,
+    userId: user?.id,
+  });
   throwForOutcome(result);
   return withStatus(await db.findAllowanceById(result.id));
 }
 
 async function update(user, rawInternId, rawAllowanceId, body) {
-  const intern = await requireIntern(rawInternId);
+  const intern = await requireInternById(rawInternId);
   const allowanceId = parseId(rawAllowanceId, "ID khoản phụ cấp");
   const patch = validateAllowanceFields(body, { partial: true });
   const existing = await db.findAllowanceById(allowanceId);
@@ -222,14 +273,17 @@ async function update(user, rawInternId, rawAllowanceId, body) {
   });
   await assertContractRules(intern.id, fields);
   const result = await db.saveAllowanceAtomic({
-    id: allowanceId, internId: intern.id, fields, userId: user?.id,
+    id: allowanceId,
+    internId: intern.id,
+    fields,
+    userId: user?.id,
   });
   throwForOutcome(result);
   return withStatus(await db.findAllowanceById(allowanceId));
 }
 
 async function remove(rawInternId, rawAllowanceId) {
-  const intern = await requireIntern(rawInternId);
+  const intern = await requireInternById(rawInternId);
   const allowanceId = parseId(rawAllowanceId, "ID khoản phụ cấp");
   if (!(await db.deleteAllowance(allowanceId, intern.id))) {
     throw new HttpError(404, "Không tìm thấy khoản phụ cấp!");
@@ -243,13 +297,11 @@ async function overview(query = {}) {
   for (const key of ["q", "university"]) {
     if (has(query, key)) picked[key] = query[key];
   }
-  let filters;
-  try {
-    filters = normalizeInternFilters(picked);
-  } catch (err) {
-    throw new HttpError(400, err.message);
-  }
-  const items = await db.listAllowanceOverview({ filters, today: getVietnamToday() });
+  const filters = normalizeInternFilters(picked);
+  const items = await db.listAllowanceOverview({
+    filters,
+    today: getVietnamToday(),
+  });
   return {
     items,
     summary: {
@@ -281,18 +333,26 @@ function toMyAllowance(allowance, today) {
 
 function validateMyAllowanceQuery(query) {
   if (query == null || typeof query !== "object") return {};
-  const unknown = Object.keys(query).filter((key) => !MY_ALLOWANCE_FILTERS.includes(key));
+  const unknown = Object.keys(query).filter(
+    (key) => !MY_ALLOWANCE_FILTERS.includes(key),
+  );
   if (unknown.length > 0) throw new HttpError(400, "Tham số lọc không hợp lệ!");
   const filters = {};
   if (has(query, "status")) {
     if (!ALLOWANCE_STATUSES.includes(query.status)) {
-      throw new HttpError(400, `Trạng thái phải là một trong: ${ALLOWANCE_STATUSES.join(", ")}!`);
+      throw new HttpError(
+        400,
+        `Trạng thái phải là một trong: ${ALLOWANCE_STATUSES.join(", ")}!`,
+      );
     }
     filters.status = query.status;
   }
   if (has(query, "type")) {
     if (!ALLOWANCE_TYPES.includes(query.type)) {
-      throw new HttpError(400, `Loại phụ cấp phải là một trong: ${ALLOWANCE_TYPES.join(", ")}!`);
+      throw new HttpError(
+        400,
+        `Loại phụ cấp phải là một trong: ${ALLOWANCE_TYPES.join(", ")}!`,
+      );
     }
     filters.type = query.type;
   }
@@ -305,11 +365,16 @@ function validateMyAllowanceQuery(query) {
 async function listMine(user, query = {}) {
   const filters = validateMyAllowanceQuery(query);
   const intern = await db.findInternProfileByEmail(user.email);
-  if (!intern) throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
+  if (!intern)
+    throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
   const today = getVietnamToday();
-  const all = (await db.listAllowancesByIntern(intern.id)).map((a) => toMyAllowance(a, today));
+  const all = (await db.listAllowancesByIntern(intern.id)).map((a) =>
+    toMyAllowance(a, today),
+  );
   const items = all.filter(
-    (a) => (!filters.status || a.status === filters.status) && (!filters.type || a.allowanceType === filters.type),
+    (a) =>
+      (!filters.status || a.status === filters.status) &&
+      (!filters.type || a.allowanceType === filters.type),
   );
   return {
     intern: { fullName: intern.fullName, studentCode: intern.studentCode },
@@ -323,7 +388,12 @@ async function listMine(user, query = {}) {
 }
 
 function withStatus(allowance) {
-  return allowance && { ...allowance, status: allowanceStatus(allowance, getVietnamToday()) };
+  return (
+    allowance && {
+      ...allowance,
+      status: allowanceStatus(allowance, getVietnamToday()),
+    }
+  );
 }
 
 module.exports = {

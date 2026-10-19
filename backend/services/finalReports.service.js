@@ -1,5 +1,7 @@
+const exportModels = require("./export/reportModels");
 const db = require("../db");
 const { HttpError } = require("../errors");
+const { EMAIL_REGEX } = require("../utils/validation");
 const weeks = require("../utils/weeks");
 const { getVietnamToday } = require("../utils/date");
 const FIELDS = [
@@ -11,17 +13,16 @@ const FIELDS = [
   "hr_note",
 ];
 const SCOPE_TYPES = ["ALL", "UNIVERSITY", "PROGRAM"];
-function parseId(raw) {
-  const s = String(raw ?? "");
-  if (!/^[1-9]\d*$/.test(s) || !Number.isSafeInteger(Number(s)))
-    throw new HttpError(400, "Mã báo cáo không hợp lệ!");
-  return Number(s);
-}
+const { parseId: parseIdWith } = require("../utils/ids");
+const { csvCell } = require("../utils/csv");
+const parseId = (raw) => parseIdWith(raw, "Mã báo cáo không hợp lệ!");
 // Nhãn phạm vi dễ đọc: "Toàn bộ thực tập sinh", "Trường: ...", "Chương trình: <tên>".
 function describeScope(type, value, programs = []) {
   if (type === "UNIVERSITY") return `Trường: ${value || ""}`.trim();
   if (type === "PROGRAM") {
-    const program = (programs || []).find((p) => String(p.id) === String(value));
+    const program = (programs || []).find(
+      (p) => String(p.id) === String(value),
+    );
     return `Chương trình: ${program ? program.name : `#${value}`}`;
   }
   return "Toàn bộ thực tập sinh";
@@ -267,11 +268,6 @@ function summarizeRows(
     interns,
   };
 }
-function csvCell(value) {
-  let text = value == null ? "" : String(value);
-  if (/^[=+\-@]/.test(text)) text = "'" + text;
-  return `"${text.replace(/"/g, '""')}"`;
-}
 function toCsv(snapshot) {
   const header = [
     "H\u1ECD t\u00EAn",
@@ -464,6 +460,7 @@ async function detail(rawId) {
   report.sends = sends;
   report.sendCount = sends.length;
   report.isSent = sends.length > 0;
+  report.exportModel = exportModels.finalReport(report);
   return report;
 }
 async function update(rawId, input) {
@@ -521,10 +518,12 @@ async function finalize(rawId, user, body) {
       409,
       `Còn ${snapshot.summary.notEvaluated}/${snapshot.summary.totalInterns} thực tập sinh chưa được đánh giá trong phạm vi này. Hãy xác nhận nếu vẫn muốn chốt báo cáo!`,
     );
-    err.code = "INCOMPLETE_EVALUATION";
-    err.details = {
-      notEvaluated: snapshot.summary.notEvaluated,
-      totalInterns: snapshot.summary.totalInterns,
+    err.extra = {
+      code: "INCOMPLETE_EVALUATION",
+      details: {
+        notEvaluated: snapshot.summary.notEvaluated,
+        totalInterns: snapshot.summary.totalInterns,
+      },
     };
     throw err;
   }
@@ -554,7 +553,6 @@ async function exportCsv(rawId) {
     content: toCsv(report.data),
   };
 }
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_RECIPIENTS = 10;
 function validateSendBody(body) {
   if (!body || typeof body !== "object" || Array.isArray(body))
@@ -671,7 +669,6 @@ module.exports = {
   validatePreviewQuery,
   parseId,
   summarizeRows,
-  csvCell,
   toCsv,
   preview,
   list,
@@ -681,4 +678,9 @@ module.exports = {
   finalize,
   remove,
   exportCsv,
+  exportXlsx: async (id, query = {}) => {
+    if (Object.keys(query).length)
+      throw new HttpError(400, "Xuất báo cáo cuối kỳ không nhận tham số lọc!");
+    return (await detail(id)).exportModel;
+  },
 };
