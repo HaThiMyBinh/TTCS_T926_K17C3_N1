@@ -3,10 +3,16 @@ const { requireRole } = require("../auth");
 const controller = require("../controllers/workSchedules.controller");
 
 const router = express.Router();
-const viewers = requireRole("HR", "Admin"); // xem
+const viewers = requireRole("HR"); // xem (Admin không dùng chức năng này)
 const hrOnly = requireRole("HR"); // thay đổi
 
 router.get("/me/work-schedule", requireRole("Intern"), controller.mine);
+// Mentor chỉ xem lịch làm việc cố định của các nhóm mình phụ trách.
+router.get(
+  "/mentors/me/work-schedule",
+  requireRole("Mentor"),
+  controller.forMentor,
+);
 
 router.get("/work-schedules", viewers, controller.list);
 router.post("/work-schedules", hrOnly, controller.create);

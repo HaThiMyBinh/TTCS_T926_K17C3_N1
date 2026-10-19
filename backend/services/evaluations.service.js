@@ -2,6 +2,7 @@
 // kèm nhận xét. Mỗi thực tập sinh tối đa 1 đánh giá; mentor gửi lại thì cập nhật.
 const db = require("../db");
 const { HttpError } = require("../errors");
+const { requireMentorProfile } = require("./actorProfiles");
 const { assertHasConfirmedContract } = require("./contractGate");
 
 const SCORE_MIN = 1;
@@ -19,13 +20,7 @@ function has(input, key) {
   return Object.prototype.hasOwnProperty.call(input, key);
 }
 
-function parseId(rawId, label) {
-  const text = String(rawId ?? "");
-  if (!/^[1-9]\d*$/.test(text) || !Number.isSafeInteger(Number(text))) {
-    throw new HttpError(400, `${label} không hợp lệ!`);
-  }
-  return Number(text);
-}
+const { parseLabeledId: parseId } = require("../utils/ids");
 
 function validateScore(input, key, label) {
   const value = input[key];
@@ -128,24 +123,10 @@ function toEvaluationDto(row) {
   };
 }
 
-async function requireMentorProfile(user) {
-  const mentor =
-    user?.role === "Mentor" && user.email
-      ? await db.findMentorByEmail(user.email)
-      : null;
-  if (!mentor) {
-    throw new HttpError(
-      403,
-      "Tài khoản chưa có hồ sơ mentor để đánh giá thực tập sinh!",
-    );
-  }
-  return mentor;
-}
-
 // Thực tập sinh phải tồn tại và do mentor này phụ trách (chống IDOR).
 async function loadInternForMentor(user, rawInternId) {
   const internId = parseId(rawInternId, "Mã thực tập sinh");
-  const mentor = await requireMentorProfile(user);
+  const mentor = await requireMentorProfile(user, "đánh giá thực tập sinh");
   const intern = await db.findInternProfileById(internId);
   if (!intern) throw new HttpError(404, "Không tìm thấy thực tập sinh!");
   if (!intern.mentorId || Number(intern.mentorId) !== Number(mentor.id)) {
@@ -189,7 +170,7 @@ async function deleteEvaluation(user, rawInternId) {
 
 // Bảng tổng quan: mọi thực tập sinh của mentor + trạng thái đã/chưa đánh giá.
 async function getMentorOverview(user) {
-  const mentor = await requireMentorProfile(user);
+  const mentor = await requireMentorProfile(user, "đánh giá thực tập sinh");
   const rows = await db.listEvaluationsForMentor(mentor.id);
   const interns = rows.map((r) => {
     const evaluated = Boolean(r.evaluationId);

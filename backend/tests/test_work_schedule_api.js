@@ -129,8 +129,8 @@ async function main() {
         defaultSchedule.days.length === 7,
     );
     check(
-      "Admin xem được danh sách",
-      (await call("GET", "/work-schedules", admin)).status === 200,
+      "Admin không được xem danh sách (403)",
+      (await call("GET", "/work-schedules", admin)).status === 403,
     );
     check(
       "Admin không được tạo lịch (403)",
@@ -453,6 +453,59 @@ async function main() {
       (await call("DELETE", `/work-schedules/${spare.body?.data?.id}`, hr))
         .status === 409,
     );
+    // Lịch chỉ còn lần áp dụng đã kết thúc -> xóa được, kèm các lần áp dụng cũ
+    const endedSchedule = await call(
+      "POST",
+      "/work-schedules",
+      hr,
+      fixedBody(`${PREFIX}_ended`),
+    );
+    const endedAssign = await call("POST", "/work-schedules/assignments", hr, {
+      schedule_id: endedSchedule.body?.data?.id,
+      target_type: "INTERN",
+      target_value: String(b.id),
+      effective_from: vnDate(-30),
+      effective_to: vnDate(-5),
+    });
+    check(
+      "Tạo lần áp dụng đã kết thúc (201)",
+      endedAssign.status === 201,
+      JSON.stringify(endedAssign.body),
+    );
+    check(
+      "Xóa lần áp dụng đã kết thúc (200)",
+      (
+        await call(
+          "DELETE",
+          `/work-schedules/assignments/${endedAssign.body?.data?.id}`,
+          hr,
+        )
+      ).status === 200,
+    );
+    const endedAssign2 = await call("POST", "/work-schedules/assignments", hr, {
+      schedule_id: endedSchedule.body?.data?.id,
+      target_type: "INTERN",
+      target_value: String(b.id),
+      effective_from: vnDate(-30),
+      effective_to: vnDate(-5),
+    });
+    check(
+      "Lịch chỉ còn lần áp dụng đã kết thúc thì xóa được kèm các lần đó (200)",
+      endedAssign2.status === 201 &&
+        (
+          await call(
+            "DELETE",
+            `/work-schedules/${endedSchedule.body?.data?.id}`,
+            hr,
+          )
+        ).status === 200,
+    );
+    check(
+      "Lịch đã xóa không còn lần áp dụng nào trong danh sách",
+      !(
+        (await call("GET", "/work-schedules/assignments", hr)).body?.data || []
+      ).some((x) => x.scheduleId === endedSchedule.body?.data?.id),
+    );
     check(
       "Lịch cố định đã hết áp dụng thì xóa được (200)",
       (await call("DELETE", `/work-schedules/${fixedId}`, hr)).status === 200,
@@ -509,7 +562,7 @@ async function main() {
     );
     check(
       "Danh sách ngày nghỉ có ngày vừa thêm",
-      (await call("GET", "/work-holidays", admin)).body?.data?.some(
+      (await call("GET", "/work-holidays", hr)).body?.data?.some(
         (h) => h.holidayDate === HOLIDAY_DATE,
       ),
     );
@@ -531,7 +584,8 @@ async function main() {
       mine.status === 200 &&
         mine.body?.data?.schedule?.name === `${PREFIX}_flex` &&
         mine.body.data.source?.label === "Cá nhân" &&
-        typeof mine.body.data.today?.rule?.isWorkingDay === "boolean",
+        typeof mine.body.data.today?.rule?.isWorkingDay === "boolean" &&
+        Array.isArray(mine.body.data.holidays),
       JSON.stringify(mine.body),
     );
     check(

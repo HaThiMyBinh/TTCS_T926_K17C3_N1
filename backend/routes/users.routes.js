@@ -1,11 +1,11 @@
 const express = require("express");
 const db = require("../db");
 const { hashPassword } = require("../auth");
-const { sendRouteError } = require("../errors");
+const { VALID_ROLES } = require("../middleware/guards");
+const { HttpError, sendRouteError } = require("../errors");
 const { checkPermission } = require("../middleware/permissions");
 const { trimOrDefault } = require("../utils/request");
 const router = express.Router();
-const VALID_ROLES = ["Admin", "HR", "Mentor", "Intern"];
 // --- TẠO & QUẢN LÝ TÀI KHOẢN (ADMIN & HR) ---
 
 // POST /api/users - chỉ vai trò có quyền MANAGE_USERS
@@ -13,28 +13,35 @@ router.post("/users", checkPermission("MANAGE_USERS"), async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password || !role) {
-      return res
-        .status(400)
-        .json({ error: "Vui lòng điền đầy đủ tất cả các trường!" });
+      return sendRouteError(
+        res,
+        new HttpError(400, "Vui lòng điền đầy đủ tất cả các trường!"),
+      );
     }
 
     if (password.length < 6) {
-      return res
-        .status(400)
-        .json({ error: "Mật khẩu phải từ 6 ký tự trở lên!" });
+      return sendRouteError(
+        res,
+        new HttpError(400, "Mật khẩu phải từ 6 ký tự trở lên!"),
+      );
     }
 
     if (!VALID_ROLES.includes(trimOrDefault(role))) {
-      return res.status(400).json({
-        error: `Vai trò không hợp lệ! Chỉ chấp nhận: ${VALID_ROLES.join(", ")}.`,
-      });
+      return sendRouteError(
+        res,
+        new HttpError(
+          400,
+          `Vai trò không hợp lệ! Chỉ chấp nhận: ${VALID_ROLES.join(", ")}.`,
+        ),
+      );
     }
 
     const existing = await db.findUserByEmail(email);
     if (existing) {
-      return res
-        .status(400)
-        .json({ error: "Email này đã tồn tại trong hệ thống!" });
+      return sendRouteError(
+        res,
+        new HttpError(400, "Email này đã tồn tại trong hệ thống!"),
+      );
     }
 
     const newUser = await db.insertUser({
@@ -56,8 +63,7 @@ router.post("/users", checkPermission("MANAGE_USERS"), async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi server khi tạo tài khoản!" });
+    return sendRouteError(res, err, "Lỗi server khi tạo tài khoản!");
   }
 });
 
@@ -79,8 +85,7 @@ router.get("/users", checkPermission("MANAGE_USERS"), async (req, res) => {
     }));
     res.json(safeUsers);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi đọc danh sách tài khoản!" });
+    return sendRouteError(res, err, "Lỗi đọc danh sách tài khoản!");
   }
 });
 
@@ -97,24 +102,5 @@ router.delete(
     }
   },
 );
-
-// GET /api/stats - chỉ vai trò có quyền MANAGE_USERS
-router.get("/stats", checkPermission("MANAGE_USERS"), async (req, res) => {
-  try {
-    const users = await db.getAllUsers();
-    const stats = {
-      totalUsers: users.length,
-      adminCount: users.filter((u) => u.role === "Admin").length,
-      hrCount: users.filter((u) => u.role === "HR").length,
-      mentorCount: users.filter((u) => u.role === "Mentor").length,
-      internCount: users.filter((u) => u.role === "Intern").length,
-      candidatesCount: users.filter((u) => u.status === "PENDING").length,
-    };
-    res.json(stats);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi thống kê dữ liệu!" });
-  }
-});
 
 module.exports = router;

@@ -74,7 +74,8 @@ async function testProgramApi() {
   const programId = createResponse.body.data.id;
 
   try {
-    assert.equal((await call("/programs", "Admin")).status, 200);
+    // Admin không được xem danh sách chương trình (chỉ HR), cùng quy tắc với POST ở trên.
+    assert.equal((await call("/programs", "Admin")).status, 403);
     const filtered = await call(
       `/programs?department_id=${department.id}&status=DRAFT`,
       "HR",

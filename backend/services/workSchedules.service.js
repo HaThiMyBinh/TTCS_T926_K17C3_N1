@@ -64,10 +64,10 @@ async function remove(rawId) {
   if (id === w.DEFAULT_SCHEDULE_ID)
     throw new HttpError(409, "Không thể xóa lịch mặc định!");
   try {
-    if (!(await db.deleteWorkSchedule(id)))
+    if (!(await db.deleteWorkSchedule(id, getVietnamToday())))
       throw new HttpError(
         409,
-        "Không thể xóa lịch đang được áp dụng cho nhóm nào đó hoặc lịch không tồn tại!",
+        "Không thể xóa lịch đang hoặc sắp được áp dụng cho nhóm nào đó, hoặc lịch không tồn tại!",
       );
   } catch (err) {
     if (isForeignKeyError(err))
@@ -134,7 +134,7 @@ async function assign(user, body) {
   )
     throw new HttpError(
       404,
-      "Không tìm thấy trường/chương trình/mentor/thực tập sinh được chọn!",
+      "Không tìm thấy trường/chương trình/nhóm/mentor/thực tập sinh được chọn!",
     );
   const effectiveFrom = requireDate(
     body.effective_from,
@@ -168,7 +168,7 @@ async function assign(user, body) {
   if (result.conflict)
     throw new HttpError(
       409,
-      "Phạm vi này đã có lịch áp dụng trùng khoảng ngày. Hãy chọn ngày hiệu lực khác hoặc xóa lịch cũ trước!",
+      "Phạm vi này đã có một lần áp dụng lịch bắt đầu đúng ngày hiệu lực này. Hãy chọn ngày hiệu lực khác hoặc xóa lần áp dụng cũ trước!",
     );
   await notifyScheduleAffected(
     affected,
@@ -190,15 +190,21 @@ async function removeAssignment(rawId) {
       err.message,
     );
   }
-  const affected = target
-    ? await affectedIdsOf(target.targetType, target.targetValue)
-    : [];
-  if (!(await db.deleteWorkScheduleAssignment(id)))
+  // Lần áp dụng đã kết thúc không còn ảnh hưởng ai nên không cần thông báo.
+  const today = getVietnamToday();
+  const ended = Boolean(
+    target && target.effectiveTo && target.effectiveTo < today,
+  );
+  const affected =
+    target && !ended
+      ? await affectedIdsOf(target.targetType, target.targetValue)
+      : [];
+  if (!(await db.deleteWorkScheduleAssignment(id, today)))
     throw new HttpError(
       404,
-      "Không tìm thấy lần áp dụng lịch hoặc đây là lịch mặc định (không xóa được)!",
+      "Không tìm thấy lần áp dụng lịch, hoặc đây là lịch mặc định còn hiệu lực (chỉ xóa được khi đã kết thúc)!",
     );
-  if (target)
+  if (target && !ended)
     await notifyScheduleAffected(
       affected,
       `Lịch làm việc "${target.scheduleName}" không còn áp dụng cho bạn. Xem lịch hiện tại ở mục Chấm công.`,
@@ -271,6 +277,63 @@ async function mine(user) {
       rule: w.getDayRule(resolved.schedule, today),
       holiday: holiday && holiday.name,
     },
+    // Ngày nghỉ chung để hiển thị trên lịch thực tập cá nhân.
+    holidays: holidays.map((h) => ({ date: h.holidayDate, name: h.name })),
+  };
+}
+// ---------- Lịch làm việc cố định của các nhóm do mentor phụ trách ----------
+// Mentor chỉ xem (không sửa): lịch đang áp dụng hôm nay cho từng thực tập sinh của mình,
+// gom theo (lịch, phạm vi áp dụng) để mentor thấy lịch của nhóm.
+async function forMentor(user) {
+  const students = await db.getStudentsForMentorEmail(user.email);
+  const today = getVietnamToday();
+  const ids = students.map((s) => s.id);
+  const [memberships, ctx, holidays] = await Promise.all([
+    db.listProgramMembershipsForInterns(ids),
+    db.loadWorkScheduleContext(),
+    db.listWorkHolidays(),
+  ]);
+  const groups = new Map();
+  for (const intern of students) {
+    const own = memberships.filter(
+      (m) => Number(m.internId) === Number(intern.id),
+    );
+    const programId = w.findMembershipProgram(own, today);
+    const found = w.resolveScheduleFromContext(
+      ctx,
+      intern,
+      today,
+      programId,
+      w.findMembershipGroup(own, today, programId),
+    );
+    if (!found) continue;
+    const key = `${found.schedule.id}|${found.source.type}|${found.source.value}`;
+    if (!groups.has(key))
+      groups.set(key, {
+        source: found.source,
+        schedule: {
+          id: found.schedule.id,
+          name: found.schedule.name,
+          mode: found.schedule.mode,
+          summary: w.summarizeSchedule(found.schedule),
+          graceMinutes: found.schedule.graceMinutes,
+          minDailyMinutes: found.schedule.minDailyMinutes,
+          days: found.schedule.days,
+        },
+        interns: [],
+      });
+    groups.get(key).interns.push({
+      id: intern.id,
+      fullName: intern.fullName,
+      studentCode: intern.studentCode,
+    });
+  }
+  return {
+    date: today,
+    groups: [...groups.values()],
+    holidays: holidays
+      .filter((h) => h.holidayDate >= today)
+      .map((h) => ({ date: h.holidayDate, name: h.name })),
   };
 }
 // Thực tập sinh đang hoặc sắp thực tập (có hợp đồng xác nhận chưa kết thúc) kèm lịch áp dụng.
@@ -310,11 +373,13 @@ async function loadActiveInterns() {
 async function resolved() {
   const { active, ctx } = await loadActiveInterns();
   return active.map(({ intern, date, memberships }) => {
+    const programId = w.findMembershipProgram(memberships, date);
     const found = w.resolveScheduleFromContext(
       ctx,
       intern,
       date,
-      w.findMembershipProgram(memberships, date),
+      programId,
+      w.findMembershipGroup(memberships, date, programId),
     );
     return {
       intern: {
@@ -346,6 +411,7 @@ async function options() {
       typeof u === "string" ? u : u.value,
     ),
     programs: filters.programs.map((p) => ({ id: p.id, name: p.name })),
+    groups: await db.listProgramGroupOptions(),
     mentors: mentors.map((m) => ({ id: m.id, name: m.fullName })),
     interns: interns.map((i) => ({
       id: i.id,
@@ -363,11 +429,13 @@ async function targetMembers(type, value) {
     w.internMatchesTarget(intern, memberships, type, value),
   );
   const overridden = members.filter(({ intern, date, memberships: own }) => {
+    const programId = w.findMembershipProgram(own, date);
     const found = w.resolveScheduleFromContext(
       ctx,
       intern,
       date,
-      w.findMembershipProgram(own, date),
+      programId,
+      w.findMembershipGroup(own, date, programId),
     );
     return found && rank(found.source.type) < rank(type);
   });
@@ -440,6 +508,7 @@ module.exports = {
   addHoliday,
   removeHoliday,
   mine,
+  forMentor,
   resolved,
   preview,
   options,

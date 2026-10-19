@@ -34,9 +34,33 @@ function formatVietnamDateTime(value = new Date()) {
   return dateTimeFormatter.format(value);
 }
 
+// YYYY-MM-DD hợp lệ theo lịch (từ chối 2026-02-30, "2026-1-1", kiểu không phải chuỗi...).
+function isValidDate(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+// Cộng/trừ số ngày trên chuỗi YYYY-MM-DD (số học UTC, không phụ thuộc múi giờ máy chủ).
+function addDays(value, days) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days))
+    .toISOString()
+    .slice(0, 10);
+}
+
 module.exports = {
   VIETNAM_TIME_ZONE,
   VIETNAM_UTC_OFFSET,
   getVietnamToday,
   formatVietnamDateTime,
+  isValidDate,
+  addDays,
 };

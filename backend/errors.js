@@ -29,11 +29,13 @@ function publicError(
   };
 }
 
-// Preserve the legacy { error, ...extra } response envelope for existing routes.
+// Chuẩn hóa lỗi API; giữ cả hai key để tương thích với các frontend hiện có.
 function sendRouteError(res, err, fallbackMessage) {
   const failure = publicError(err, fallbackMessage);
-  return res
-    .status(failure.status)
-    .json({ ...failure.extra, error: failure.message });
+  return res.status(failure.status).json({
+    ...failure.extra,
+    error: failure.message,
+    message: failure.message,
+  });
 }
 module.exports = { HttpError, publicError, sendRouteError };

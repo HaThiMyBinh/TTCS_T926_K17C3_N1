@@ -1,13 +1,9 @@
+const { serveFrontendStatic } = require("./frontend_static");
 /* global document, window, permissionsMap, switchTab, programItems, programMentorOpen */
 // Optional full production page test with mocked HTTP APIs; no MySQL needed.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const path = require("node:path");
 const { chromium } = require("playwright");
-const html = fs.readFileSync(
-  path.join(__dirname, "../../Frontend/index.html"),
-  "utf8",
-);
 const name = 'O\'Brien <img src=x onerror="window.us6Xss=1"> & "College"';
 const summary = {
   total: 16,
@@ -56,8 +52,8 @@ async function main() {
           body: JSON.stringify(data),
         });
       if (url.hostname !== "us6.test") return route.abort();
-      if (url.pathname === "/index.html")
-        return route.fulfill({ contentType: "text/html", body: html });
+      const served = serveFrontendStatic(route);
+      if (served) return served;
       if (url.pathname === "/api/permissions")
         return json({
           HR: ["VIEW_REPORTS"],

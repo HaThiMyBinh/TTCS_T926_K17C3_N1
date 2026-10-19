@@ -253,6 +253,36 @@ test("report: lọc theo phạm vi và thực tập sinh", async () => {
   );
   assert.deepEqual(await names({ intern_id: "1" }), ["An"]);
 });
+test("report: lọc theo nhóm trong chương trình (nhóm chính theo ngày)", async () => {
+  const withGroups = (groups) => ({
+    ...reportDb,
+    listProgramMembershipsForInterns: async (ids) =>
+      (await reportDb.listProgramMembershipsForInterns(ids)).map((m) => ({
+        ...m,
+        groups: Number(m.internId) === 2 ? groups : [],
+      })),
+  });
+  const names = async (extra) =>
+    (await report.report({ ...Q, ...extra })).interns.map(
+      (x) => x.intern.fullName,
+    );
+  useDb(withGroups([{ groupId: 7, from: "2026-01-01", to: null }]));
+  assert.deepEqual(await names({ scope_type: "GROUP", scope_value: "7" }), [
+    "Bình",
+  ]);
+  assert.deepEqual(await names({ scope_type: "GROUP", scope_value: "8" }), []);
+  useDb(withGroups([{ groupId: 7, from: "2026-01-01", to: "2026-01-02" }]));
+  assert.deepEqual(
+    await names({ scope_type: "GROUP", scope_value: "7" }),
+    [],
+    "đã rời nhóm trước kỳ báo cáo",
+  );
+  await throwsStatus(
+    report.report({ ...Q, scope_type: "GROUP", scope_value: "abc" }),
+    400,
+    "mã nhóm sai",
+  );
+});
 test("report: nhóm theo chương trình / trường / mentor", async () => {
   useDb(reportDb);
   const byProgram = (await report.report({ ...Q, group_by: "PROGRAM" })).groups;
@@ -810,11 +840,8 @@ test("workSchedules.assign: kiểm tra đầu vào và trùng khoảng ngày", a
       existing: [{ id: 8, effectiveFrom: "2026-11-01", effectiveTo: null }],
     }),
   );
-  await throwsStatus(
-    schedules.assign(hr, assignBody()),
-    409,
-    "trùng ngày bắt đầu",
-  );
+  // Cùng ngày bắt đầu: lần tạo sau thắng theo thứ tự ưu tiên hiện hành.
+  assert.deepEqual(await schedules.assign(hr, assignBody()), { id: 50 });
   useDb(
     mgmtDb({
       createWorkScheduleAssignment: async () => {
@@ -915,10 +942,14 @@ test("workSchedules.options: danh sách cho ô chọn phạm vi", async () => {
       { id: 5, fullName: "Mentor Năm", email: "m@x.vn" },
     ],
     getAllStudents: async () => [internA],
+    listProgramGroupOptions: async () => [
+      { id: 7, name: "Nhóm A", programId: 3, programName: "Hè" },
+    ],
   });
   assert.deepEqual(await schedules.options(), {
     universities: ["ĐH X", "ĐH Y"],
     programs: [{ id: 3, name: "Hè" }],
+    groups: [{ id: 7, name: "Nhóm A", programId: 3, programName: "Hè" }],
     mentors: [{ id: 5, name: "Mentor Năm" }],
     interns: [{ id: 1, name: "An", studentCode: "SV1" }],
   });

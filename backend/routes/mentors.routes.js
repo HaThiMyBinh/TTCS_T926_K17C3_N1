@@ -1,9 +1,9 @@
 const express = require("express");
 const db = require("../db");
 const { requireRole } = require("../auth");
-const { sendRouteError } = require("../errors");
+const { HttpError, sendRouteError } = require("../errors");
 const { trimOrDefault } = require("../utils/request");
-const { makeEndpoint } = require("../controllers/endpoint");
+const { makeEndpoint } = require("../utils/endpoint");
 const mentorInterns = require("../services/mentorInterns.service");
 const endpoint = makeEndpoint("MENTOR");
 const router = express.Router();
@@ -12,10 +12,11 @@ router.get("/mentors/me/interns", requireRole("Mentor"), async (req, res) => {
     const students = await db.getStudentsForMentorEmail(req.user.email);
     res.json(students);
   } catch (err) {
-    console.error(err);
-    res
-      .status(500)
-      .json({ error: "Lỗi đọc danh sách thực tập sinh của mentor!" });
+    return sendRouteError(
+      res,
+      err,
+      "Lỗi đọc danh sách thực tập sinh của mentor!",
+    );
   }
 });
 
@@ -40,7 +41,10 @@ router.post(
   "/mentors/:id/interns",
   requireRole("HR"),
   endpoint(
-    (req) => mentorInterns.assign(req.params.id, req.body),
+    (req) =>
+      mentorInterns.assign(req.params.id, req.body, {
+        userId: req.user && req.user.id,
+      }),
     "Cập nhật phân công mentor thành công!",
   ),
 );
@@ -53,8 +57,7 @@ router.get(
       const mentors = await db.getAllMentors();
       res.json(mentors);
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Lỗi đọc danh sách mentor!" });
+      return sendRouteError(res, err, "Lỗi đọc danh sách mentor!");
     }
   },
 );
@@ -64,19 +67,10 @@ router.post("/mentors", requireRole("Admin", "HR"), async (req, res) => {
   try {
     const { fullName, email, phone, department, specialization } = req.body;
     if (!fullName || !email || !department) {
-      return res
-        .status(400)
-        .json({ error: "Vui lòng nhập đầy đủ Họ tên, Email và Phòng ban!" });
-    }
-    const mentors = await db.getAllMentors();
-    if (
-      mentors.some(
-        (m) => m.email && m.email.toLowerCase() === email.trim().toLowerCase(),
-      )
-    ) {
-      return res
-        .status(400)
-        .json({ error: "Email mentor này đã tồn tại trong hệ thống!" });
+      return sendRouteError(
+        res,
+        new HttpError(400, "Vui lòng nhập đầy đủ Họ tên, Email và Phòng ban!"),
+      );
     }
     const newMentor = await db.insertMentor({
       fullName: trimOrDefault(fullName),
@@ -98,9 +92,10 @@ router.put("/mentors/:id", requireRole("Admin", "HR"), async (req, res) => {
   try {
     const { fullName, email, phone, department, specialization } = req.body;
     if (!fullName || !email || !department) {
-      return res
-        .status(400)
-        .json({ error: "Vui lòng nhập đầy đủ Họ tên, Email và Phòng ban!" });
+      return sendRouteError(
+        res,
+        new HttpError(400, "Vui lòng nhập đầy đủ Họ tên, Email và Phòng ban!"),
+      );
     }
     const updated = await db.updateMentor(req.params.id, {
       fullName: trimOrDefault(fullName),
@@ -110,9 +105,10 @@ router.put("/mentors/:id", requireRole("Admin", "HR"), async (req, res) => {
       specialization: trimOrDefault(specialization),
     });
     if (!updated) {
-      return res
-        .status(404)
-        .json({ error: "Không tìm thấy mentor cần cập nhật!" });
+      return sendRouteError(
+        res,
+        new HttpError(404, "Không tìm thấy mentor cần cập nhật!"),
+      );
     }
     res.json({
       message: "Cập nhật thông tin mentor thành công!",
@@ -129,8 +125,7 @@ router.delete("/mentors/:id", requireRole("Admin", "HR"), async (req, res) => {
     await db.deleteMentor(req.params.id);
     res.json({ message: "Đã xóa mentor khỏi hệ thống!" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi khi xóa mentor!" });
+    return sendRouteError(res, err, "Lỗi khi xóa mentor!");
   }
 });
 

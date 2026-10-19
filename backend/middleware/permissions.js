@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { HttpError, sendRouteError } = require("../errors");
 
 const PERMISSIONS_FILE = path.join(__dirname, "..", "permissions.json");
 
@@ -31,9 +32,10 @@ function ensurePermissionsFile() {
 function checkPermission(requiredPermission) {
   return (req, res, next) => {
     if (!req.user) {
-      return res
-        .status(401)
-        .json({ error: "Chưa xác thực (thiếu hoặc sai token đăng nhập)!" });
+      return sendRouteError(
+        res,
+        new HttpError(401, "Chưa xác thực (thiếu hoặc sai token đăng nhập)!"),
+      );
     }
 
     const userRole = req.user.role;
@@ -41,11 +43,14 @@ function checkPermission(requiredPermission) {
     const rolePermissions = permissions[userRole] || [];
 
     if (!rolePermissions.includes(requiredPermission)) {
-      return res.status(403).json({
-        error: `Từ chối truy cập: Vai trò [${userRole}] không có quyền [${requiredPermission}]!`,
-        requiredPermission,
-        userRole,
-      });
+      return sendRouteError(
+        res,
+        new HttpError(
+          403,
+          `Từ chối truy cập: Vai trò [${userRole}] không có quyền [${requiredPermission}]!`,
+          { requiredPermission, userRole },
+        ),
+      );
     }
 
     next();

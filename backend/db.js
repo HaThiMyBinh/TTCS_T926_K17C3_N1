@@ -1,3 +1,9 @@
+const logger = require("./utils/logger");
+const { randomUUID } = require("node:crypto");
+const { HttpError } = require("./errors");
+const meetingRules = require("./services/meetingRules.service");
+const { migrateMeetings } = require("./migrations/meetingsMigration");
+const { migrateStructure } = require("./migrations/structureMigration");
 // db.js - Quản lý kết nối & truy vấn Database MySQL (nguồn dữ liệu DUY NHẤT)
 const mysql = require("mysql2/promise");
 const fs = require("fs");
@@ -8,6 +14,7 @@ const {
   resolveUniqueMentorId,
 } = require("./services/mentorAssignment.service");
 const { VIETNAM_UTC_OFFSET } = require("./utils/date");
+const { escapeLike } = require("./utils/sql");
 
 const CONFIG_FILE = path.join(__dirname, "db_config.json");
 
@@ -79,6 +86,8 @@ async function seedDepartmentsFromMentors(targetPool = requireDb()) {
   return true;
 }
 
+// LƯU Ý: chỉ cập nhật intern_profiles.mentor_id, KHÔNG ghi mentor_assignments. Sau khi gọi (ngoài luồng khởi tạo trong
+// initDatabase) phải gọi reconcileMentorHistory() của migrations/structureMigration để lịch sử không bị lệch.
 async function backfillInternMentorIds(targetPool = requireDb()) {
   const [result] = await targetPool.query(`
     UPDATE intern_profiles ip
@@ -131,19 +140,92 @@ class ConflictError extends Error {
   }
 }
 
-// Chạy nhiều câu lệnh trong 1 transaction để 2 bảng users & mentors luôn khớp nhau
-async function withTransaction(work) {
-  const conn = await requireDb().getConnection();
+// Chạy fn; nếu DB báo trùng khóa UNIQUE (ER_DUP_ENTRY) thì ném ConflictError(message).
+// Dùng ràng buộc UNIQUE(email) của DB thay vì tải cả bảng để kiểm tra trùng.
+async function rethrowDuplicate(message, fn) {
   try {
-    await conn.beginTransaction();
-    const result = await work(conn);
-    await conn.commit();
-    return result;
+    return await fn();
   } catch (err) {
-    await conn.rollback();
+    if (err && err.code === "ER_DUP_ENTRY") throw new ConflictError(message);
     throw err;
-  } finally {
-    conn.release();
+  }
+}
+
+// Chạy nhiều câu lệnh trong 1 transaction để 2 bảng users & mentors luôn khớp nhau
+// Quy tắc 4: ghi lịch sử phân công mentor có thời gian hiệu lực [effective_from, effective_to).
+// Gọi trong CÙNG giao dịch với việc đổi intern_profiles.mentor_id. Chỉ truyền những thực tập sinh thực sự đổi mentor.
+// mentorId = null nghĩa là gỡ mentor (chỉ đóng phân công đang mở).
+async function recordMentorChange(
+  conn,
+  internIds,
+  mentorId,
+  mentorName,
+  { programId = null, userId = null, note = null } = {},
+) {
+  const ids = [...new Set((internIds || []).map(Number))].filter(
+    (n) => Number.isSafeInteger(n) && n > 0,
+  );
+  if (!ids.length) return;
+  await conn.query("SET @ma_now = NOW(3)");
+  await conn.query(
+    "UPDATE mentor_assignments SET effective_to = @ma_now WHERE intern_id IN (?) AND effective_to IS NULL",
+    [ids],
+  );
+  if (mentorId == null) return;
+  await conn.query(
+    `INSERT INTO mentor_assignments (intern_id, mentor_id, mentor_name, program_id, effective_from, assigned_by, note)
+     SELECT id, ?, ?, ?, @ma_now, ?, ? FROM intern_profiles WHERE id IN (?)`,
+    [mentorId, mentorName || null, programId, userId, note, ids],
+  );
+}
+
+const MAX_DEADLOCK_ATTEMPTS = 3;
+const sleepTransactionRetry = (ms) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+// Callback work phải chạy lại được an toàn (idempotent trong phạm vi giao dịch).
+async function withTransaction(
+  work,
+  {
+    retryDeadlock = true,
+    maxAttempts = MAX_DEADLOCK_ATTEMPTS,
+    sleep = sleepTransactionRetry,
+  } = {},
+) {
+  if (
+    !Number.isInteger(maxAttempts) ||
+    maxAttempts < 1 ||
+    maxAttempts > MAX_DEADLOCK_ATTEMPTS
+  ) {
+    throw new RangeError("maxAttempts phải là số nguyên từ 1 đến 3");
+  }
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const conn = await requireDb().getConnection();
+    try {
+      await conn.beginTransaction();
+      const result = await work(conn);
+      await conn.commit();
+      return result;
+    } catch (err) {
+      try {
+        await conn.rollback();
+      } catch {
+        // Lỗi rollback không được che lỗi giao dịch gốc.
+      }
+      if (
+        !retryDeadlock ||
+        err.code !== "ER_LOCK_DEADLOCK" ||
+        attempt === maxAttempts
+      ) {
+        throw err;
+      }
+    } finally {
+      conn.release();
+    }
+    console.warn(
+      `[DATABASE] Deadlock: thử lại lần ${attempt + 1}/${maxAttempts}`,
+    );
+    await sleep((20 + Math.floor(Math.random() * 61)) * attempt);
   }
 }
 
@@ -264,58 +346,6 @@ async function ensureUniqueScheduleIndex() {
   await pool.query(
     "ALTER TABLE intern_schedules ADD UNIQUE KEY uq_schedule_intern_phase (intern_id, phase_order)",
   );
-}
-
-// Story 5.1: view thống kê TTS theo trường/ngành. Định nghĩa trùng schema.sql;
-// CREATE OR REPLACE nên chạy lại nhiều lần vẫn an toàn.
-async function ensureInternSchoolStatsView() {
-  await pool.query(`
-CREATE OR REPLACE VIEW \`v_intern_school_stats\` AS
-SELECT
-    COALESCE(NULLIF(TRIM(\`university\`), ''), 'Chưa cập nhật') AS \`university\`,
-    COALESCE(NULLIF(TRIM(\`major\`), ''), 'Chưa cập nhật') AS \`major\`,
-    COUNT(*) AS \`total_interns\`,
-    SUM(CASE WHEN \`status\` = 'Đang thực tập' THEN 1 ELSE 0 END) AS \`in_progress_count\`,
-    SUM(CASE WHEN \`status\` = 'Hoàn thành' THEN 1 ELSE 0 END) AS \`completed_count\`,
-    SUM(CASE WHEN \`status\` IN ('Tạm dừng', 'Bỏ học') THEN 1 ELSE 0 END) AS \`dropped_count\`,
-    SUM(CASE WHEN \`status\` IS NULL OR \`status\` NOT IN ('Đang thực tập', 'Hoàn thành', 'Tạm dừng', 'Bỏ học') THEN 1 ELSE 0 END) AS \`other_count\`
-FROM \`intern_profiles\`
-GROUP BY COALESCE(NULLIF(TRIM(\`university\`), ''), 'Chưa cập nhật'),
-         COALESCE(NULLIF(TRIM(\`major\`), ''), 'Chưa cập nhật');
-  `);
-}
-
-// Story 5.1: đọc view v_intern_school_stats, lọc theo trường/ngành (chứa chuỗi, không phân biệt hoa thường).
-async function listInternSchoolStats(filters = {}) {
-  const escapeLike = (v) => String(v).replace(/[\\%_]/g, "\\$&");
-  const where = [];
-  const params = [];
-  if (filters.university) {
-    where.push("`university` LIKE ?");
-    params.push(`%${escapeLike(filters.university)}%`);
-  }
-  if (filters.major) {
-    where.push("`major` LIKE ?");
-    params.push(`%${escapeLike(filters.major)}%`);
-  }
-  const [rows] = await requireDb().query(
-    `SELECT \`university\`, \`major\`,
-            \`total_interns\` AS total, \`in_progress_count\` AS inProgress,
-            \`completed_count\` AS completed, \`dropped_count\` AS dropped, \`other_count\` AS other
-     FROM \`v_intern_school_stats\`
-     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-     ORDER BY \`university\`, \`major\``,
-    params,
-  );
-  return rows.map((r) => ({
-    university: r.university,
-    major: r.major,
-    total: Number(r.total) || 0,
-    inProgress: Number(r.inProgress) || 0,
-    completed: Number(r.completed) || 0,
-    dropped: Number(r.dropped) || 0,
-    other: Number(r.other) || 0,
-  }));
 }
 
 // Khởi tạo kết nối MySQL, tạo bảng & seed dữ liệu mặc định nếu chưa có
@@ -456,6 +486,8 @@ async function initDatabase() {
     "fk_intern_mentor_id",
     "FOREIGN KEY (\`mentor_id\`) REFERENCES \`mentors\`(\`id\`) ON DELETE SET NULL",
   );
+  // Chỉ ghi intern_profiles.mentor_id; lịch sử mentor_assignments được đồng bộ sau đó bởi migrateStructure
+  // (reconcileMentorAssignments). Mọi chỗ gọi lại backfill sau khi khởi tạo phải đồng bộ lại lịch sử (xem server.js).
   await backfillInternMentorIds(pool);
 
   // cột phục vụ duyệt / từ chối hồ sơ
@@ -765,12 +797,12 @@ async function initDatabase() {
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
   await pool.query(`CREATE TABLE IF NOT EXISTS work_schedule_days (
     schedule_id BIGINT NOT NULL, weekday TINYINT NOT NULL, is_working TINYINT(1) NOT NULL DEFAULT 0,
-    start_time TIME NULL, end_time TIME NULL, PRIMARY KEY(schedule_id, weekday),
+    start_time TIME NULL, end_time TIME NULL, work_type VARCHAR(10) NOT NULL DEFAULT 'OFFLINE', PRIMARY KEY(schedule_id, weekday),
     CONSTRAINT fk_work_schedule_day FOREIGN KEY(schedule_id) REFERENCES work_schedules(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
   await pool.query(`CREATE TABLE IF NOT EXISTS work_schedule_assignments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY, schedule_id BIGINT NOT NULL,
-    target_type ENUM('DEFAULT','UNIVERSITY','PROGRAM','MENTOR','INTERN') NOT NULL,
+    target_type ENUM('DEFAULT','UNIVERSITY','PROGRAM','MENTOR','INTERN','GROUP') NOT NULL,
     target_value VARCHAR(255) NOT NULL DEFAULT '', effective_from DATE NOT NULL, effective_to DATE NULL,
     created_by BIGINT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_schedule_assignment_lookup(target_type,target_value,effective_from,effective_to),
@@ -790,7 +822,7 @@ async function initDatabase() {
     CONSTRAINT fk_pi_intern FOREIGN KEY(intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
     CONSTRAINT fk_pi_user FOREIGN KEY(assigned_by) REFERENCES users(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-  await require("./services/programCompletionMigration").migrateProgramCompletion(
+  await require("./migrations/programCompletionMigration").migrateProgramCompletion(
     pool,
   );
   await pool.query(`CREATE TABLE IF NOT EXISTS leave_requests (
@@ -857,6 +889,12 @@ async function initDatabase() {
     await pool.query(
       "ALTER TABLE notifications ADD UNIQUE KEY uq_notification_dedupe (user_id, dedupe_key)",
     );
+  // Bảng cũ chưa có hình thức làm việc (Offline = tại văn phòng, Online = từ xa): mặc định Offline.
+  await ensureColumn(
+    "work_schedule_days",
+    "work_type",
+    "VARCHAR(10) NOT NULL DEFAULT 'OFFLINE'",
+  );
   await pool.query(
     "INSERT IGNORE INTO work_schedules (id,name,description,mode,grace_minutes) VALUES (1,'Lịch mặc định','Lịch làm việc mặc định toàn hệ thống','FIXED',15)",
   );
@@ -908,7 +946,7 @@ async function initDatabase() {
 
   await seedDepartmentsFromMentors(pool);
 
-  // Seed dữ liệu mặc định: roles, permissions, role_permissions
+  // Seed dữ liệu mặc định: roles và permissions. role_permissions được giữ để tương thích DB cũ nhưng không còn được đọc.
   await pool.query(`
     INSERT IGNORE INTO roles (id, role_name, description) VALUES
     (1, 'Admin', 'Quản trị viên toàn quyền hệ thống'),
@@ -926,17 +964,10 @@ async function initDatabase() {
     (5, 'SYSTEM_SETTINGS', 'Cài đặt hệ thống', 'Cấu hình phân quyền và hệ thống');
   `);
 
-  await pool.query(`
-    INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES
-    (1, 1), (1, 5),
-    (2, 4),
-    (3, 2);
-  `);
-
-  await ensureInternSchoolStatsView();
-
+  await migrateMeetings(pool);
+  await migrateStructure(pool);
   isMysqlConnected = true;
-  console.log(
+  logger.info(
     `[DATABASE] Đã kết nối MySQL thành công tới database '${config.database}'!`,
   );
 
@@ -948,7 +979,7 @@ async function initDatabase() {
 
 async function seedDefaultAccounts() {
   if (process.env.NODE_ENV === "production") {
-    console.log("[DATABASE] NODE_ENV=production: bỏ qua seed tài khoản mẫu.");
+    logger.info("[DATABASE] NODE_ENV=production: bỏ qua seed tài khoản mẫu.");
     return;
   }
   const defaultPassHash = await hashPassword("password123");
@@ -1056,6 +1087,27 @@ async function getAllUsers() {
      ORDER BY u.id DESC`,
   );
   return rows;
+}
+
+// Đếm tài khoản theo vai trò/trạng thái bằng SQL (không tải toàn bộ bảng users).
+async function getUserStats() {
+  const [[row]] = await requireDb().query(
+    `SELECT COUNT(*) AS totalUsers,
+            COALESCE(SUM(r.role_name = 'Admin'), 0) AS adminCount,
+            COALESCE(SUM(r.role_name = 'HR'), 0) AS hrCount,
+            COALESCE(SUM(r.role_name = 'Mentor'), 0) AS mentorCount,
+            COALESCE(SUM(r.role_name = 'Intern'), 0) AS internCount,
+            COALESCE(SUM(u.status = 'PENDING'), 0) AS candidatesCount
+     FROM users u JOIN roles r ON u.role_id = r.id`,
+  );
+  return {
+    totalUsers: Number(row.totalUsers),
+    adminCount: Number(row.adminCount),
+    hrCount: Number(row.hrCount),
+    mentorCount: Number(row.mentorCount),
+    internCount: Number(row.internCount),
+    candidatesCount: Number(row.candidatesCount),
+  };
 }
 
 async function deleteUser(id) {
@@ -1391,19 +1443,29 @@ async function insertMentor({
   department,
   specialization,
 }) {
-  const insertId = await withTransaction(async (conn) => {
-    const [result] = await conn.query(
-      "INSERT INTO mentors (full_name, email, phone, department, specialization) VALUES (?, ?, ?, ?, ?)",
-      [fullName, email, phone || "", department || "", specialization || ""],
-    );
-    await upsertProfileAccount(conn, "Mentor", {
-      oldEmail: email,
-      fullName,
-      email,
-      phone,
-    });
-    return result.insertId;
-  });
+  const insertId = await rethrowDuplicate(
+    "Email mentor này đã tồn tại trong hệ thống!",
+    () =>
+      withTransaction(async (conn) => {
+        const [result] = await conn.query(
+          "INSERT INTO mentors (full_name, email, phone, department, specialization) VALUES (?, ?, ?, ?, ?)",
+          [
+            fullName,
+            email,
+            phone || "",
+            department || "",
+            specialization || "",
+          ],
+        );
+        await upsertProfileAccount(conn, "Mentor", {
+          oldEmail: email,
+          fullName,
+          email,
+          phone,
+        });
+        return result.insertId;
+      }),
+  );
   return {
     id: insertId,
     fullName,
@@ -1474,6 +1536,11 @@ async function deleteMentor(id) {
     const [rows] = await conn.query(
       "SELECT email FROM mentors WHERE id = ? FOR UPDATE",
       [id],
+    );
+    await conn.query("SET @ma_now = NOW(3)");
+    await conn.query(
+      "UPDATE mentor_assignments SET effective_to = @ma_now, mentor_name = COALESCE(mentor_name, (SELECT full_name FROM mentors WHERE id = ?)) WHERE mentor_id = ? AND effective_to IS NULL",
+      [id, id],
     );
     await conn.query(
       "UPDATE intern_profiles SET mentor_id = NULL, mentor_name = '' WHERE mentor_id = ?",
@@ -1612,7 +1679,7 @@ async function countInterns({ unassigned = false } = {}) {
   return Number(rows[0]?.count) || 0;
 }
 
-async function assignInternMentor(internId, mentorId) {
+async function assignInternMentor(internId, mentorId, options = {}) {
   try {
     return await withTransaction(async (conn) => {
       let mentorName = "";
@@ -1627,7 +1694,7 @@ async function assignInternMentor(internId, mentorId) {
 
       // Khóa mentor rồi đến intern, cùng thứ tự với luồng xóa để tránh race/deadlock.
       const [internRows] = await conn.query(
-        "SELECT id FROM intern_profiles WHERE id = ? FOR UPDATE",
+        "SELECT id, mentor_id FROM intern_profiles WHERE id = ? FOR UPDATE",
         [internId],
       );
       if (internRows.length === 0) return { outcome: "INTERN_NOT_FOUND" };
@@ -1636,6 +1703,18 @@ async function assignInternMentor(internId, mentorId) {
         "UPDATE intern_profiles SET mentor_id = ?, mentor_name = ? WHERE id = ?",
         [mentorId, mentorName, internId],
       );
+      const previousMentorId =
+        internRows[0].mentor_id == null
+          ? null
+          : Number(internRows[0].mentor_id);
+      if (previousMentorId !== (mentorId == null ? null : Number(mentorId)))
+        await recordMentorChange(
+          conn,
+          [internId],
+          mentorId,
+          mentorName,
+          options,
+        );
       return {
         outcome: "UPDATED",
         student: { id: internId, mentorId, mentorName },
@@ -1662,35 +1741,49 @@ async function insertStudent({
 }) {
   const finalStatus = status || DEFAULT_INTERN_STATUS;
 
-  const inserted = await withTransaction(async (conn) => {
-    const [mentorRows] = await conn.query(
-      `SELECT id, full_name AS fullName FROM mentors
-       WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(?)) LIMIT 2`,
-      [mentorName || ""],
-    );
-    const mentorId = resolveUniqueMentorId(mentorName, mentorRows);
-    const [result] = await conn.query(
-      "INSERT INTO intern_profiles (student_code, full_name, email, phone, university, major, mentor_name, mentor_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [
-        studentCode || "",
-        fullName,
-        email,
-        phone || "",
-        university || "",
-        major || "",
-        mentorName || "",
-        mentorId,
-        finalStatus,
-      ],
-    );
-    await upsertProfileAccount(conn, "Intern", {
-      oldEmail: email,
-      fullName,
-      email,
-      phone,
-    });
-    return { id: result.insertId, mentorId };
-  });
+  const inserted = await rethrowDuplicate(
+    "Email hồ sơ thực tập sinh này đã tồn tại!",
+    () =>
+      withTransaction(async (conn) => {
+        const [mentorRows] = await conn.query(
+          `SELECT id, full_name AS fullName FROM mentors
+           WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(?)) LIMIT 2`,
+          [mentorName || ""],
+        );
+        const mentorId = resolveUniqueMentorId(mentorName, mentorRows);
+        const [result] = await conn.query(
+          "INSERT INTO intern_profiles (student_code, full_name, email, phone, university, major, mentor_name, mentor_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            studentCode || "",
+            fullName,
+            email,
+            phone || "",
+            university || "",
+            major || "",
+            mentorName || "",
+            mentorId,
+            finalStatus,
+          ],
+        );
+        if (mentorId != null)
+          await recordMentorChange(
+            conn,
+            [result.insertId],
+            mentorId,
+            mentorName,
+            {
+              note: "Gán khi tạo hồ sơ",
+            },
+          );
+        await upsertProfileAccount(conn, "Intern", {
+          oldEmail: email,
+          fullName,
+          email,
+          phone,
+        });
+        return { id: result.insertId, mentorId };
+      }),
+  );
 
   return {
     id: inserted.id,
@@ -1722,59 +1815,94 @@ async function updateStudent(
     status,
   },
 ) {
-  return withTransaction(async (conn) => {
-    const [existingRows] = await conn.query(
-      "SELECT * FROM intern_profiles WHERE id = ?",
-      [id],
-    );
-    if (existingRows.length === 0) return null;
-    const existing = existingRows[0];
-
-    let mentorId = existing.mentor_id;
-    if (mentorName != null && mentorName !== existing.mentor_name) {
-      const [mentorRows] = await conn.query(
-        `SELECT id, full_name AS fullName FROM mentors
-         WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(?)) LIMIT 2`,
-        [mentorName || ""],
+  return rethrowDuplicate("Email này đã thuộc về thực tập sinh khác!", () =>
+    withTransaction(async (conn) => {
+      // FOR UPDATE: cùng thứ tự khóa với các luồng gán mentor. Thiếu khóa này, câu UPDATE bên dưới (ghi lại mọi cột,
+      // gồm mentor_id đọc từ trước) có thể ghi đè mentor vừa được đổi và làm lệch intern_profiles với mentor_assignments.
+      const [existingRows] = await conn.query(
+        "SELECT * FROM intern_profiles WHERE id = ? FOR UPDATE",
+        [id],
       );
-      mentorId = resolveUniqueMentorId(mentorName, mentorRows);
-    }
+      if (existingRows.length === 0) return null;
+      const existing = existingRows[0];
 
-    const merged = {
-      studentCode: studentCode ?? existing.student_code,
-      fullName: fullName ?? existing.full_name,
-      email: email ?? existing.email,
-      phone: phone ?? existing.phone,
-      university: university ?? existing.university,
-      major: major ?? existing.major,
-      mentorName: mentorName ?? existing.mentor_name,
-      status: status ?? existing.status,
-    };
+      let mentorId = existing.mentor_id;
+      if (mentorName != null && mentorName !== existing.mentor_name) {
+        const [mentorRows] = await conn.query(
+          `SELECT id, full_name AS fullName FROM mentors
+         WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(?)) LIMIT 2`,
+          [mentorName || ""],
+        );
+        mentorId = resolveUniqueMentorId(mentorName, mentorRows);
+      }
 
-    await conn.query(
-      "UPDATE intern_profiles SET student_code = ?, full_name = ?, email = ?, phone = ?, university = ?, major = ?, mentor_name = ?, mentor_id = ?, status = ? WHERE id = ?",
-      [
-        merged.studentCode,
-        merged.fullName,
-        merged.email,
-        merged.phone,
-        merged.university,
-        merged.major,
-        merged.mentorName,
-        mentorId,
-        merged.status,
-        id,
-      ],
-    );
-    await upsertProfileAccount(conn, "Intern", {
-      oldEmail: existing.email,
-      fullName: merged.fullName,
-      email: merged.email,
-      phone: merged.phone,
-    });
+      const merged = {
+        studentCode: studentCode ?? existing.student_code,
+        fullName: fullName ?? existing.full_name,
+        email: email ?? existing.email,
+        phone: phone ?? existing.phone,
+        university: university ?? existing.university,
+        major: major ?? existing.major,
+        mentorName: mentorName ?? existing.mentor_name,
+        status: status ?? existing.status,
+      };
 
-    return { id: Number(id), ...merged, mentorId };
-  });
+      await conn.query(
+        "UPDATE intern_profiles SET student_code = ?, full_name = ?, email = ?, phone = ?, university = ?, major = ?, mentor_name = ?, mentor_id = ?, status = ? WHERE id = ?",
+        [
+          merged.studentCode,
+          merged.fullName,
+          merged.email,
+          merged.phone,
+          merged.university,
+          merged.major,
+          merged.mentorName,
+          mentorId,
+          merged.status,
+          id,
+        ],
+      );
+      const beforeMentor =
+        existing.mentor_id == null ? null : Number(existing.mentor_id);
+      if (beforeMentor !== (mentorId == null ? null : Number(mentorId))) {
+        let newName = null;
+        if (mentorId != null) {
+          const [[mRow]] = await conn.query(
+            "SELECT full_name FROM mentors WHERE id = ?",
+            [mentorId],
+          );
+          newName = mRow ? mRow.full_name : null;
+        }
+        await recordMentorChange(conn, [id], mentorId, newName, {
+          note: "Đổi khi cập nhật hồ sơ",
+        });
+      }
+      await upsertProfileAccount(conn, "Intern", {
+        oldEmail: existing.email,
+        fullName: merged.fullName,
+        email: merged.email,
+        phone: merged.phone,
+      });
+
+      return { id: Number(id), ...merged, mentorId };
+    }),
+  );
+}
+
+// Mã sinh viên không có ràng buộc UNIQUE trong DB nên kiểm tra bằng 1 truy vấn riêng
+// (so khớp không phân biệt hoa thường), có thể loại trừ 1 hồ sơ khi đang sửa.
+async function isStudentCodeTaken(studentCode, excludeId = null) {
+  const code = String(studentCode || "").trim();
+  if (!code) return false;
+  const params = [code];
+  let sql =
+    "SELECT 1 FROM intern_profiles WHERE LOWER(TRIM(student_code)) = LOWER(?)";
+  if (excludeId != null) {
+    sql += " AND id <> ?";
+    params.push(Number(excludeId));
+  }
+  const [rows] = await requireDb().query(`${sql} LIMIT 1`, params);
+  return rows.length > 0;
 }
 
 // Xóa hồ sơ kèm tài khoản Intern tương ứng
@@ -1898,7 +2026,7 @@ async function syncInternsWithAccounts() {
 
 // --- NHẬT KÝ GỬI EMAIL THÔNG BÁO KẾT QUẢ XÉT DUYỆT (email_logs) ---
 const EMAIL_LOG_COLUMNS = `
-  id, application_id AS applicationId, recipient_email AS recipientEmail,
+  id, application_id AS applicationId, meeting_id AS meetingId, intern_id AS internId, recipient_email AS recipientEmail,
   recipient_name AS recipientName, email_type AS emailType, subject,
   status, attempts, error_message AS errorMessage,
   created_at AS createdAt, updated_at AS updatedAt, sent_at AS sentAt
@@ -1928,7 +2056,11 @@ async function insertEmailLog({
 }
 
 // Cập nhật 1 phần thông tin nhật ký (chỉ ghi các trường thật sự được truyền vào)
-async function updateEmailLog(id, { status, attempts, errorMessage, sentAt }) {
+async function updateEmailLog(
+  id,
+  { status, attempts, errorMessage, sentAt, nextAttemptAt },
+  claimToken = null,
+) {
   const fields = [];
   const values = [];
   if (status !== undefined) {
@@ -1947,10 +2079,15 @@ async function updateEmailLog(id, { status, attempts, errorMessage, sentAt }) {
     fields.push("sent_at = ?");
     values.push(sentAt);
   }
+  if (nextAttemptAt !== undefined) {
+    fields.push("next_attempt_at = ?");
+    values.push(nextAttemptAt);
+  }
   if (fields.length === 0) return;
   values.push(id);
+  if (claimToken) values.push(claimToken);
   await requireDb().query(
-    `UPDATE email_logs SET ${fields.join(", ")} WHERE id = ?`,
+    `UPDATE email_logs SET ${fields.join(", ")} WHERE id = ?${claimToken ? " AND processing_token=?" : ""}`,
     values,
   );
 }
@@ -2230,7 +2367,7 @@ async function listProgramDepartmentsForInterns(internIds) {
   return map;
 }
 // Gán một mentor cho nhiều thực tập sinh trong một transaction; người đã thuộc mentor này được tính là không đổi.
-async function assignMentorToInterns(mentorId, internIds) {
+async function assignMentorToInterns(mentorId, internIds, options = {}) {
   return withTransaction(async (conn) => {
     const [mentorRows] = await conn.query(
       "SELECT full_name FROM mentors WHERE id = ? FOR UPDATE",
@@ -2253,6 +2390,13 @@ async function assignMentorToInterns(mentorId, internIds) {
         "UPDATE intern_profiles SET mentor_id = ?, mentor_name = ? WHERE id IN (?)",
         [mentorId, mentorName, changed.map((r) => r.id)],
       );
+    await recordMentorChange(
+      conn,
+      changed.map((r) => r.id),
+      mentorId,
+      mentorName,
+      options,
+    );
     return {
       outcome: "UPDATED",
       mentorName,
@@ -3725,10 +3869,16 @@ async function addProgramInterns(programId, internIds, userId) {
       "INSERT INTO program_interns (program_id,intern_id,assigned_by) VALUES ?",
       [toAdd.map((id) => [programId, id, userId || null])],
     );
+    await conn.query(
+      "INSERT INTO program_intern_events (program_id,intern_id,event_type,actor_user_id) VALUES ?",
+      [toAdd.map((id) => [programId, id, "ADDED", userId || null])],
+    );
+    const resync = await resyncScopedMeetings(conn, programId);
     return {
       outcome: "ADDED",
       added: toAdd,
       already: internIds.length - toAdd.length,
+      resync,
     };
   });
 }
@@ -3793,7 +3943,7 @@ async function setProgramCompletion(
     return { outcome: "SAVED", already: false };
   });
 }
-async function removeProgramIntern(programId, internId) {
+async function removeProgramIntern(programId, internId, userId = null) {
   return withProgramMembershipTransaction(async (conn) => {
     const [[row]] = await conn.query(
       "SELECT completion_status FROM program_interns WHERE program_id=? AND intern_id=? FOR UPDATE",
@@ -3805,17 +3955,35 @@ async function removeProgramIntern(programId, internId) {
         409,
         "Không thể gỡ thành viên đã chốt kết quả; cần giữ lịch sử chương trình!",
       );
+    // Gỡ khỏi chương trình sẽ xóa luôn tư cách thành viên nhóm (FK CASCADE); ghi sự kiện để còn lịch sử.
+    await conn.query(
+      `INSERT INTO program_intern_events (program_id,intern_id,event_type,group_id,detail,actor_user_id)
+       SELECT gm.program_id, gm.intern_id, 'GROUP_LEFT', gm.group_id, CONCAT(g.name, ' (gỡ khỏi chương trình)'), ?
+       FROM group_members gm JOIN program_groups g ON g.id = gm.group_id
+       WHERE gm.program_id=? AND gm.intern_id=? AND gm.left_at IS NULL`,
+      [userId, programId, internId],
+    );
+    await conn.query(
+      "INSERT INTO program_intern_events (program_id,intern_id,event_type,actor_user_id) VALUES (?,?,'REMOVED',?)",
+      [programId, internId, userId],
+    );
     const [result] = await conn.query(
       "DELETE FROM program_interns WHERE program_id=? AND intern_id=?",
       [programId, internId],
     );
+    if (result.affectedRows) await resyncScopedMeetings(conn, programId);
     return result.affectedRows;
   });
 }
 
 // Gán (hoặc gỡ, mentorId = null) mentor cho nhiều thực tập sinh của một chương trình trong một transaction.
 // internIds = null nghĩa là toàn bộ thực tập sinh của chương trình.
-async function assignProgramInternsMentor(programId, mentorId, internIds) {
+async function assignProgramInternsMentor(
+  programId,
+  mentorId,
+  internIds,
+  options = {},
+) {
   try {
     return await withTransaction(async (conn) => {
       let mentorName = "";
@@ -3852,6 +4020,13 @@ async function assignProgramInternsMentor(programId, mentorId, internIds) {
           "UPDATE intern_profiles SET mentor_id = ?, mentor_name = ? WHERE id IN (?)",
           [mentorId, mentorName, changed.map((m) => m.id)],
         );
+      await recordMentorChange(
+        conn,
+        changed.map((m) => m.id),
+        mentorId,
+        mentorName,
+        { ...options, programId },
+      );
       return {
         outcome: "UPDATED",
         mentorName,
@@ -4182,11 +4357,13 @@ function mapWorkSchedule(row, days) {
       isWorking: !!d.isWorking,
       startTime: d.startTime,
       endTime: d.endTime,
+      workType: d.workType === "ONLINE" ? "ONLINE" : "OFFLINE",
     })),
   };
 }
 const WORK_SCHEDULE_DAY_COLUMNS = `schedule_id AS scheduleId, weekday, is_working AS isWorking,
-  TIME_FORMAT(start_time,'%H:%i') AS startTime, TIME_FORMAT(end_time,'%H:%i') AS endTime`;
+  TIME_FORMAT(start_time,'%H:%i') AS startTime, TIME_FORMAT(end_time,'%H:%i') AS endTime,
+  work_type AS workType`;
 async function listWorkSchedules() {
   const pool = requireDb();
   const [rows] = await pool.query(`SELECT s.*,
@@ -4249,13 +4426,14 @@ async function saveWorkSchedule(id, input) {
       for (const d of input.days) {
         const hasHours = d.isWorking && input.mode === "FIXED";
         await conn.query(
-          "INSERT INTO work_schedule_days (schedule_id,weekday,is_working,start_time,end_time) VALUES (?,?,?,?,?)",
+          "INSERT INTO work_schedule_days (schedule_id,weekday,is_working,start_time,end_time,work_type) VALUES (?,?,?,?,?,?)",
           [
             scheduleId,
             d.weekday,
             d.isWorking ? 1 : 0,
             hasHours ? d.startTime : null,
             hasHours ? d.endTime : null,
+            d.workType === "ONLINE" ? "ONLINE" : "OFFLINE",
           ],
         );
       }
@@ -4269,14 +4447,44 @@ async function saveWorkSchedule(id, input) {
     conn.release();
   }
 }
-// Lịch mặc định (id=1) và lịch đang được áp dụng không xóa được.
-async function deleteWorkSchedule(id) {
-  const [result] = await requireDb().query(
-    `DELETE FROM work_schedules WHERE id=? AND id<>1
-    AND NOT EXISTS (SELECT 1 FROM work_schedule_assignments a WHERE a.schedule_id = work_schedules.id)`,
-    [id],
-  );
-  return result.affectedRows;
+// Lịch mặc định hệ thống (id=1) luôn được giữ làm phương án cuối. Mẫu lịch chỉ bị chặn xóa khi còn lần áp dụng
+// đang/sắp có hiệu lực; các lần áp dụng đã kết thúc (effective_to < hôm nay) được xóa cùng mẫu lịch.
+async function deleteWorkSchedule(id, today) {
+  const conn = await requireDb().getConnection();
+  try {
+    await conn.beginTransaction();
+    const [[row]] = await conn.query(
+      "SELECT id FROM work_schedules WHERE id=? AND id<>1 FOR UPDATE",
+      [id],
+    );
+    if (!row) {
+      await conn.rollback();
+      return 0;
+    }
+    const [[live]] = await conn.query(
+      `SELECT COUNT(*) AS n FROM work_schedule_assignments
+       WHERE schedule_id=? AND (effective_to IS NULL OR effective_to >= ?)`,
+      [id, today],
+    );
+    if (Number(live.n) > 0) {
+      await conn.rollback();
+      return 0;
+    }
+    await conn.query(
+      "DELETE FROM work_schedule_assignments WHERE schedule_id=? AND effective_to < ?",
+      [id, today],
+    );
+    const [result] = await conn.query("DELETE FROM work_schedules WHERE id=?", [
+      id,
+    ]);
+    await conn.commit();
+    return result.affectedRows;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 async function listWorkScheduleAssignments() {
   const [rows] = await requireDb()
@@ -4285,7 +4493,7 @@ async function listWorkScheduleAssignments() {
     DATE_FORMAT(a.effective_from,'%Y-%m-%d') AS effectiveFrom, DATE_FORMAT(a.effective_to,'%Y-%m-%d') AS effectiveTo,
     a.created_by AS createdBy
     FROM work_schedule_assignments a JOIN work_schedules s ON s.id = a.schedule_id
-    ORDER BY FIELD(a.target_type,'DEFAULT','UNIVERSITY','PROGRAM','MENTOR','INTERN'), a.target_value, a.effective_from DESC`);
+    ORDER BY FIELD(a.target_type,'DEFAULT','UNIVERSITY','PROGRAM','GROUP','MENTOR','INTERN'), a.target_value, a.effective_from DESC`);
   return rows;
 }
 // planChange(existingRows) -> { conflict, close: [{ id, effectiveTo }] } (hàm thuần, xem planAssignmentChange).
@@ -4330,10 +4538,12 @@ async function createWorkScheduleAssignment(input, planChange) {
     conn.release();
   }
 }
-async function deleteWorkScheduleAssignment(id) {
+// Lần áp dụng mặc định (DEFAULT) chỉ xóa được khi đã kết thúc; các phạm vi khác xóa được bất kỳ lúc nào.
+async function deleteWorkScheduleAssignment(id, today) {
   const [result] = await requireDb().query(
-    "DELETE FROM work_schedule_assignments WHERE id=? AND target_type<>'DEFAULT'",
-    [id],
+    `DELETE FROM work_schedule_assignments WHERE id=?
+     AND (target_type<>'DEFAULT' OR (effective_to IS NOT NULL AND effective_to < ?))`,
+    [id, today],
   );
   return result.affectedRows;
 }
@@ -4343,6 +4553,7 @@ async function workScheduleTargetExists(type, value) {
     PROGRAM: "SELECT 1 FROM internship_programs WHERE id = ? LIMIT 1",
     MENTOR: "SELECT 1 FROM mentors WHERE id = ? LIMIT 1",
     INTERN: "SELECT 1 FROM intern_profiles WHERE id = ? LIMIT 1",
+    GROUP: "SELECT 1 FROM program_groups WHERE id = ? LIMIT 1",
   };
   if (!queries[type]) return false;
   const [rows] = await requireDb().query(queries[type], [value]);
@@ -4371,13 +4582,15 @@ async function deleteWorkHoliday(id) {
 // Toàn bộ dữ liệu cần để tính lịch áp dụng trong bộ nhớ (các bảng nhỏ, tải một lần).
 async function loadWorkScheduleContext() {
   const pool = requireDb();
-  const [schedules, assignments, [programs], [mentors]] = await Promise.all([
-    listWorkSchedules(),
-    listWorkScheduleAssignments(),
-    pool.query("SELECT id, name FROM internship_programs"),
-    pool.query("SELECT id, full_name AS name FROM mentors"),
-  ]);
-  return { schedules, assignments, programs, mentors };
+  const [schedules, assignments, [programs], [mentors], groups] =
+    await Promise.all([
+      listWorkSchedules(),
+      listWorkScheduleAssignments(),
+      pool.query("SELECT id, name FROM internship_programs"),
+      pool.query("SELECT id, full_name AS name FROM mentors"),
+      listProgramGroupOptions(),
+    ]);
+  return { schedules, assignments, programs, mentors, groups };
 }
 // Hợp đồng đã xác nhận (ngày có thể null = không giới hạn đầu/cuối).
 async function listConfirmedContractsForInterns(internIds) {
@@ -4392,6 +4605,14 @@ async function listConfirmedContractsForInterns(internIds) {
 }
 // Thành viên chương trình do HR xếp (program_interns), cùng hình dạng với hợp đồng để dùng chung hàm tìm chương trình:
 // startDate/endDate là ngày của chương trình (null = không giới hạn), confirmedAt là thời điểm HR xếp.
+// Danh sách nhóm (kèm tên chương trình) cho ô chọn phạm vi và mô tả nguồn lịch.
+async function listProgramGroupOptions() {
+  const [rows] = await requireDb().query(
+    `SELECT g.id, g.name, g.program_id AS programId, p.name AS programName
+     FROM program_groups g JOIN internship_programs p ON p.id = g.program_id ORDER BY p.name, g.name, g.id`,
+  );
+  return rows;
+}
 async function listProgramMembershipsForInterns(internIds) {
   if (!internIds.length) return [];
   const [rows] = await requireDb().query(
@@ -4401,6 +4622,21 @@ async function listProgramMembershipsForInterns(internIds) {
     FROM program_interns pi JOIN internship_programs p ON p.id = pi.program_id WHERE pi.intern_id IN (?)`,
     [internIds],
   );
+  // Gắn lịch sử nhóm chính (quy tắc 3) vào từng thành viên để chọn đúng nhóm theo ngày.
+  const [groupRows] = await requireDb().query(
+    `SELECT group_id AS groupId, program_id AS programId, intern_id AS internId,
+            DATE_FORMAT(joined_at,'%Y-%m-%d') AS \`from\`, DATE_FORMAT(left_at,'%Y-%m-%d') AS \`to\`
+     FROM group_members WHERE is_primary = 1 AND intern_id IN (?) ORDER BY joined_at, id`,
+    [internIds],
+  );
+  for (const row of rows)
+    row.groups = groupRows
+      .filter(
+        (g) =>
+          Number(g.internId) === Number(row.internId) &&
+          Number(g.programId) === Number(row.programId),
+      )
+      .map(({ groupId, from, to }) => ({ groupId, from, to }));
   return rows;
 }
 async function listAttendanceForInterns(internIds, from, to) {
@@ -4641,9 +4877,7 @@ function buildSupportRequestWhere(internId, filters) {
     where.push(
       "(ip.full_name LIKE ? OR ip.student_code LIKE ? OR sr.title LIKE ?)",
     );
-    params.push(
-      ...Array(3).fill(`%${String(filters.q).replace(/[\\%_]/g, "\\$&")}%`),
-    );
+    params.push(...Array(3).fill(`%${escapeLike(filters.q)}%`));
   }
   return { where, params };
 }
@@ -4858,7 +5092,703 @@ async function getCompletionRatePrograms() {
   return rows;
 }
 
+// ---------- Lịch họp + transactional email outbox (US8) ----------
+const MEETING_COLUMNS = `m.id,m.title,m.description,
+ DATE_FORMAT(m.start_at,'%Y-%m-%d %H:%i:%s') AS startAt,DATE_FORMAT(m.end_at,'%Y-%m-%d %H:%i:%s') AS endAt,
+ m.location,m.meeting_link AS meetingLink,m.organizer_user_id AS organizerUserId,
+ u.name AS organizerName,u.email AS organizerEmail,m.program_id AS programId,p.name AS programName,
+ m.scope_type AS scopeType,m.group_id AS groupId,g.name AS groupName,m.status,m.sequence,
+ DATE_FORMAT(m.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt,DATE_FORMAT(m.updated_at,'%Y-%m-%d %H:%i:%s') AS updatedAt`;
+const MEETING_JOINS = `FROM meetings m LEFT JOIN users u ON u.id=m.organizer_user_id LEFT JOIN internship_programs p ON p.id=m.program_id LEFT JOIN program_groups g ON g.id=m.group_id`;
+function meetingScope(context, alias = "m") {
+  if (context.role === "HR") return { sql: "1=1", params: [] };
+  if (context.role === "Intern")
+    return {
+      sql: `EXISTS(SELECT 1 FROM meeting_attendees a WHERE a.meeting_id=${alias}.id AND a.intern_id=?)`,
+      params: [context.internId],
+    };
+  return {
+    sql: `EXISTS(SELECT 1 FROM meeting_attendees a WHERE a.meeting_id=${alias}.id) AND NOT EXISTS(SELECT 1 FROM meeting_attendees a JOIN intern_profiles ip ON ip.id=a.intern_id WHERE a.meeting_id=${alias}.id AND (ip.mentor_id IS NULL OR ip.mentor_id<>?))`,
+    params: [context.mentorId],
+  };
+}
+async function listMeetings(context, filters) {
+  const scope = meetingScope(context),
+    where = [scope.sql],
+    params = [...scope.params];
+  if (filters.from) {
+    where.push("m.end_at>?");
+    params.push(filters.from + " 00:00:00");
+  }
+  if (filters.to) {
+    where.push("m.start_at<DATE_ADD(?, INTERVAL 1 DAY)");
+    params.push(filters.to + " 00:00:00");
+  }
+  if (filters.status) {
+    where.push("m.status=?");
+    params.push(filters.status);
+  }
+  if (filters.q) {
+    where.push("m.title LIKE ? ESCAPE '='");
+    params.push("%" + escapeLike(filters.q, "=") + "%");
+  }
+  const [[{ total }]] = await requireDb().query(
+    `SELECT COUNT(*) AS total FROM meetings m WHERE ${where.join(" AND ")}`,
+    params,
+  );
+  const [rows] = await requireDb().query(
+    `SELECT ${MEETING_COLUMNS}, (SELECT COUNT(*) FROM meeting_attendees a WHERE a.meeting_id=m.id) AS attendeeCount ${MEETING_JOINS} WHERE ${where.join(" AND ")} ORDER BY m.start_at,m.id LIMIT ? OFFSET ?`,
+    [...params, filters.pageSize, (filters.page - 1) * filters.pageSize],
+  );
+  return {
+    items: rows.map(({ organizerEmail, ...r }) => r),
+    pagination: {
+      page: filters.page,
+      pageSize: filters.pageSize,
+      total: Number(total),
+      totalPages: Math.max(1, Math.ceil(total / filters.pageSize)),
+    },
+  };
+}
+async function findMeetingScoped(id, context) {
+  const scope = meetingScope(context);
+  const [rows] = await requireDb().query(
+    `SELECT ${MEETING_COLUMNS} ${MEETING_JOINS} WHERE m.id=? AND ${scope.sql}`,
+    [id, ...scope.params],
+  );
+  if (!rows.length) return null;
+  const { organizerEmail, ...meeting } = rows[0];
+  if (context.role === "Intern") return meeting;
+  const [attendees] = await requireDb().query(
+    `SELECT ip.id,ip.full_name AS fullName,ip.email FROM meeting_attendees a JOIN intern_profiles ip ON ip.id=a.intern_id WHERE a.meeting_id=? ORDER BY ip.full_name,ip.id`,
+    [id],
+  );
+  const [overrideRows] = await requireDb().query(
+    "SELECT intern_id AS id, participation FROM schedule_participants WHERE meeting_id=? ORDER BY intern_id",
+    [id],
+  );
+  meeting.includeIds = overrideRows
+    .filter((o) => o.participation === "INCLUDE")
+    .map((o) => Number(o.id));
+  meeting.excludeIds = overrideRows
+    .filter((o) => o.participation === "EXCLUDE")
+    .map((o) => Number(o.id));
+  const [emailLogs] = await requireDb().query(
+    `SELECT ${EMAIL_LOG_COLUMNS} FROM email_logs WHERE meeting_id=? ${context.role === "Mentor" ? "AND intern_id IN (SELECT id FROM intern_profiles WHERE mentor_id=?)" : ""} ORDER BY id DESC`,
+    context.role === "Mentor" ? [id, context.mentorId] : [id],
+  );
+  return { ...meeting, attendees, emailLogs };
+}
+async function getMeetingOptions(context, q = "") {
+  const params = [],
+    where = [];
+  if (context.role === "Mentor") {
+    where.push("mentor_id=?");
+    params.push(context.mentorId);
+  }
+  if (q) {
+    where.push("(full_name LIKE ? ESCAPE '=' OR email LIKE ? ESCAPE '=')");
+    const pattern = "%" + escapeLike(q, "=") + "%";
+    params.push(pattern, pattern);
+  }
+  const [interns] = await requireDb().query(
+    `SELECT id,full_name AS fullName,email FROM intern_profiles ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY full_name,id LIMIT 500`,
+    params,
+  );
+  const [programs] = await requireDb().query(
+    `SELECT p.id,p.name FROM internship_programs p ${context.role === "Mentor" ? "WHERE EXISTS(SELECT 1 FROM program_interns pi JOIN intern_profiles ip ON ip.id=pi.intern_id WHERE pi.program_id=p.id AND ip.mentor_id=?)" : ""} ORDER BY p.name,p.id`,
+    context.role === "Mentor" ? [context.mentorId] : [],
+  );
+  return { interns, programs, limit: 500 };
+}
+async function insertMeetingEmailJobs(conn, meetingId, jobs) {
+  const ids = [];
+  for (const job of jobs) {
+    const [result] = await conn.query(
+      `INSERT INTO email_logs (application_id,meeting_id,intern_id,recipient_email,recipient_name,email_type,subject,status,attempts,error_message,payload_json,event_key,notification_pending)
+   VALUES(NULL,?,?,?,?,?,?,?,0,?,?,?,1) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)`,
+      [
+        meetingId,
+        job.internId,
+        job.recipientEmail,
+        String(job.recipientName || "").slice(0, 100),
+        job.emailType,
+        job.subject,
+        job.status,
+        job.errorMessage,
+        job.payloadJson,
+        job.eventKey,
+      ],
+    );
+    ids.push(result.insertId);
+  }
+  return ids;
+}
+// Quy tắc 7: lịch phạm vi CHƯƠNG TRÌNH / NHÓM tự xác định người tham dự từ quan hệ thành viên,
+// cộng/trừ các ngoại lệ cá nhân (schedule_participants: INCLUDE / EXCLUDE). lenient = bỏ qua ngoại lệ không còn hợp lệ.
+async function resolveScopedAttendees(
+  conn,
+  { scopeType, programId, groupId = null, includeIds = [], excludeIds = [] },
+  { lenient = false } = {},
+) {
+  const bad = (msg) => new HttpError(400, msg);
+  let base = [];
+  if (scopeType === "PROGRAM") {
+    const [rows] = await conn.query(
+      "SELECT intern_id FROM program_interns WHERE program_id=? ORDER BY intern_id",
+      [programId],
+    );
+    base = rows.map((r) => Number(r.intern_id));
+  } else if (scopeType === "GROUP") {
+    const [[group]] = await conn.query(
+      "SELECT id, program_id FROM program_groups WHERE id=?",
+      [groupId],
+    );
+    if (!group) throw bad("Nhóm không tồn tại!");
+    if (Number(group.program_id) !== Number(programId))
+      throw bad("Nhóm không thuộc chương trình đã chọn!");
+    const [rows] = await conn.query(
+      "SELECT intern_id FROM group_members WHERE group_id=? AND left_at IS NULL ORDER BY intern_id",
+      [groupId],
+    );
+    base = rows.map((r) => Number(r.intern_id));
+  } else {
+    return [];
+  }
+  const members = new Set(base);
+  const extra = [...new Set([...includeIds, ...excludeIds])];
+  if (extra.length) {
+    const [found] = await conn.query(
+      "SELECT id FROM intern_profiles WHERE id IN (?)",
+      [extra],
+    );
+    if (found.length !== extra.length && !lenient)
+      throw bad("Có thực tập sinh trong danh sách ngoại lệ không tồn tại!");
+  }
+  if (includeIds.length) {
+    const [inProgram] = await conn.query(
+      "SELECT intern_id FROM program_interns WHERE program_id=? AND intern_id IN (?)",
+      [programId, includeIds],
+    );
+    const ok = new Set(inProgram.map((r) => Number(r.intern_id)));
+    if (ok.size !== includeIds.length && !lenient)
+      throw bad("Người được thêm phải thuộc chương trình của lịch!");
+    for (const id of includeIds) if (ok.has(id)) members.add(id);
+  }
+  for (const id of excludeIds) members.delete(id);
+  return [...members].sort((a, b) => a - b);
+}
+
+// Quy tắc 8: khi thành viên chương trình/nhóm đổi, các lịch họp TƯƠNG LAI theo phạm vi tự cập nhật người tham dự,
+// tăng sequence và gửi lời mời / thông báo hủy cho đúng người bị ảnh hưởng. Lịch hết người thì tự hủy.
+async function resyncScopedMeetings(conn, programId) {
+  const { buildJobs } = require("./services/meetingEvents.service");
+  const [meetings] = await conn.query(
+    `SELECT id FROM meetings WHERE program_id=? AND scope_type IN ('PROGRAM','GROUP')
+       AND status='SCHEDULED' AND start_at > NOW() ORDER BY id FOR UPDATE`,
+    [programId],
+  );
+  const result = { meetings: 0, cancelled: 0, emails: 0, meetingIds: [] };
+  for (const { id } of meetings) {
+    const [[old]] = await conn.query(
+      `SELECT ${MEETING_COLUMNS} ${MEETING_JOINS} WHERE m.id=? FOR UPDATE`,
+      [id],
+    );
+    if (!old) continue;
+    const [overrides] = await conn.query(
+      "SELECT intern_id AS id, participation FROM schedule_participants WHERE meeting_id=?",
+      [id],
+    );
+    const pick = (kind) =>
+      overrides
+        .filter((o) => o.participation === kind)
+        .map((o) => Number(o.id));
+    const next = await resolveScopedAttendees(
+      conn,
+      {
+        scopeType: old.scopeType,
+        programId,
+        groupId: old.groupId == null ? null : Number(old.groupId),
+        includeIds: pick("INCLUDE"),
+        excludeIds: pick("EXCLUDE"),
+      },
+      { lenient: true },
+    );
+    const [currentRows] = await conn.query(
+      "SELECT intern_id AS id FROM meeting_attendees WHERE meeting_id=? ORDER BY intern_id",
+      [id],
+    );
+    const current = currentRows.map((r) => Number(r.id));
+    if (current.join(",") === next.join(",")) continue;
+    const all = [...new Set([...current, ...next])];
+    const [profiles] = await conn.query(
+      "SELECT id,full_name AS fullName,email,mentor_id AS mentorId FROM intern_profiles WHERE id IN (?) ORDER BY id FOR UPDATE",
+      [all],
+    );
+    const before = profiles.filter((i) => current.includes(Number(i.id)));
+    const cancel = next.length === 0;
+    const after = cancel
+      ? before
+      : profiles.filter((i) => next.includes(Number(i.id)));
+    const meeting = {
+      ...old,
+      status: cancel ? "CANCELLED" : "SCHEDULED",
+      sequence: Number(old.sequence) + 1,
+    };
+    await conn.query("UPDATE meetings SET status=?, sequence=? WHERE id=?", [
+      meeting.status,
+      meeting.sequence,
+      id,
+    ]);
+    await conn.query(
+      "UPDATE email_logs SET status='FAILED',error_message='Lịch họp đã thay đổi; không gửi lại sự kiện cũ.' WHERE meeting_id=? AND status IN ('PENDING','RETRYING') AND processing_token IS NULL" +
+        (cancel || !next.length ? "" : " AND intern_id NOT IN (?)"),
+      cancel || !next.length ? [id] : [id, next],
+    );
+    if (!cancel) {
+      await conn.query("DELETE FROM meeting_attendees WHERE meeting_id=?", [
+        id,
+      ]);
+      await conn.query(
+        "INSERT INTO meeting_attendees(meeting_id,intern_id) VALUES ?",
+        [next.map((internId) => [id, internId])],
+      );
+    }
+    const jobs = buildJobs(meeting, before, after, {
+      created: false,
+      cancel,
+      old,
+    });
+    await insertMeetingEmailJobs(conn, id, jobs);
+    result.meetings += 1;
+    if (cancel) result.cancelled += 1;
+    result.emails += jobs.length;
+    result.meetingIds.push(id);
+  }
+  return result;
+}
+
+async function saveMeetingAtomic({
+  id = null,
+  context,
+  value = null,
+  cancel = false,
+  buildJobs,
+  calendarChanged,
+}) {
+  const requestedId = id;
+  const work = async (conn) => {
+    let id = requestedId;
+    let old = null,
+      oldIds = [];
+    if (
+      !cancel &&
+      value &&
+      value.scopeType &&
+      value.scopeType !== "INDIVIDUAL"
+    ) {
+      const attendeeIds = await resolveScopedAttendees(conn, value);
+      if (!attendeeIds.length)
+        throw new HttpError(400, "Phạm vi đã chọn chưa có thành viên nào!");
+      if (attendeeIds.length > meetingRules.MAX_ATTENDEES)
+        throw new HttpError(
+          400,
+          `Chọn từ 1 đến ${meetingRules.MAX_ATTENDEES} thực tập sinh!`,
+        );
+      value = { ...value, attendeeIds };
+    }
+    if (id) {
+      const [rows] = await conn.query(
+        `SELECT ${MEETING_COLUMNS} ${MEETING_JOINS} WHERE m.id=? FOR UPDATE`,
+        [id],
+      );
+      if (!rows.length) throw new HttpError(404, "Không tìm thấy cuộc họp!");
+      old = rows[0];
+      const [members] = await conn.query(
+        "SELECT intern_id AS id FROM meeting_attendees WHERE meeting_id=? ORDER BY intern_id",
+        [id],
+      );
+      oldIds = members.map((r) => Number(r.id));
+    }
+    if (!id && value.requestKey) {
+      const [rows] = await conn.query(
+        `SELECT ${MEETING_COLUMNS} ${MEETING_JOINS} WHERE m.organizer_user_id=? AND m.request_key=? FOR UPDATE`,
+        [context.userId, value.requestKey],
+      );
+      if (rows.length) {
+        const previous = rows[0];
+        const [members] = await conn.query(
+          "SELECT intern_id AS id FROM meeting_attendees WHERE meeting_id=? ORDER BY intern_id",
+          [previous.id],
+        );
+        const same =
+          [
+            "title",
+            "description",
+            "startAt",
+            "endAt",
+            "location",
+            "meetingLink",
+            "programId",
+            "scopeType",
+            "groupId",
+          ].every((k) => (previous[k] ?? "") === (value[k] ?? "")) &&
+          members.map((r) => Number(r.id)).join(",") ===
+            value.attendeeIds.join(",");
+        if (!same)
+          throw new HttpError(409, "Khóa tạo lịch đã dùng cho dữ liệu khác!");
+        if (context.role === "Mentor") {
+          const [[{ foreignCount }]] = await conn.query(
+            "SELECT COUNT(*) AS foreignCount FROM meeting_attendees a JOIN intern_profiles ip ON ip.id=a.intern_id WHERE a.meeting_id=? AND (ip.mentor_id IS NULL OR ip.mentor_id<>?)",
+            [previous.id, context.mentorId],
+          );
+          if (foreignCount)
+            throw new HttpError(403, "Không có quyền với người tham dự!");
+        }
+        return { id: previous.id, unchanged: true, emailCount: 0 };
+      }
+    }
+    const ids = [...new Set([...oldIds, ...(value?.attendeeIds || [])])].sort(
+      (a, b) => a - b,
+    );
+    const [profiles] = ids.length
+      ? await conn.query(
+          "SELECT id,full_name AS fullName,email,mentor_id AS mentorId FROM intern_profiles WHERE id IN (?) ORDER BY id FOR UPDATE",
+          [ids],
+        )
+      : [[]];
+    const before = profiles.filter((i) => oldIds.includes(Number(i.id)));
+    if (
+      context.role === "Mentor" &&
+      ((old && !before.length) ||
+        profiles.some((i) => Number(i.mentorId) !== context.mentorId))
+    )
+      throw new HttpError(
+        403,
+        "Mentor chỉ quản lý cuộc họp với thực tập sinh đang phụ trách!",
+      );
+    if (
+      old &&
+      (old.status === "CANCELLED" ||
+        meetingRules.toDate(old.startAt) <= new Date())
+    )
+      throw new HttpError(
+        409,
+        "Không thể thay đổi cuộc họp đã hủy hoặc đã bắt đầu!",
+      );
+    const after = cancel
+      ? before
+      : profiles.filter((i) => value.attendeeIds.includes(Number(i.id)));
+    if (!cancel && after.length !== value.attendeeIds.length)
+      throw new HttpError(400, "Có thực tập sinh không tồn tại!");
+    if (!cancel && meetingRules.toDate(value.startAt) <= new Date())
+      throw new HttpError(400, "Giờ bắt đầu đã qua, vui lòng chọn lại!");
+    if (!cancel && value.programId) {
+      const [programs] = await conn.query(
+        "SELECT id FROM internship_programs WHERE id=?",
+        [value.programId],
+      );
+      if (!programs.length)
+        throw new HttpError(400, "Chương trình không tồn tại!");
+      const [members] = await conn.query(
+        "SELECT intern_id FROM program_interns WHERE program_id=? AND intern_id IN (?)",
+        [value.programId, value.attendeeIds],
+      );
+      if (members.length !== value.attendeeIds.length)
+        throw new HttpError(
+          400,
+          "Người tham dự phải thuộc chương trình được chọn!",
+        );
+    }
+    let meeting;
+    if (!old) {
+      const [users] = await conn.query(
+        "SELECT id,name,email FROM users WHERE id=?",
+        [context.userId],
+      );
+      if (!users.length)
+        throw new HttpError(401, "Tài khoản không còn tồn tại!");
+      const [result] = await conn.query(
+        `INSERT INTO meetings(title,description,start_at,end_at,location,meeting_link,organizer_user_id,program_id,request_key,scope_type,group_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+        [
+          value.title,
+          value.description,
+          value.startAt,
+          value.endAt,
+          value.location,
+          value.meetingLink,
+          context.userId,
+          value.programId,
+          value.requestKey,
+          value.scopeType || "INDIVIDUAL",
+          value.groupId || null,
+        ],
+      );
+      id = result.insertId;
+      meeting = {
+        ...value,
+        id,
+        sequence: 0,
+        status: "SCHEDULED",
+        organizerUserId: context.userId,
+        organizerName: users[0].name,
+        organizerEmail: users[0].email,
+      };
+    } else {
+      meeting = {
+        ...old,
+        ...(cancel ? {} : value),
+        status: cancel ? "CANCELLED" : "SCHEDULED",
+      };
+      const material = cancel || calendarChanged(old, meeting, before, after);
+      meeting.sequence = Number(old.sequence) + (material ? 1 : 0);
+      const [oldOverrides] = await conn.query(
+        "SELECT intern_id AS id, participation FROM schedule_participants WHERE meeting_id=? ORDER BY participation, intern_id",
+        [id],
+      );
+      const overrideKey = (list) =>
+        list.map((o) => `${o.participation}:${Number(o.id)}`).join(",");
+      const newOverrides = [
+        ...(value?.excludeIds || []).map((x) => ({
+          id: x,
+          participation: "EXCLUDE",
+        })),
+        ...(value?.includeIds || []).map((x) => ({
+          id: x,
+          participation: "INCLUDE",
+        })),
+      ].sort(
+        (a, b) => a.participation.localeCompare(b.participation) || a.id - b.id,
+      );
+      const same =
+        !cancel &&
+        !material &&
+        overrideKey(oldOverrides) === overrideKey(newOverrides) &&
+        ["title", "description", "programId", "scopeType", "groupId"].every(
+          (k) => (old[k] ?? "") === (meeting[k] ?? ""),
+        );
+      if (same) return { id, unchanged: true, emailCount: 0 };
+      await conn.query(
+        "UPDATE meetings SET title=?,description=?,start_at=?,end_at=?,location=?,meeting_link=?,program_id=?,scope_type=?,group_id=?,status=?,sequence=? WHERE id=?",
+        [
+          meeting.title,
+          meeting.description,
+          meeting.startAt,
+          meeting.endAt,
+          meeting.location,
+          meeting.meetingLink,
+          meeting.programId,
+          meeting.scopeType || "INDIVIDUAL",
+          meeting.groupId || null,
+          meeting.status,
+          meeting.sequence,
+          id,
+        ],
+      );
+      if (material) {
+        const calendarUpdated =
+          cancel || meetingRules.needsUpdate(old, meeting);
+        // Retained recipients still need any invitation waiting in the outbox.
+        // Adding another attendee alone must not silently discard that invitation.
+        await conn.query(
+          "UPDATE email_logs SET status='FAILED',error_message='Lịch họp đã thay đổi; không gửi lại sự kiện cũ.' WHERE meeting_id=? AND status IN ('PENDING','RETRYING') AND processing_token IS NULL" +
+            (calendarUpdated ? "" : " AND intern_id NOT IN (?)"),
+          calendarUpdated ? [id] : [id, value.attendeeIds],
+        );
+      }
+    }
+    if (!cancel) {
+      await conn.query("DELETE FROM meeting_attendees WHERE meeting_id=?", [
+        id,
+      ]);
+      await conn.query(
+        "INSERT INTO meeting_attendees(meeting_id,intern_id) VALUES ?",
+        [value.attendeeIds.map((internId) => [id, internId])],
+      );
+      await conn.query("DELETE FROM schedule_participants WHERE meeting_id=?", [
+        id,
+      ]);
+      const overrides = [
+        ...(value.excludeIds || []).map((x) => [id, x, "EXCLUDE"]),
+        ...(value.includeIds || []).map((x) => [id, x, "INCLUDE"]),
+      ];
+      if (overrides.length)
+        await conn.query(
+          "INSERT INTO schedule_participants(meeting_id,intern_id,participation) VALUES ?",
+          [overrides],
+        );
+    }
+    const jobs = buildJobs(meeting, before, after, {
+      created: !old,
+      cancel,
+      old,
+    });
+    await insertMeetingEmailJobs(conn, id, jobs);
+    return { id, unchanged: false, emailCount: jobs.length };
+  };
+  for (let attempt = 0; ; attempt++) {
+    try {
+      // value được gán lại trong callback; giữ vòng retry riêng hiện có.
+      return await withTransaction(work, { retryDeadlock: false });
+    } catch (err) {
+      if (
+        attempt < 2 &&
+        ["ER_LOCK_DEADLOCK", "ER_DUP_ENTRY"].includes(err.code)
+      )
+        continue;
+      throw err;
+    }
+  }
+}
+async function enqueueMeetingReminder(id, hours, sequence, buildJobs) {
+  return withTransaction(async (conn) => {
+    const [rows] = await conn.query(
+      `SELECT ${MEETING_COLUMNS} ${MEETING_JOINS} WHERE m.id=? FOR UPDATE`,
+      [id],
+    );
+    const meeting = rows[0];
+    if (
+      !meeting ||
+      meeting.status !== "SCHEDULED" ||
+      Number(meeting.sequence) !== Number(sequence) ||
+      meetingRules.reminderSlot(meeting) !== hours
+    )
+      return 0;
+    const [attendees] = await conn.query(
+      "SELECT ip.id,ip.full_name AS fullName,ip.email FROM meeting_attendees a JOIN intern_profiles ip ON ip.id=a.intern_id WHERE a.meeting_id=?",
+      [id],
+    );
+    const jobs = buildJobs(meeting, [], attendees, { reminderHours: hours });
+    const [existing] = await conn.query(
+      "SELECT event_key FROM email_logs WHERE meeting_id=?",
+      [id],
+    );
+    const keys = new Set(existing.map((r) => r.event_key));
+    const fresh = jobs.filter((j) => !keys.has(j.eventKey));
+    await insertMeetingEmailJobs(conn, id, fresh);
+    return fresh.length;
+  });
+}
+async function listMeetingReminderCandidates() {
+  const [rows] = await requireDb().query(
+    "SELECT id,sequence,DATE_FORMAT(start_at,'%Y-%m-%d %H:%i:%s') AS startAt FROM meetings WHERE status='SCHEDULED' AND start_at>NOW() AND start_at<=DATE_ADD(NOW(),INTERVAL ? HOUR) ORDER BY start_at,id",
+    [Math.max(...meetingRules.REMINDER_HOURS)],
+  );
+  return rows;
+}
+async function findMeetingEmailPayload(id) {
+  const [rows] = await requireDb().query(
+    "SELECT payload_json AS payloadJson FROM email_logs WHERE id=? AND meeting_id IS NOT NULL",
+    [id],
+  );
+  if (!rows[0])
+    throw new HttpError(404, "Không tìm thấy dữ liệu email lịch họp!");
+  return JSON.parse(rows[0].payloadJson);
+}
+async function listMeetingEmailJobs() {
+  const [rows] = await requireDb().query(
+    `SELECT ${EMAIL_LOG_COLUMNS} FROM email_logs WHERE meeting_id IS NOT NULL AND status IN ('PENDING','RETRYING') AND (processing_until IS NULL OR processing_until<UTC_TIMESTAMP()) AND (next_attempt_at IS NULL OR next_attempt_at<=UTC_TIMESTAMP()) ORDER BY id LIMIT 200`,
+  );
+  return rows;
+}
+async function prepareMeetingRetry(id) {
+  const [result] = await requireDb().query(
+    "UPDATE email_logs SET status='PENDING',next_attempt_at=NULL WHERE id=? AND meeting_id IS NOT NULL AND status IN ('FAILED','RETRYING') AND (processing_until IS NULL OR processing_until<UTC_TIMESTAMP())",
+    [id],
+  );
+  return result.affectedRows > 0;
+}
+async function claimMeetingEmail(id, manual = false) {
+  const token = randomUUID();
+  const [r] = await requireDb().query(
+    "UPDATE email_logs SET processing_token=?,processing_until=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 120 SECOND) WHERE id=? AND meeting_id IS NOT NULL AND status IN ('PENDING','RETRYING','FAILED') AND (processing_until IS NULL OR processing_until<UTC_TIMESTAMP()) AND (? OR next_attempt_at IS NULL OR next_attempt_at<=UTC_TIMESTAMP())",
+    [token, id, manual],
+  );
+  if (!r.affectedRows) return null;
+  const row = await findEmailLogById(id);
+  return { ...row, token };
+}
+async function releaseMeetingEmail(id, token) {
+  await requireDb().query(
+    "UPDATE email_logs SET processing_token=NULL,processing_until=NULL WHERE id=? AND processing_token=?",
+    [id, token],
+  );
+}
+async function meetingEmailIsCurrent(payload) {
+  const m = payload.meeting;
+  const [rows] = await requireDb().query(
+    `SELECT m.status,m.sequence,m.location,m.meeting_link AS meetingLink,DATE_FORMAT(m.start_at,'%Y-%m-%d %H:%i:%s') AS startAt,DATE_FORMAT(m.end_at,'%Y-%m-%d %H:%i:%s') AS endAt,ip.email,
+ EXISTS(SELECT 1 FROM meeting_attendees a WHERE a.meeting_id=m.id AND a.intern_id=ip.id) AS attends
+ FROM meetings m JOIN intern_profiles ip ON ip.id=? WHERE m.id=?`,
+    [payload.recipient.id, m.id],
+  );
+  const row = rows[0];
+  if (
+    !row ||
+    Number(row.sequence) < Number(m.sequence) ||
+    String(row.email || "")
+      .trim()
+      .toLowerCase() !==
+      String(payload.recipient.email || "")
+        .trim()
+        .toLowerCase()
+  )
+    return false;
+  if (payload.type === "MEETING_CANCELLED")
+    return row.status === "CANCELLED" || (payload.removed && !row.attends);
+  return (
+    row.status === "SCHEDULED" &&
+    !meetingRules.needsUpdate(row, m) &&
+    Boolean(row.attends) &&
+    meetingRules.toDate(row.startAt) > new Date()
+  );
+}
+async function listMeetingNotificationJobs() {
+  const [rows] = await requireDb().query(
+    `SELECT id,intern_id AS internId,event_key AS eventKey,payload_json AS payloadJson
+     FROM email_logs WHERE meeting_id IS NOT NULL AND notification_pending=1
+     AND EXISTS(SELECT 1 FROM intern_profiles ip JOIN users u ON
+       LOWER(CONVERT(u.email USING utf8mb4)) COLLATE utf8mb4_unicode_ci =
+       LOWER(CONVERT(ip.email USING utf8mb4)) COLLATE utf8mb4_unicode_ci
+       WHERE ip.id=email_logs.intern_id)
+     ORDER BY id LIMIT 200`,
+  );
+  return rows;
+}
+async function discardMeetingNotification(id) {
+  await requireDb().query(
+    "UPDATE email_logs SET notification_pending=0 WHERE id=?",
+    [id],
+  );
+}
+async function acknowledgeMeetingNotification(id, key) {
+  await requireDb().query(
+    "UPDATE email_logs SET notification_pending=0 WHERE id=? AND EXISTS(SELECT 1 FROM notifications WHERE dedupe_key=?)",
+    [id, key],
+  );
+}
+
 module.exports = {
+  listProgramGroupOptions,
+  withTransaction,
+  withProgramMembershipTransaction,
+  recordMentorChange,
+  resyncScopedMeetings,
+  listMeetings,
+  findMeetingScoped,
+  getMeetingOptions,
+  saveMeetingAtomic,
+  enqueueMeetingReminder,
+  listMeetingReminderCandidates,
+  findMeetingEmailPayload,
+  listMeetingEmailJobs,
+  prepareMeetingRetry,
+  claimMeetingEmail,
+  releaseMeetingEmail,
+  meetingEmailIsCurrent,
+  listMeetingNotificationJobs,
+  acknowledgeMeetingNotification,
+  discardMeetingNotification,
   setProgramCompletion,
   getCompletionRateRows,
   getCompletionRatePrograms,
@@ -4871,6 +5801,7 @@ module.exports = {
   findUserForLogin,
   insertUser,
   getAllUsers,
+  getUserStats,
   deleteUser,
   insertCandidate,
   listApplications,
@@ -4882,6 +5813,7 @@ module.exports = {
   updateMentor,
   deleteMentor,
   getAllStudents,
+  isStudentCodeTaken,
   getStudentsForMentorEmail,
   listMentorInterns,
   listInternsNotOfMentor,

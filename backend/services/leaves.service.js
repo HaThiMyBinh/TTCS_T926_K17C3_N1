@@ -12,10 +12,7 @@ const LEAVE_STATUSES = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"];
 const MAX_LEAVE_DAYS = 30; // tối đa mỗi đơn
 const BACKDATE_DAYS = 7; // được nộp bù tối đa
 
-function parseId(value, message = "ID không hợp lệ!") {
-  if (!/^[1-9]\d*$/.test(String(value))) throw new HttpError(400, message);
-  return Number(value);
-}
+const { parseId } = require("../utils/ids");
 function countDays(from, to) {
   return (
     Math.floor(

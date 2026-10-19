@@ -2,11 +2,8 @@
 const db = require("../db");
 const { HttpError } = require("../errors");
 
-function parseId(value) {
-  if (!/^[1-9]\d*$/.test(String(value)))
-    throw new HttpError(400, "ID thông báo không hợp lệ!");
-  return Number(value);
-}
+const { parseId: parseIdWith } = require("../utils/ids");
+const parseId = (raw) => parseIdWith(raw, "ID thông báo không hợp lệ!");
 async function list(user) {
   const [items, unread] = await Promise.all([
     db.listNotifications(user.id),

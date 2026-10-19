@@ -1,9 +1,46 @@
 // Nhắc lịch cho thực tập sinh: mốc lịch thực tập sắp bắt đầu và nhiệm vụ sắp đến hạn.
 // Chạy định kỳ; mỗi nhắc chỉ tạo một lần nhờ khóa chống trùng (dedupeKey) nên chạy lại bao nhiêu lần cũng không lặp.
+const logger = require("../utils/logger");
 const db = require("../db");
 const { addDays } = require("./scheduleRules.service");
 const { getVietnamToday } = require("../utils/date");
 const { toInterns, viDate } = require("./internNotify.service");
+
+const meetingRules = require("./meetingRules.service");
+const meetingEvents = require("./meetingEvents.service");
+const emailQueue = require("./email/emailQueue");
+async function runMeetingReminders({ now = new Date(), deps = {} } = {}) {
+  const store = deps.db || db;
+  let queued = 0;
+  for (const meeting of await store.listMeetingReminderCandidates()) {
+    const hours = meetingRules.reminderSlot(meeting, now);
+    if (hours)
+      queued += await store.enqueueMeetingReminder(
+        meeting.id,
+        hours,
+        meeting.sequence,
+        meetingEvents.buildJobs,
+      );
+  }
+  if (!deps.db)
+    emailQueue
+      .dispatchMeetingJobs()
+      .catch((err) => console.error("[MEETING-DISPATCH]", err));
+  return { queued };
+}
+let meetingTimer = null,
+  meetingRunning = false;
+async function safeMeetings() {
+  if (meetingRunning) return;
+  meetingRunning = true;
+  try {
+    await runMeetingReminders();
+  } catch (err) {
+    console.error("[MEETING-REMINDERS]", err);
+  } finally {
+    meetingRunning = false;
+  }
+}
 
 const RUN_EVERY_MS = 60 * 60 * 1000;
 
@@ -68,7 +105,7 @@ async function safeRun() {
   try {
     const r = await runReminders();
     if (r.milestones || r.tasks)
-      console.log(
+      logger.info(
         `[REMINDER] Đã tạo ${r.milestones} nhắc lịch thực tập, ${r.tasks} nhắc nhiệm vụ.`,
       );
   } catch (err) {
@@ -79,10 +116,15 @@ async function safeRun() {
 }
 // Gọi một lần khi server khởi động (sau khi kết nối DB).
 function start() {
+  if (!meetingTimer) {
+    setTimeout(safeMeetings, 1000).unref();
+    meetingTimer = setInterval(safeMeetings, 60 * 1000);
+    meetingTimer.unref();
+  }
   if (timer) return;
   setTimeout(safeRun, 10 * 1000).unref();
   timer = setInterval(safeRun, RUN_EVERY_MS);
   timer.unref();
 }
 
-module.exports = { runReminders, start };
+module.exports = { runReminders, runMeetingReminders, start };

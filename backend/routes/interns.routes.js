@@ -1,7 +1,7 @@
 const express = require("express");
 const db = require("../db");
 const { requireRole } = require("../auth");
-const { sendRouteError } = require("../errors");
+const { HttpError, sendRouteError } = require("../errors");
 const {
   attachApplicationsToStudents,
 } = require("../services/applications.service");
@@ -63,9 +63,10 @@ router.get(
 );
 router.get("/interns/count", requireRole("Admin", "HR"), async (req, res) => {
   if (Object.keys(req.query).some((key) => key !== "unassigned")) {
-    return res.status(400).json({
-      error: "API đếm chỉ nhận tham số unassigned.",
-    });
+    return sendRouteError(
+      res,
+      new HttpError(400, "API đếm chỉ nhận tham số unassigned."),
+    );
   }
   try {
     const filters = normalizeInternFilters(req.query);
@@ -81,7 +82,10 @@ router.get("/students", requireRole("Admin", "HR", "Mentor"), handleGetInterns);
 router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
   const rawId = req.params.id;
   if (!/^[1-9]\d*$/.test(rawId) || !Number.isSafeInteger(Number(rawId))) {
-    return res.status(400).json({ error: "Mã thực tập sinh không hợp lệ!" });
+    return sendRouteError(
+      res,
+      new HttpError(400, "Mã thực tập sinh không hợp lệ!"),
+    );
   }
   if (
     req.body == null ||
@@ -89,7 +93,10 @@ router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
     Array.isArray(req.body) ||
     !Object.prototype.hasOwnProperty.call(req.body, "mentor_id")
   ) {
-    return res.status(400).json({ error: "Vui lòng gửi mentor_id hợp lệ!" });
+    return sendRouteError(
+      res,
+      new HttpError(400, "Vui lòng gửi mentor_id hợp lệ!"),
+    );
   }
 
   const mentorId = req.body.mentor_id;
@@ -99,9 +106,10 @@ router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
       !Number.isSafeInteger(mentorId) ||
       mentorId < 1)
   ) {
-    return res
-      .status(400)
-      .json({ error: "Mã mentor phải là số nguyên dương hoặc null!" });
+    return sendRouteError(
+      res,
+      new HttpError(400, "Mã mentor phải là số nguyên dương hoặc null!"),
+    );
   }
 
   try {
@@ -124,12 +132,17 @@ router.put("/interns/:id/mentor", requireRole("HR"), async (req, res) => {
           confirmed,
         );
     }
-    const result = await db.assignInternMentor(Number(rawId), mentorId);
+    const result = await db.assignInternMentor(Number(rawId), mentorId, {
+      userId: req.user && req.user.id,
+    });
     if (result.outcome === "INTERN_NOT_FOUND") {
-      return res.status(404).json({ error: "Không tìm thấy thực tập sinh!" });
+      return sendRouteError(
+        res,
+        new HttpError(404, "Không tìm thấy thực tập sinh!"),
+      );
     }
     if (result.outcome === "MENTOR_NOT_FOUND") {
-      return res.status(404).json({ error: "Không tìm thấy mentor!" });
+      return sendRouteError(res, new HttpError(404, "Không tìm thấy mentor!"));
     }
     await notifyMentorAssignment({
       before,
@@ -161,24 +174,22 @@ async function handleCreateIntern(req, res) {
     } = req.body;
 
     if (!fullName || !email || !university) {
-      return res.status(400).json({
-        error: "Vui lòng nhập đầy đủ Họ tên, Email và Trường đại học!",
-      });
+      return sendRouteError(
+        res,
+        new HttpError(
+          400,
+          "Vui lòng nhập đầy đủ Họ tên, Email và Trường đại học!",
+        ),
+      );
     }
 
-    const students = await db.getAllStudents();
-
-    if (studentCode && isDuplicateStudentCode(students, studentCode)) {
-      return res
-        .status(400)
-        .json({ error: "Mã sinh viên này đã tồn tại trong hệ thống!" });
+    if (studentCode && (await db.isStudentCodeTaken(studentCode))) {
+      return sendRouteError(
+        res,
+        new HttpError(400, "Mã sinh viên này đã tồn tại trong hệ thống!"),
+      );
     }
-
-    if (isDuplicateStudentEmail(students, email)) {
-      return res
-        .status(400)
-        .json({ error: "Email hồ sơ thực tập sinh này đã tồn tại!" });
-    }
+    // Trùng email do ràng buộc UNIQUE(email) của DB báo lại (db.insertStudent).
 
     const newStudent = await db.insertStudent({
       studentCode: trimOrDefault(studentCode),
@@ -218,28 +229,25 @@ async function handleUpdateIntern(req, res) {
     } = req.body;
 
     if (!fullName || !email || !university) {
-      return res.status(400).json({
-        error: "Vui lòng nhập đầy đủ Họ tên, Email và Trường đại học!",
-      });
+      return sendRouteError(
+        res,
+        new HttpError(
+          400,
+          "Vui lòng nhập đầy đủ Họ tên, Email và Trường đại học!",
+        ),
+      );
     }
 
-    const students = await db.getAllStudents();
-    const currentId = Number(req.params.id);
-
-    // Kiểm tra trùng Mã SV / Email với các hồ sơ *khác* (loại trừ chính hồ sơ đang sửa)
+    // Kiểm tra trùng Mã SV với các hồ sơ *khác* (loại trừ chính hồ sơ đang sửa).
+    // Trùng email do ràng buộc UNIQUE(email) của DB báo lại (db.updateStudent).
     if (
       studentCode &&
-      isDuplicateStudentCode(students, studentCode, currentId)
+      (await db.isStudentCodeTaken(studentCode, req.params.id))
     ) {
-      return res
-        .status(400)
-        .json({ error: "Mã sinh viên này đã thuộc về thực tập sinh khác!" });
-    }
-
-    if (isDuplicateStudentEmail(students, email, currentId)) {
-      return res
-        .status(400)
-        .json({ error: "Email này đã thuộc về thực tập sinh khác!" });
+      return sendRouteError(
+        res,
+        new HttpError(400, "Mã sinh viên này đã thuộc về thực tập sinh khác!"),
+      );
     }
 
     const updated = await db.updateStudent(req.params.id, {
@@ -254,9 +262,10 @@ async function handleUpdateIntern(req, res) {
     });
 
     if (!updated) {
-      return res
-        .status(404)
-        .json({ error: "Không tìm thấy hồ sơ thực tập sinh cần cập nhật!" });
+      return sendRouteError(
+        res,
+        new HttpError(404, "Không tìm thấy hồ sơ thực tập sinh cần cập nhật!"),
+      );
     }
 
     res.json({
@@ -287,27 +296,5 @@ async function handleDeleteIntern(req, res) {
 }
 router.delete("/interns/:id", requireRole("Admin", "HR"), handleDeleteIntern);
 router.delete("/students/:id", requireRole("Admin", "HR"), handleDeleteIntern);
-
-// Kiểm tra trùng Mã SV trong danh sách hồ sơ, có thể loại trừ 1 id (dùng khi sửa)
-function isDuplicateStudentCode(students, studentCode, excludeId = null) {
-  const target = studentCode.trim().toLowerCase();
-  return students.some(
-    (s) =>
-      (excludeId === null || Number(s.id) !== excludeId) &&
-      s.studentCode &&
-      s.studentCode.trim().toLowerCase() === target,
-  );
-}
-
-// Kiểm tra trùng Email trong danh sách hồ sơ, có thể loại trừ 1 id (dùng khi sửa)
-function isDuplicateStudentEmail(students, email, excludeId = null) {
-  const target = email.trim().toLowerCase();
-  return students.some(
-    (s) =>
-      (excludeId === null || Number(s.id) !== excludeId) &&
-      s.email &&
-      s.email.toLowerCase() === target,
-  );
-}
 
 module.exports = router;

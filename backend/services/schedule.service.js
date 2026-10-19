@@ -1,21 +1,9 @@
 // Nghiệp vụ Quản lý & Tra cứu Lịch thực tập cá nhân (Internship Schedule & Milestones)
 const db = require("../db");
 const { HttpError } = require("../errors");
-const { getVietnamToday } = require("../utils/date");
+const { getVietnamToday, isValidDate, addDays } = require("../utils/date");
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-function isValidDate(value) {
-  if (!value || typeof value !== "string") return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-}
 
 function parseDateUtc(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -39,12 +27,6 @@ function diffDays(startStr, endStr) {
   const s = parseDateUtc(startStr);
   const e = parseDateUtc(endStr);
   return Math.round((e.getTime() - s.getTime()) / MS_PER_DAY) + 1;
-}
-
-function addDays(dateStr, days) {
-  const d = parseDateUtc(dateStr);
-  d.setUTCDate(d.getUTCDate() + days);
-  return formatDateUtc(d);
 }
 
 function selectConfirmedContract(contracts = []) {

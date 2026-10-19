@@ -3,15 +3,23 @@
 const db = require("../db");
 const { HttpError } = require("../errors");
 const weeks = require("../utils/weeks");
+const { addDays } = require("../utils/date");
 
-const TYPES = ["DEFAULT", "UNIVERSITY", "PROGRAM", "MENTOR", "INTERN"];
+const TYPES = ["DEFAULT", "UNIVERSITY", "PROGRAM", "MENTOR", "INTERN", "GROUP"];
 const MODES = ["FIXED", "FLEXIBLE"];
+const WORK_TYPES = ["OFFLINE", "ONLINE"];
 // Thứ tự ưu tiên khi một thực tập sinh khớp nhiều phạm vi (cụ thể nhất thắng).
-const PRIORITY = ["INTERN", "PROGRAM", "MENTOR", "UNIVERSITY", "DEFAULT"];
+const PRIORITY = [
+  "INTERN",
+  "GROUP",
+  "PROGRAM",
+  "MENTOR",
+  "UNIVERSITY",
+  "DEFAULT",
+];
 const DEFAULT_SCHEDULE_ID = 1;
 const DAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const idPattern = /^[1-9]\d*$/;
-const FAR_FUTURE = "9999-12-31";
 
 function assertId(value, message = "ID không hợp lệ!") {
   if (!idPattern.test(String(value))) throw new HttpError(400, message);
@@ -27,12 +35,6 @@ function timeMinutes(value) {
   const [h, m] = value.split(":").map(Number);
   return h * 60 + m;
 }
-function addDays(date, delta) {
-  return new Date(Date.parse(`${date}T00:00:00Z`) + delta * 86400000)
-    .toISOString()
-    .slice(0, 10);
-}
-
 // ---------- Kiểm tra dữ liệu lịch ----------
 // Kiểm tra tính nhất quán của một lịch đã chuẩn hóa (dùng cho cả tạo mới và sửa).
 function assertScheduleConsistent(schedule) {
@@ -116,7 +118,13 @@ function validateSchedule(input, partial = false) {
       throw new HttpError(400, "Cần cấu hình đủ 7 ngày trong tuần!");
     const seen = new Set();
     out.days = input.days.map((day) => {
-      const dayKeys = ["weekday", "is_working", "start_time", "end_time"];
+      const dayKeys = [
+        "weekday",
+        "is_working",
+        "start_time",
+        "end_time",
+        "work_type",
+      ];
       if (
         !day ||
         typeof day !== "object" ||
@@ -132,9 +140,15 @@ function validateSchedule(input, partial = false) {
       )
         throw new HttpError(400, "Thứ trong tuần không hợp lệ!");
       seen.add(weekday);
+      if (day.work_type != null && !WORK_TYPES.includes(day.work_type))
+        throw new HttpError(
+          400,
+          "Hình thức làm việc phải là OFFLINE hoặc ONLINE!",
+        );
       return {
         weekday,
         isWorking: Boolean(day.is_working),
+        workType: day.work_type || "OFFLINE",
         startTime:
           typeof day.start_time === "string" && day.start_time
             ? day.start_time.slice(0, 5)
@@ -174,12 +188,21 @@ function summarizeSchedule(schedule) {
         : `${DAY_LABELS[r.from - 1]}–${DAY_LABELS[r.to - 1]}`,
     )
     .join(", ");
+  // Chỉ nêu hình thức khi có ngày Online, để mô tả các lịch toàn Offline không đổi.
+  const offlineDays = working.filter((d) => d.workType !== "ONLINE");
+  const typeText = !working.some((d) => d.workType === "ONLINE")
+    ? ""
+    : !offlineDays.length
+      ? " · Online"
+      : ` · Offline: ${offlineDays.map((d) => DAY_LABELS[d.weekday - 1]).join(", ")}`;
   if (schedule.mode === "FLEXIBLE")
-    return `${daysText} · linh hoạt, tối thiểu ${schedule.minDailyMinutes} phút/ngày`;
+    return `${daysText} · linh hoạt, tối thiểu ${schedule.minDailyMinutes} phút/ngày${typeText}`;
   const hours = new Set(working.map((d) => `${d.startTime}–${d.endTime}`));
-  return hours.size === 1
-    ? `${daysText} ${[...hours][0]}`
-    : `${daysText} · giờ khác nhau theo ngày`;
+  return (
+    (hours.size === 1
+      ? `${daysText} ${[...hours][0]}`
+      : `${daysText} · giờ khác nhau theo ngày`) + typeText
+  );
 }
 
 // ---------- Quy tắc của một ngày ----------
@@ -188,6 +211,7 @@ function getDayRule(schedule, date) {
   const day = (schedule.days || []).find((x) => Number(x.weekday) === weekday);
   return {
     isWorkingDay: !!day?.isWorking,
+    workType: day?.workType === "ONLINE" ? "ONLINE" : "OFFLINE",
     mode: schedule.mode,
     startTime: day?.startTime || null,
     endTime: day?.endTime || null,
@@ -256,12 +280,31 @@ function findContractProgram(contracts, date) {
 function findMembershipProgram(memberships, date) {
   return findContractProgram(memberships, date);
 }
+// Nhóm chính của thực tập sinh trong chương trình đó tại một ngày (quy tắc 3). Ngày rời nhóm là mốc loại trừ,
+// nên khi chuyển nhóm trong ngày D thì nhóm mới áp dụng từ D.
+function findMembershipGroup(memberships, date, programId) {
+  if (programId == null) return null;
+  for (const m of memberships) {
+    if (Number(m.programId) !== Number(programId)) continue;
+    const hit = (m.groups || []).find(
+      (g) => g.from <= date && (!g.to || date < g.to),
+    );
+    if (hit) return Number(hit.groupId);
+  }
+  return null;
+}
 
 // ---------- Lịch áp dụng ----------
 function describeTarget(type, value, ctx) {
   if (type === "DEFAULT") return "Mặc định";
   if (type === "INTERN") return "Cá nhân";
   if (type === "UNIVERSITY") return `Trường: ${value}`;
+  if (type === "GROUP") {
+    const group = (ctx.groups || []).find(
+      (g) => String(g.id) === String(value),
+    );
+    return `Nhóm thực tập: ${group ? `${group.name} (${group.programName})` : `#${value}`}`;
+  }
   if (type === "PROGRAM") {
     const program = (ctx.programs || []).find(
       (p) => String(p.id) === String(value),
@@ -274,9 +317,16 @@ function describeTarget(type, value, ctx) {
   return `Nhóm mentor: ${mentor ? mentor.name : `#${value}`}`;
 }
 // intern: { id, university, mentorId }. ctx: kết quả db.loadWorkScheduleContext().
-function resolveScheduleFromContext(ctx, intern, date, programId = null) {
+function resolveScheduleFromContext(
+  ctx,
+  intern,
+  date,
+  programId = null,
+  groupId = null,
+) {
   const candidates = {
     INTERN: String(intern.id),
+    GROUP: groupId == null ? null : String(groupId),
     PROGRAM: programId == null ? null : String(programId),
     MENTOR: intern.mentorId == null ? null : String(intern.mentorId),
     UNIVERSITY: intern.university || null,
@@ -319,34 +369,36 @@ function internMatchesTarget(intern, memberships, type, value) {
   if (type === "INTERN") return String(intern.id) === String(value);
   if (type === "UNIVERSITY") return intern.university === value;
   if (type === "MENTOR") return String(intern.mentorId) === String(value);
+  if (type === "GROUP")
+    return memberships.some((c) =>
+      (c.groups || []).some(
+        (g) =>
+          Number(c.internId) === Number(intern.id) &&
+          String(g.groupId) === String(value) &&
+          !g.to,
+      ),
+    );
   return memberships.some(
     (c) =>
       Number(c.internId) === Number(intern.id) &&
       String(c.programId) === String(value),
   );
 }
-// Kế hoạch khi thêm một lần áp dụng mới cho cùng phạm vi: tự đóng lần đang mở bắt đầu trước đó,
-// và báo xung đột nếu khoảng ngày mới vẫn trùng với lần áp dụng khác.
+// Kế hoạch khi thêm một lần áp dụng mới cho cùng phạm vi: tự đóng lần đang mở bắt đầu trước đó.
+// Cho phép các khoảng ngày chồng nhau: khi nhiều lần áp dụng cùng phủ một ngày, lần có ngày hiệu lực
+// bắt đầu muộn nhất thắng (cùng ngày bắt đầu thì lần tạo sau thắng) - xem resolveScheduleFromContext.
+// Vì vậy không còn trả về xung đột; `conflict` luôn false để giữ nguyên hình dạng kết quả.
 function planAssignmentChange(existing, incoming) {
-  const newTo = incoming.effectiveTo || FAR_FUTURE;
   const close = [];
-  const remaining = [];
   for (const row of existing) {
     if (!row.effectiveTo && row.effectiveFrom < incoming.effectiveFrom) {
       close.push({
         id: row.id,
         effectiveTo: addDays(incoming.effectiveFrom, -1),
       });
-    } else {
-      remaining.push(row);
     }
   }
-  const conflict = remaining.some(
-    (row) =>
-      row.effectiveFrom <= newTo &&
-      (row.effectiveTo || FAR_FUTURE) >= incoming.effectiveFrom,
-  );
-  return { conflict, close };
+  return { conflict: false, close };
 }
 
 // Lịch áp dụng cho một thực tập sinh tại một ngày (đọc DB).
@@ -359,11 +411,13 @@ async function resolveScheduleForIntern(internId, date) {
     db.listProgramMembershipsForInterns([intern.id]),
     db.loadWorkScheduleContext(),
   ]);
+  const programId = findMembershipProgram(memberships, date);
   const resolved = resolveScheduleFromContext(
     ctx,
     intern,
     date,
-    findMembershipProgram(memberships, date),
+    programId,
+    findMembershipGroup(memberships, date, programId),
   );
   if (!resolved) throw new HttpError(404, "Chưa có lịch làm việc mặc định!");
   return resolved;
@@ -382,6 +436,7 @@ module.exports = {
   contractCovers,
   findContractProgram,
   findMembershipProgram,
+  findMembershipGroup,
   describeTarget,
   resolveScheduleFromContext,
   internMatchesTarget,

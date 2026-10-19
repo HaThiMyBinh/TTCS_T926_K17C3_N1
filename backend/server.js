@@ -1,20 +1,24 @@
+const logger = require("./utils/logger");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const db = require("./db");
+const { reconcileMentorHistory } = require("./migrations/structureMigration");
 const apiAuthentication = require("./middleware/apiAuthentication");
+const { noStore } = require("./middleware/noStore");
 const { ensurePermissionsFile } = require("./middleware/permissions");
 const applicationsRouter = require("./routes/applications.routes");
 const emailRouter = require("./routes/email.routes");
 const usersRouter = require("./routes/users.routes");
 const permissionsRouter = require("./routes/permissions.routes");
 const authRouter = require("./routes/auth.routes");
+const healthRouter = require("./routes/health.routes");
+const reportsRouter = require("./routes/reports.routes");
 const mentorsRouter = require("./routes/mentors.routes");
 const internsRouter = require("./routes/interns.routes");
-const attendanceReportPdfRouter =
-  require("./routes/attendanceReportPdf.routes");
 const contractsRouter = require("./routes/contracts.routes");
 const programsRouter = require("./routes/programs.routes");
+const structureRouter = require("./routes/structure.routes");
 const scheduleRouter = require("./routes/schedule.routes");
 const tasksRouter = require("./routes/tasks.routes");
 const weeklyReportsRouter = require("./routes/weeklyReports.routes");
@@ -25,10 +29,9 @@ const workSchedulesRouter = require("./routes/workSchedules.routes");
 const leavesRouter = require("./routes/leaves.routes");
 const notificationsRouter = require("./routes/notifications.routes");
 const attendanceReportRouter = require("./routes/attendanceReport.routes");
-const reportExportRouter = require("./routes/reportExport.routes");
-const internSchoolStatsRouter = require("./routes/internSchoolStats.routes");
 const allowancesRouter = require("./routes/allowances.routes");
 const supportRequestsRouter = require("./routes/supportRequests.routes");
+const meetingsRouter = require("./routes/meetings.routes");
 const completionRateRouter = require("./routes/completionRate.routes");
 const internOriginReportRouter = require("./routes/internOriginReport.routes");
 const {
@@ -36,7 +39,7 @@ const {
   REVIEWED_EVENT,
 } = require("./services/applications.service");
 const emailQueue = require("./services/email/emailQueue");
-const { loadDemoIfNeeded } = require("./services/demoData");
+const { loadDemoIfNeeded } = require("./seed/demoData");
 
 // Email gửi nền để lỗi SMTP không làm hỏng thao tác duyệt hồ sơ.
 applicationEvents.on(REVIEWED_EVENT, (payload) => {
@@ -54,29 +57,26 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(FRONTEND_DIR));
-app.use("/api/final-reports", (req, res, next) => {
-  res.set("Cache-Control", "private, no-store");
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
   next();
 });
-app.use("/api/me/attendance", (req, res, next) => {
-  res.set("Cache-Control", "private, no-store");
-  next();
-});
-app.use("/api/reports/interns-by-origin", (req, res, next) => {
-  res.set("Cache-Control", "private, no-store");
-  next();
-});
-app.use("/api/reports/completion-rate", (req, res, next) => {
-  res.set("Cache-Control", "private, no-store");
-  next();
-});
+app.use(express.static(FRONTEND_DIR, { etag: false, lastModified: false }));
+// Dữ liệu cá nhân/báo cáo: không cache.
 app.use(
-  /^\/api\/programs\/[^/]+\/interns\/[^/]+\/completion$/,
-  (req, res, next) => {
-    res.set("Cache-Control", "private, no-store");
-    next();
-  },
+  [
+    "/api/final-reports",
+    "/api/me/attendance",
+    "/api/attendance/report",
+    "/api/reports/interns-by-origin",
+    "/api/reports/completion-rate",
+    /^\/api\/programs\/[^/]+\/interns\/[^/]+\/completion$/,
+    "/api/meetings",
+    "/api/me/meetings",
+  ],
+  noStore,
 );
 app.use(apiAuthentication);
 ensurePermissionsFile();
@@ -85,13 +85,15 @@ ensurePermissionsFile();
 app.use("/api", usersRouter);
 app.use("/api", permissionsRouter);
 app.use("/api", authRouter);
+app.use("/api", healthRouter);
+app.use("/api", reportsRouter);
 app.use("/api/applications", applicationsRouter);
 app.use("/api/email", emailRouter);
 app.use("/api", mentorsRouter);
-app.use("/api", internSchoolStatsRouter);
 app.use("/api", internsRouter);
 app.use("/api", contractsRouter);
 app.use("/api", programsRouter);
+app.use("/api", structureRouter);
 app.use("/api", scheduleRouter);
 app.use("/api", tasksRouter);
 app.use("/api", weeklyReportsRouter);
@@ -102,12 +104,11 @@ app.use("/api", workSchedulesRouter);
 app.use("/api", leavesRouter);
 app.use("/api", notificationsRouter);
 app.use("/api", attendanceReportRouter);
-app.use("/api", attendanceReportPdfRouter);
-app.use("/api", reportExportRouter);
 app.use("/api", allowancesRouter);
 app.use("/api", supportRequestsRouter);
 app.use("/api", internOriginReportRouter);
 app.use("/api", completionRateRouter);
+app.use("/api", meetingsRouter);
 
 app.get("/login", (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "login.html"));
@@ -161,6 +162,28 @@ async function start() {
     );
   }
 
+  // Backfill chỉ ghi intern_profiles.mentor_id; đồng bộ lại mentor_assignments để hai nơi luôn khớp nhau
+  // (migrateStructure trong demoData đã chạy TRƯỚC backfill nên không thấy các mentor_id vừa nối).
+  try {
+    const { before, after } = await reconcileMentorHistory(db.getPool());
+    if (before.length)
+      console.warn(
+        `[DATABASE] Đã đồng bộ lịch sử mentor cho ${before.length - after.length}/${before.length} thực tập sinh bị lệch.`,
+      );
+    if (after.length)
+      console.error(
+        `[DATABASE] Còn ${after.length} thực tập sinh lệch mentor_id/mentor_assignments: ${after
+          .slice(0, 10)
+          .map((r) => r.internId)
+          .join(", ")}`,
+      );
+  } catch (err) {
+    console.error(
+      "[DATABASE] Không thể đồng bộ lịch sử phân công mentor:",
+      err.message,
+    );
+  }
+
   // Gói demo cũ không có departments; nạp lại danh mục từ mentors nếu đang trống.
   try {
     await db.seedDepartmentsFromMentors();
@@ -171,7 +194,7 @@ async function start() {
   try {
     const resumed = await emailQueue.loadPendingJobsFromDb();
     if (resumed > 0) {
-      console.log(
+      logger.info(
         `[EMAIL] Đã nạp lại ${resumed} email đang dang dở để tiếp tục xử lý.`,
       );
     }
@@ -186,11 +209,11 @@ async function start() {
   }
 
   app.listen(PORT, () => {
-    console.log("====================================================");
-    console.log(" Hệ thống Quản Lý & Phân Quyền đang chạy tại:");
-    console.log(` Web App URL : http://localhost:${PORT}`);
-    console.log(` Backend API : http://127.0.0.1:${PORT}/api`);
-    console.log("====================================================");
+    logger.info("====================================================");
+    logger.info(" Hệ thống Quản Lý & Phân Quyền đang chạy tại:");
+    logger.info(` Web App URL : http://localhost:${PORT}`);
+    logger.info(` Backend API : http://127.0.0.1:${PORT}/api`);
+    logger.info("====================================================");
   });
 }
 

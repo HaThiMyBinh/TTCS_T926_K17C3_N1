@@ -1,7 +1,7 @@
 const crypto = require("crypto");
-const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
+const { readDbConfig } = require("../utils/dbConfig");
 
 const BASE_URL =
   process.env.TEST_BASE_URL ||
@@ -14,21 +14,6 @@ const DEMO_ACCOUNTS = {
   Mentor: "mentor@gmail.com",
   Intern: "intern@gmail.com",
 };
-
-// Cấu hình MySQL giống db.js (biến môi trường ghi đè db_config.json)
-function readDbConfig() {
-  const file = path.join(__dirname, "..", "db_config.json");
-  const cfg = fs.existsSync(file)
-    ? JSON.parse(fs.readFileSync(file, "utf-8"))
-    : {};
-  return {
-    host: process.env.DB_HOST || cfg.host || "localhost",
-    port: Number(process.env.DB_PORT) || cfg.port || 3306,
-    user: process.env.DB_USER || cfg.user || "root",
-    password: process.env.DB_PASSWORD ?? cfg.password ?? "",
-    database: process.env.DB_NAME || cfg.database || "user_management",
-  };
-}
 
 // Xóa các bản ghi có đúng email mà test đã tạo (xóa thẳng trong MySQL vì DELETE /api/users/:id
 // để lại candidate_profiles mồ côi chiếm email). Trả về số bản ghi đã xóa.

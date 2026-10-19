@@ -1,9 +1,9 @@
+const { serveFrontendStatic } = require("./frontend_static");
 // Optional: production HTML in Chromium, mocked APIs, no database or external assets.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
-const frontend = path.join(__dirname, "../../Frontend");
 const shots = process.env.UI_SCREENSHOT_DIR || "/tmp/us6-responsive";
 const summary = {
   total: 3,
@@ -45,16 +45,8 @@ async function main() {
           body: JSON.stringify(body),
         });
       if (url.hostname !== "ui.test") return route.abort();
-      if (
-        ["/index.html", "/login.html", "/register.html"].includes(url.pathname)
-      )
-        return route.fulfill({
-          contentType: "text/html",
-          body: fs.readFileSync(
-            path.join(frontend, url.pathname.slice(1)),
-            "utf8",
-          ),
-        });
+      const served = serveFrontendStatic(route);
+      if (served) return served;
       if (url.pathname === "/api/permissions")
         return json({
           HR: ["MANAGE_USERS", "VIEW_REPORTS"],

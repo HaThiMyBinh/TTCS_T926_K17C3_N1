@@ -1,17 +1,13 @@
 // Requires Playwright and Chromium. Exercises production renderers/listeners in an isolated DOM.
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const { chromium } = require("playwright");
-const html = fs.readFileSync(
-  path.join(__dirname, "../../Frontend/index.html"),
-  "utf8",
-);
+const { frontendScripts, frontendStyles } = require("./frontend_static");
+const script = frontendScripts();
 function extract(start, end) {
-  return html.slice(
-    html.indexOf(start),
-    html.indexOf(end, html.indexOf(start)),
-  );
+  const first = script.indexOf(start);
+  const last = script.indexOf(end, first);
+  assert.ok(first >= 0 && last > first, `Production snippet exists: ${start}`);
+  return script.slice(first, last);
 }
 async function main() {
   const browser = await chromium.launch({
@@ -24,12 +20,14 @@ async function main() {
       viewport: { width: 1000, height: 700 },
     });
     await page.setContent(
-      html.match(/<style[\s\S]*?<\/style>/g).join("\n") +
+      "<style>" +
+        frontendStyles() +
+        "</style>" +
         '<div style="width:700px"><div id="iorMatrixBody"></div></div><div id="iorUniChartBody"></div><div id="iorMajorChartBody"></div><div id="iorDetailModal" style="display:none"></div>',
     );
     await page.addScriptTag({
       content:
-        extract("function escapeHtml(value)", "// Mọi ngày/giờ") +
+        extract("function escapeHtml(value)", "function getVietnamParts") +
         extract(
           "function iorIsClickable(",
           "function renderInternOriginCharts(data)",
@@ -43,8 +41,8 @@ async function main() {
           "function renderInternOriginFunnel(data)",
         ) +
         extract(
-          'document.addEventListener("click", (event) => {\n        const trigger = event.target.closest(".ior-detail-trigger")',
-          "async function openInternOriginDetailModal",
+          'document.addEventListener("click", (event) => {\n  const trigger = event.target.closest(".ior-detail-trigger")',
+          "// ---------- Lịch làm việc (HR thiết lập) ----------",
         ) +
         'window.calls=[]; function openInternOriginDetailModal(u,m,p) {calls.push([u,m,p]); document.getElementById("iorDetailModal").style.display="flex";} function closeInternOriginModal(){document.getElementById("iorDetailModal").style.display="none";}',
     });

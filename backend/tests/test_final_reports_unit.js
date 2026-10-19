@@ -5,6 +5,7 @@ function check(name, condition) {
   } else console.log(`[PASS] ${name}`);
 }
 const s = require("../services/finalReports.service");
+const { csvCell } = require("../utils/csv");
 const rows = [
   {
     internId: 1,
@@ -140,15 +141,15 @@ check(
 );
 check(
   "csv injection neutralized and quoted",
-  s.csvCell("=SUM(A1:A2)") === '"\'=SUM(A1:A2)"',
+  csvCell("=SUM(A1:A2)") === '"\'=SUM(A1:A2)"',
 );
 check(
   "csv escapes quotes and preserves Vietnamese",
-  s.csvCell('Báo cáo, "đạt"') === '"Báo cáo, ""đạt"""',
+  csvCell('Báo cáo, "đạt"') === '"Báo cáo, ""đạt"""',
 );
 check(
   "csv quotes embedded line breaks",
-  s.csvCell("dòng một\ndòng hai") === '"dòng một\ndòng hai"',
+  csvCell("dòng một\ndòng hai") === '"dòng một\ndòng hai"',
 );
 check("csv export includes UTF-8 BOM", s.toCsv(data).charCodeAt(0) === 0xfeff);
 check(

@@ -1,5 +1,5 @@
 const service = require("../services/programCompletion.service");
-const { makeEndpoint } = require("./endpoint");
+const { makeEndpoint } = require("../utils/endpoint");
 module.exports = {
   save: makeEndpoint("PROGRAM_RESULT")(
     (req) =>

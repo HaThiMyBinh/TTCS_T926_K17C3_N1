@@ -1,8 +1,14 @@
 // Nghiệp vụ Mentor giao nhiệm vụ cho thực tập sinh (Task assignment)
 const db = require("../db");
 const { HttpError } = require("../errors");
+const {
+  requireMentorProfile,
+  assertInternBelongsToMentor,
+  requireInternProfile,
+} = require("./actorProfiles");
+const { toAttachmentDto: attachmentDto } = require("./attachmentValidator");
+const { getVietnamToday, isValidDate } = require("../utils/date");
 const { assertHasConfirmedContract } = require("./contractGate");
-const { getVietnamToday } = require("../utils/date");
 const storage = require("./fileStorage");
 const {
   MAX_ATTACHMENTS_PER_TASK,
@@ -19,26 +25,9 @@ const PROGRESS_NOTE_MAX_LENGTH = 2000;
 // Intern chỉ được gửi các trường này khi cập nhật tiến độ.
 const PROGRESS_FIELDS = ["status", "progress_percent", "progress_note"];
 
-function isValidDate(value) {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
-  }
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-}
+const { parseLabeledId: parseId } = require("../utils/ids");
 
-function parseId(rawId, label) {
-  const text = String(rawId ?? "");
-  if (!/^[1-9]\d*$/.test(text) || !Number.isSafeInteger(Number(text))) {
-    throw new HttpError(400, `${label} không hợp lệ!`);
-  }
-  return Number(text);
-}
+const toAttachmentDto = (row) => attachmentDto(row, "task_id", row.taskId);
 
 function has(input, key) {
   return Object.prototype.hasOwnProperty.call(input, key);
@@ -250,17 +239,6 @@ function validateProgressInput(input, current) {
 }
 
 // DTO tệp đính kèm (không lộ stored_name).
-function toAttachmentDto(row) {
-  return {
-    id: Number(row.id),
-    task_id: Number(row.taskId),
-    original_name: sanitizeFileName(row.originalName),
-    mime_type: row.mimeType,
-    size_bytes: Number(row.sizeBytes),
-    can_preview: INLINE_MIME_TYPES.includes(row.mimeType),
-    uploaded_at: row.uploadedAt || null,
-  };
-}
 
 function toTaskDto(row, today = getVietnamToday(), attachments = []) {
   const dueDate = row.dueDate || null;
@@ -299,39 +277,20 @@ async function loadTaskDto(id) {
   return row ? (await toTaskDtos([row]))[0] : null;
 }
 
-async function requireMentorProfile(user) {
-  const mentor =
-    user?.role === "Mentor" && user.email
-      ? await db.findMentorByEmail(user.email)
-      : null;
-  if (!mentor) {
-    throw new HttpError(
-      403,
-      "Tài khoản chưa có hồ sơ mentor để giao nhiệm vụ!",
-    );
-  }
-  return mentor;
-}
-
-function assertInternBelongsToMentor(mentor, internMentorId) {
-  if (!internMentorId || Number(internMentorId) !== Number(mentor.id)) {
-    throw new HttpError(
-      403,
-      "Bạn chỉ được giao và quản lý nhiệm vụ của thực tập sinh được phân công cho mình!",
-    );
-  }
-}
-
 async function loadOwnedTask(mentor, rawTaskId) {
   const taskId = parseId(rawTaskId, "Mã nhiệm vụ");
   const task = await db.findInternTaskById(taskId);
   if (!task) throw new HttpError(404, "Không tìm thấy nhiệm vụ!");
-  assertInternBelongsToMentor(mentor, task.internMentorId);
+  assertInternBelongsToMentor(
+    mentor,
+    task.internMentorId,
+    "giao và quản lý nhiệm vụ",
+  );
   return task;
 }
 
 async function createTask(user, body) {
-  const mentor = await requireMentorProfile(user);
+  const mentor = await requireMentorProfile(user, "giao nhiệm vụ");
   if (body == null || typeof body !== "object" || Array.isArray(body)) {
     throw new HttpError(400, "Dữ liệu nhiệm vụ không hợp lệ!");
   }
@@ -340,7 +299,11 @@ async function createTask(user, body) {
 
   const intern = await db.findInternProfileById(internId);
   if (!intern) throw new HttpError(404, "Không tìm thấy thực tập sinh!");
-  assertInternBelongsToMentor(mentor, intern.mentorId);
+  assertInternBelongsToMentor(
+    mentor,
+    intern.mentorId,
+    "giao và quản lý nhiệm vụ",
+  );
   await assertHasConfirmedContract(
     internId,
     "Thực tập sinh chưa có hợp đồng được xác nhận nên chưa thể giao nhiệm vụ!",
@@ -367,7 +330,7 @@ async function createTask(user, body) {
 }
 
 async function listTasksForMentor(user, query = {}) {
-  const mentor = await requireMentorProfile(user);
+  const mentor = await requireMentorProfile(user, "giao nhiệm vụ");
   let internId = null;
   if (has(query, "intern_id")) {
     internId = parseId(query.intern_id, "Mã thực tập sinh");
@@ -390,7 +353,7 @@ async function listTasksForMentor(user, query = {}) {
 }
 
 async function updateTask(user, rawTaskId, body) {
-  const mentor = await requireMentorProfile(user);
+  const mentor = await requireMentorProfile(user, "giao nhiệm vụ");
   const task = await loadOwnedTask(mentor, rawTaskId);
   const value = validateTaskInput(body, {
     partial: true,
@@ -409,7 +372,7 @@ async function updateTask(user, rawTaskId, body) {
 }
 
 async function deleteTask(user, rawTaskId) {
-  const mentor = await requireMentorProfile(user);
+  const mentor = await requireMentorProfile(user, "giao nhiệm vụ");
   const task = await loadOwnedTask(mentor, rawTaskId);
   // Lấy tên file trước vì bản ghi đính kèm bị xóa theo nhiệm vụ (ON DELETE CASCADE).
   const files = (await db.listTaskAttachmentsByTaskIds([task.id]))[
@@ -425,16 +388,6 @@ async function listTasksForInternUser(user) {
   const intern = await requireInternProfile(user);
   const rows = await db.listInternTasksForIntern(intern.id);
   return toTaskDtos(rows);
-}
-
-async function requireInternProfile(user) {
-  const intern = user?.email
-    ? await db.findInternProfileByEmail(user.email)
-    : null;
-  if (!intern) {
-    throw new HttpError(404, "Tài khoản chưa có hồ sơ thực tập sinh!");
-  }
-  return intern;
 }
 
 // Thực tập sinh cập nhật tiến độ việc của chính mình để mentor theo dõi.
@@ -550,8 +503,12 @@ async function getTaskAttachmentForDownload(user, rawTaskId, rawAttachmentId) {
       );
     }
   } else {
-    const mentor = await requireMentorProfile(user);
-    assertInternBelongsToMentor(mentor, task.internMentorId);
+    const mentor = await requireMentorProfile(user, "giao nhiệm vụ");
+    assertInternBelongsToMentor(
+      mentor,
+      task.internMentorId,
+      "giao và quản lý nhiệm vụ",
+    );
   }
 
   const attachment = await db.findTaskAttachmentById(task.id, attachmentId);

@@ -98,9 +98,19 @@ CREATE TABLE IF NOT EXISTS `intern_profiles` (
 CREATE TABLE IF NOT EXISTS `email_logs` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `application_id` BIGINT NULL,
+  `meeting_id` BIGINT NULL,
+  `intern_id` BIGINT NULL,
+  `payload_json` LONGTEXT NULL,
+  `event_key` VARCHAR(191) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  `notification_pending` TINYINT NOT NULL DEFAULT 0,
+  `processing_token` CHAR(36) NULL,
+  `processing_until` DATETIME NULL,
+  `next_attempt_at` DATETIME NULL,
+  UNIQUE KEY uq_email_event(event_key),
+  INDEX idx_email_meeting(meeting_id,id),
     `recipient_email` VARCHAR(150) NOT NULL,
     `recipient_name` VARCHAR(100) NULL,
-    `email_type` ENUM('APPROVED', 'REJECTED') NOT NULL,
+    `email_type` ENUM('APPROVED', 'REJECTED', 'MEETING_INVITE', 'MEETING_UPDATED', 'MEETING_CANCELLED', 'MEETING_REMINDER') NOT NULL,
     `subject` VARCHAR(255) NOT NULL,
     `status` ENUM('PENDING', 'RETRYING', 'SENT', 'FAILED') NOT NULL DEFAULT 'PENDING',
     `attempts` INT NOT NULL DEFAULT 0,
@@ -371,12 +381,12 @@ CREATE TABLE IF NOT EXISTS `final_report_recipients` (
 
 -- 23. LỊCH LÀM VIỆC, 24. GÁN LỊCH, 25. NGÀY NGHỈ VÀ 26. ĐƠN NGHỈ PHÉP
 CREATE TABLE IF NOT EXISTS `work_schedules` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `name` VARCHAR(150) NOT NULL UNIQUE, `description` TEXT NULL, `mode` ENUM('FIXED','FLEXIBLE') NOT NULL, `grace_minutes` INT NOT NULL DEFAULT 15, `min_daily_minutes` INT NULL, `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE IF NOT EXISTS `work_schedule_days` (`schedule_id` BIGINT NOT NULL, `weekday` TINYINT NOT NULL, `is_working` TINYINT(1) NOT NULL DEFAULT 0, `start_time` TIME NULL, `end_time` TIME NULL, PRIMARY KEY (`schedule_id`,`weekday`), CONSTRAINT `fk_work_schedule_day` FOREIGN KEY (`schedule_id`) REFERENCES `work_schedules`(`id`) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE IF NOT EXISTS `work_schedule_assignments` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `schedule_id` BIGINT NOT NULL, `target_type` ENUM('DEFAULT','UNIVERSITY','PROGRAM','MENTOR','INTERN') NOT NULL, `target_value` VARCHAR(255) NOT NULL DEFAULT '', `effective_from` DATE NOT NULL, `effective_to` DATE NULL, `created_by` BIGINT NULL, INDEX `idx_schedule_assignment_lookup` (`target_type`,`target_value`,`effective_from`,`effective_to`), UNIQUE KEY `uq_schedule_assignment_start` (`target_type`,`target_value`,`effective_from`), CONSTRAINT `fk_work_schedule_assignment` FOREIGN KEY (`schedule_id`) REFERENCES `work_schedules`(`id`) ON DELETE RESTRICT, CONSTRAINT `fk_work_schedule_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `work_schedule_days` (`schedule_id` BIGINT NOT NULL, `weekday` TINYINT NOT NULL, `is_working` TINYINT(1) NOT NULL DEFAULT 0, `start_time` TIME NULL, `end_time` TIME NULL, `work_type` VARCHAR(10) NOT NULL DEFAULT 'OFFLINE', PRIMARY KEY (`schedule_id`,`weekday`), CONSTRAINT `fk_work_schedule_day` FOREIGN KEY (`schedule_id`) REFERENCES `work_schedules`(`id`) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `work_schedule_assignments` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `schedule_id` BIGINT NOT NULL, `target_type` ENUM('DEFAULT','UNIVERSITY','PROGRAM','MENTOR','INTERN','GROUP') NOT NULL, `target_value` VARCHAR(255) NOT NULL DEFAULT '', `effective_from` DATE NOT NULL, `effective_to` DATE NULL, `created_by` BIGINT NULL, INDEX `idx_schedule_assignment_lookup` (`target_type`,`target_value`,`effective_from`,`effective_to`), UNIQUE KEY `uq_schedule_assignment_start` (`target_type`,`target_value`,`effective_from`), CONSTRAINT `fk_work_schedule_assignment` FOREIGN KEY (`schedule_id`) REFERENCES `work_schedules`(`id`) ON DELETE RESTRICT, CONSTRAINT `fk_work_schedule_creator` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE IF NOT EXISTS `work_holidays` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `holiday_date` DATE NOT NULL UNIQUE, `name` VARCHAR(255) NOT NULL, `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE IF NOT EXISTS `leave_requests` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `intern_id` BIGINT NOT NULL, `leave_type` ENUM('SICK','PERSONAL','EXAM','OTHER') NOT NULL, `from_date` DATE NOT NULL, `to_date` DATE NOT NULL, `reason` VARCHAR(500) NOT NULL, `status` ENUM('PENDING','APPROVED','REJECTED','CANCELLED') NOT NULL DEFAULT 'PENDING', `reviewed_by` BIGINT NULL, `reviewed_at` DATETIME NULL, `review_note` VARCHAR(500) NULL, `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, CONSTRAINT `fk_leave_intern` FOREIGN KEY (`intern_id`) REFERENCES `intern_profiles`(`id`) ON DELETE CASCADE, CONSTRAINT `fk_leave_reviewer` FOREIGN KEY (`reviewed_by`) REFERENCES `users`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ============================================================================== 
+-- ==============================================================================
 -- DỮ LIỆU MẪU BAN ĐẦU (SEED DATA)
 -- ==============================================================================
 
@@ -459,3 +469,126 @@ CREATE TABLE IF NOT EXISTS support_request_attachments (
   CONSTRAINT fk_support_attachment_request FOREIGN KEY (request_id) REFERENCES support_requests(id) ON DELETE CASCADE,
   CONSTRAINT fk_support_attachment_uploader FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- ===== Cấu trúc nhóm / lịch sử mentor / lịch sử đăng ký (quy tắc thiết kế 2,3,4,8) =====
+-- Đặt trước bảng meetings vì meetings.group_id tham chiếu program_groups.
+CREATE TABLE IF NOT EXISTS program_groups (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ program_id BIGINT NOT NULL,
+ name VARCHAR(150) NOT NULL,
+ description VARCHAR(500) NULL,
+ created_by BIGINT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_group_program_name (program_id, name),
+ UNIQUE KEY uq_group_id_program (id, program_id),
+ CONSTRAINT fk_group_program FOREIGN KEY (program_id) REFERENCES internship_programs(id) ON DELETE CASCADE,
+ CONSTRAINT fk_group_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS group_members (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ group_id BIGINT NOT NULL,
+ program_id BIGINT NOT NULL,
+ intern_id BIGINT NOT NULL,
+ is_primary TINYINT(1) NOT NULL DEFAULT 1,
+ joined_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+ left_at DATETIME(3) NULL,
+ assigned_by BIGINT NULL,
+ active_primary_key VARCHAR(48) GENERATED ALWAYS AS (IF(is_primary = 1 AND left_at IS NULL, CONCAT(program_id, '-', intern_id), NULL)) VIRTUAL,
+ active_member_key VARCHAR(48) GENERATED ALWAYS AS (IF(left_at IS NULL, CONCAT(group_id, '-', intern_id), NULL)) VIRTUAL,
+ UNIQUE KEY uq_group_primary_active (active_primary_key),
+ UNIQUE KEY uq_group_member_active (active_member_key),
+ INDEX idx_group_members_intern (intern_id, program_id),
+ INDEX idx_group_members_group (group_id, left_at),
+ CONSTRAINT fk_gm_group FOREIGN KEY (group_id, program_id) REFERENCES program_groups(id, program_id) ON DELETE CASCADE,
+ CONSTRAINT fk_gm_enrollment FOREIGN KEY (program_id, intern_id) REFERENCES program_interns(program_id, intern_id) ON DELETE CASCADE,
+ CONSTRAINT fk_gm_user FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL,
+ CONSTRAINT chk_gm_range CHECK (left_at IS NULL OR left_at >= joined_at)
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Mentor hỗ trợ của nhóm (mentor chính là intern_profiles.mentor_id của từng thực tập sinh).
+CREATE TABLE IF NOT EXISTS group_support_mentors (
+  group_id BIGINT NOT NULL,
+  mentor_id BIGINT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (group_id, mentor_id),
+  INDEX idx_gsm_mentor (mentor_id),
+  CONSTRAINT fk_gsm_group FOREIGN KEY (group_id) REFERENCES program_groups(id) ON DELETE CASCADE,
+  CONSTRAINT fk_gsm_mentor FOREIGN KEY (mentor_id) REFERENCES mentors(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS mentor_assignments (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ intern_id BIGINT NOT NULL,
+ mentor_id BIGINT NULL,
+ mentor_name VARCHAR(100) NULL,
+ program_id BIGINT NULL,
+ effective_from DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+ effective_to DATETIME(3) NULL,
+ assigned_by BIGINT NULL,
+ note VARCHAR(500) NULL,
+ open_key BIGINT GENERATED ALWAYS AS (IF(effective_to IS NULL, intern_id, NULL)) VIRTUAL,
+ UNIQUE KEY uq_mentor_assignment_open (open_key),
+ INDEX idx_ma_intern (intern_id, effective_from),
+ INDEX idx_ma_mentor (mentor_id, effective_to),
+ CONSTRAINT fk_ma_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
+ CONSTRAINT fk_ma_mentor FOREIGN KEY (mentor_id) REFERENCES mentors(id) ON DELETE SET NULL,
+ CONSTRAINT fk_ma_program FOREIGN KEY (program_id) REFERENCES internship_programs(id) ON DELETE SET NULL,
+ CONSTRAINT fk_ma_user FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL,
+ CONSTRAINT chk_ma_range CHECK (effective_to IS NULL OR effective_to >= effective_from)
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS program_intern_events (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ program_id BIGINT NOT NULL,
+ intern_id BIGINT NOT NULL,
+ event_type ENUM('ADDED','REMOVED','GROUP_JOINED','GROUP_LEFT') NOT NULL,
+ group_id BIGINT NULL,
+ detail VARCHAR(200) NULL,
+ actor_user_id BIGINT NULL,
+ created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+ INDEX idx_pie_program (program_id, created_at),
+ INDEX idx_pie_intern (intern_id, created_at),
+ CONSTRAINT fk_pie_program FOREIGN KEY (program_id) REFERENCES internship_programs(id) ON DELETE CASCADE,
+ CONSTRAINT fk_pie_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE,
+ CONSTRAINT fk_pie_user FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS meetings (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ title VARCHAR(200) NOT NULL, description TEXT NULL,
+ start_at DATETIME NOT NULL, end_at DATETIME NOT NULL,
+ location VARCHAR(255) NULL, meeting_link VARCHAR(1000) NULL,
+ organizer_user_id BIGINT NULL, program_id BIGINT NULL,
+ scope_type ENUM('INDIVIDUAL','PROGRAM','GROUP') NOT NULL DEFAULT 'INDIVIDUAL', group_id BIGINT NULL,
+ status ENUM('SCHEDULED','CANCELLED') NOT NULL DEFAULT 'SCHEDULED',
+ sequence INT UNSIGNED NOT NULL DEFAULT 0, request_key VARCHAR(64) NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_meeting_request (organizer_user_id,request_key),
+ INDEX idx_meeting_start_status (status,start_at),
+ CONSTRAINT fk_meeting_organizer FOREIGN KEY (organizer_user_id) REFERENCES users(id) ON DELETE SET NULL,
+ CONSTRAINT fk_meeting_program FOREIGN KEY (program_id) REFERENCES internship_programs(id) ON DELETE SET NULL,
+ CONSTRAINT fk_meeting_group FOREIGN KEY (group_id) REFERENCES program_groups(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS meeting_attendees (
+ meeting_id BIGINT NOT NULL, intern_id BIGINT NOT NULL,
+ PRIMARY KEY (meeting_id,intern_id), INDEX idx_meeting_attendee_intern(intern_id,meeting_id),
+ CONSTRAINT fk_meeting_attendee_meeting FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
+ CONSTRAINT fk_meeting_attendee_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS schedule_participants (
+ meeting_id BIGINT NOT NULL,
+ intern_id BIGINT NOT NULL,
+ participation ENUM('INCLUDE','EXCLUDE') NOT NULL DEFAULT 'INCLUDE',
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY (meeting_id, intern_id),
+ INDEX idx_sp_intern (intern_id),
+ CONSTRAINT fk_sp_meeting FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
+ CONSTRAINT fk_sp_intern FOREIGN KEY (intern_id) REFERENCES intern_profiles(id) ON DELETE CASCADE
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

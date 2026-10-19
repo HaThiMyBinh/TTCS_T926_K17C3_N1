@@ -1,6 +1,6 @@
 // Dọn tay dữ liệu test còn sót trong MySQL (không cần backend): node tests/cleanup_test_data.js
 // Chỉ xóa bản ghi có email bắt đầu bằng các tiền tố do chính các test sinh ra,
-// không đụng tới tài khoản demo và hồ sơ mẫu trong seed_data.sql.
+// không đụng tới tài khoản demo và hồ sơ mẫu được seed trong db.js.
 const { cleanupByPattern } = require("./test_helpers");
 
 // Tiền tố email theo từng file test; thêm dòng mới khi test mới tạo dữ liệu

@@ -370,7 +370,7 @@ async function main() {
         assert.ok(csv.filename.endsWith(".csv"));
 
         const content = csv.content;
-        // Kiểm tra các ô bắt đầu bằng =, +, -, @ được prefix dấu nháy đơn '
+        // Kiểm tra các ô bắt đầu bằng =, +, @ được prefix dấu nháy đơn '
         assert.ok(
           content.includes("\"'=cmd|' /C calc'!A0\""),
           "Chống CSV injection cho dấu =",
@@ -379,10 +379,7 @@ async function main() {
           content.includes('"\'+SUM(1,2)"'),
           "Chống CSV injection cho dấu +",
         );
-        assert.ok(
-          content.includes('"\'-123"'),
-          "Chống CSV injection cho dấu -",
-        );
+        assert.ok(content.includes('"-123"'), "Giữ nguyên số âm hợp lệ");
         assert.ok(
           content.includes('"\'@admin"'),
           "Chống CSV injection cho dấu @",

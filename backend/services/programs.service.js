@@ -43,17 +43,8 @@ function textLength(value) {
   return Array.from(value).length;
 }
 
-function parseId(raw) {
-  if (!/^[1-9]\d*$/.test(String(raw))) {
-    throw new HttpError(400, "Mã phải là số nguyên dương!");
-  }
-
-  const id = Number(raw);
-  if (!Number.isSafeInteger(id)) {
-    throw new HttpError(400, "Mã phải là số nguyên dương!");
-  }
-  return id;
-}
+const { parseId: parseIdWith } = require("../utils/ids");
+const parseId = (raw) => parseIdWith(raw, "Mã phải là số nguyên dương!");
 
 function validDate(value) {
   if (value == null || value === "") return true;
@@ -400,6 +391,7 @@ async function addInterns(rawId, body, user, deps = {}) {
       `Chương trình chỉ nhận tối đa ${result.capacity} thực tập sinh (hiện có ${result.current})!`,
     );
   await notifyInternsAdded(program, result.added, deps);
+  if (result.resync && result.resync.emails) kickMeetingEmails(deps);
   return { added: result.added.length, already: result.already };
 }
 
@@ -429,11 +421,26 @@ async function notifyInternsAdded(program, internIds, deps = {}) {
   }
 }
 
-async function removeIntern(rawId, rawInternId) {
+// Lịch họp theo phạm vi tự cập nhật khi thành viên đổi; gửi ngay email lời mời/hủy đã vào hàng đợi (không bao giờ ném lỗi).
+function kickMeetingEmails(deps = {}) {
+  try {
+    const dispatch =
+      deps.kickMeetingEmails ||
+      (() => require("./email/emailQueue").dispatchMeetingJobs());
+    Promise.resolve(dispatch()).catch((err) =>
+      console.error("[MEETING-OUTBOX]", err.message),
+    );
+  } catch (err) {
+    console.error("[MEETING-OUTBOX]", err.message);
+  }
+}
+
+async function removeIntern(rawId, rawInternId, user = null, deps = {}) {
   const id = parseId(rawId);
   const internId = parseId(rawInternId);
-  if (!(await db.removeProgramIntern(id, internId)))
+  if (!(await db.removeProgramIntern(id, internId, user && user.id)))
     throw new HttpError(404, "Thực tập sinh không thuộc chương trình này!");
+  kickMeetingEmails(deps);
   return null;
 }
 
@@ -527,7 +534,12 @@ async function assignMentor(rawId, body, deps = {}) {
         confirmed,
       );
   }
-  const result = await db.assignProgramInternsMentor(id, mentorId, internIds);
+  const result = await db.assignProgramInternsMentor(
+    id,
+    mentorId,
+    internIds,
+    { userId: deps.userId || null, note: deps.note || null },
+  );
   if (result.outcome === "MENTOR_NOT_FOUND")
     throw new HttpError(404, "Không tìm thấy mentor!");
   if (result.outcome === "NO_INTERNS")

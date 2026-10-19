@@ -1,4 +1,4 @@
-const { sendError } = require("./endpoint");
+const { sendError } = require("../utils/endpoint");
 const service = require("../services/programs.service");
 
 async function run(res, work, message, status = 200) {
@@ -87,7 +87,7 @@ function addInterns(req, res) {
 function removeIntern(req, res) {
   return run(
     res,
-    () => service.removeIntern(req.params.id, req.params.internId),
+    () => service.removeIntern(req.params.id, req.params.internId, req.user),
     "Đã gỡ thực tập sinh khỏi chương trình!",
   );
 }
@@ -95,7 +95,10 @@ function removeIntern(req, res) {
 function assignMentor(req, res) {
   return run(
     res,
-    () => service.assignMentor(req.params.id, req.body),
+    () =>
+      service.assignMentor(req.params.id, req.body, {
+        userId: req.user && req.user.id,
+      }),
     "Cập nhật phân công mentor cho chương trình thành công!",
   );
 }

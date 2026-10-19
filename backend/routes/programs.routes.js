@@ -1,4 +1,5 @@
 const express = require("express");
+const { noStore } = require("../middleware/noStore");
 const { requireRole } = require("../auth");
 const controller = require("../controllers/programs.controller");
 
@@ -7,10 +8,7 @@ const completion = require("../controllers/programCompletion.controller");
 const router = express.Router();
 router.put(
   "/programs/:id/interns/:internId/completion",
-  (req, res, next) => {
-    res.set("Cache-Control", "private, no-store");
-    next();
-  },
+  noStore,
   requireRole("HR"),
   checkPermission("VIEW_REPORTS"),
   completion.save,
@@ -28,9 +26,9 @@ router.delete(
   controller.removeDepartment,
 );
 
-router.get("/programs", requireRole("Admin", "HR"), controller.list);
+router.get("/programs", requireRole("HR"), controller.list);
 router.post("/programs", requireRole("HR"), controller.create);
-router.get("/programs/:id", requireRole("Admin", "HR"), controller.get);
+router.get("/programs/:id", requireRole("HR"), controller.get);
 router.put("/programs/:id", requireRole("HR"), controller.update);
 router.get("/programs/:id/interns", requireRole("HR"), controller.interns);
 router.get(

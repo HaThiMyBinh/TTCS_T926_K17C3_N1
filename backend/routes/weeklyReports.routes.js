@@ -1,13 +1,12 @@
 const express = require("express");
 const { requireRole } = require("../auth");
+const { internOnly } = require("../middleware/guards");
 const { checkPermission } = require("../middleware/permissions");
 const { handleMulterUpload } = require("../middleware/upload");
 const controller = require("../controllers/weeklyReports.controller");
 
 const router = express.Router();
 
-// Thực tập sinh nộp báo cáo tuần; quyền SUBMIT_WORK do Admin cấu hình.
-const internOnly = [requireRole("Intern"), checkPermission("SUBMIT_WORK")];
 
 router.put("/me/weekly-reports", ...internOnly, controller.submitMyReport);
 router.get("/me/weekly-reports", ...internOnly, controller.listMyReports);
